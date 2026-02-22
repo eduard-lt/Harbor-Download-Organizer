@@ -1,10 +1,12 @@
 use anyhow::Result;
 use native_windows_gui as nwg;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 mod logic;
-use logic::{load_initial_config, windows::utils::SingleInstance, TrayLogic};
+use logic::{
+    load_initial_config, open_config, open_folder, windows::utils::SingleInstance, TrayLogic,
+};
 
 #[derive(Default)]
 struct TrayState {
@@ -23,21 +25,6 @@ struct TrayState {
 fn show_menu(ui: &TrayState) {
     let (x, y) = nwg::GlobalCursor::position();
     ui.tray_menu.popup(x, y);
-}
-
-fn open_folder(path: &Path) {
-    if cfg!(windows) {
-        let _ = std::process::Command::new("explorer").arg(path).spawn();
-    }
-}
-
-fn open_config(path: &Path) {
-    if cfg!(windows) {
-        // Use default editor
-        let _ = std::process::Command::new("cmd")
-            .args(["/C", "start", "", path.to_str().unwrap_or("")])
-            .spawn();
-    }
 }
 
 fn main() -> Result<()> {

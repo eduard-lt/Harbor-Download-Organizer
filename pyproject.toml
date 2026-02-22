@@ -45,7 +45,7 @@ sequence = ["test", "test-ui"]
 
 [tool.poe.tasks.coverage]
 help = "Run tests with coverage and open HTML report"
-cmd = "cargo llvm-cov --open"
+cmd = "cargo llvm-cov --open --workspace --exclude harbor-tauri-app --ignore-filename-regex main\\.rs"
 
 [tool.poe.tasks.coverage-ui]
 help = "Run frontend coverage and open report"

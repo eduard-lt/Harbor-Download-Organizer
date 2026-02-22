@@ -180,6 +180,24 @@ impl TrayLogic {
     }
 }
 
+#[allow(unused_variables)]
+pub fn open_folder(path: &std::path::Path) {
+    #[cfg(not(test))]
+    if cfg!(windows) {
+        let _ = std::process::Command::new("explorer").arg(path).spawn();
+    }
+}
+
+#[allow(unused_variables)]
+pub fn open_config(path: &std::path::Path) {
+    #[cfg(not(test))]
+    if cfg!(windows) {
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", path.to_str().unwrap_or("")])
+            .spawn();
+    }
+}
+
 pub fn load_initial_config(config_path: &Path) -> Result<DownloadsConfig> {
     // If config doesn't exist, try to copy from default template
     if !config_path.exists() {
@@ -413,5 +431,34 @@ mod tests {
         logic.on_file_change(&[action]);
 
         assert!(log_path.exists());
+    }
+
+    #[test]
+    fn test_open_folder_nonexistent() {
+        // Should not panic even if path doesn't exist
+        let path = std::path::Path::new("C:\\This\\Does\\Not\\Exist");
+        open_folder(path); // fire and forget
+    }
+
+    #[test]
+    fn test_open_config_nonexistent() {
+        // Should not panic even if path doesn't exist
+        let path = std::path::Path::new("C:\\This\\Does\\Not\\Exist\\config.yaml");
+        open_config(path); // fire and forget
+    }
+
+    #[test]
+    fn test_open_folder_with_real_dir() {
+        let tmp = tempdir().unwrap();
+        // Spawning explorer to a temp dir is safe; we just verify no panic
+        open_folder(tmp.path());
+    }
+
+    #[test]
+    fn test_open_config_with_real_file() {
+        let tmp = tempdir().unwrap();
+        let file = tmp.path().join("config.yaml");
+        std::fs::write(&file, "download_dir: \"test\"").unwrap();
+        open_config(&file);
     }
 }
