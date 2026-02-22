@@ -1,0 +1,283 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ============================================================================
+  # Format Check
+  # ============================================================================
+  format:
+    name: Format Check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  # ============================================================================
+  # Clippy Linting
+  # ============================================================================
+  clippy:
+    name: Clippy Lints
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-clippy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-clippy-
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        working-directory: packages/ui
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: packages/ui
+        run: npm run build
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # ============================================================================
+  # Frontend Tests
+  # ============================================================================
+  frontend-test:
+    name: Frontend Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        working-directory: packages/ui
+        run: npm install
+
+      - name: Run Tests
+        working-directory: packages/ui
+        run: npm run test -- --run
+
+
+  # ============================================================================
+  # Tests
+  # ============================================================================
+  test:
+    name: Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-test-
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        working-directory: packages/ui
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: packages/ui
+        run: npm run build
+
+      - name: Run tests
+        run: cargo test --all --verbose
+
+      - name: Run tests with all features
+        run: cargo test --all --all-features --verbose
+
+  # ============================================================================
+  # Build Check
+  # ============================================================================
+  build:
+    name: Build Check
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        profile: [debug, release]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ matrix.profile }}-
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        working-directory: packages/ui
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: packages/ui
+        run: npm run build
+
+      - name: Build (debug)
+        if: matrix.profile == 'debug'
+        run: cargo build --all --verbose
+
+      - name: Build (release)
+        if: matrix.profile == 'release'
+        run: cargo build --all --release --verbose
+
+      - name: Check binary sizes (release only)
+        if: matrix.profile == 'release'
+        run: |
+          if (Test-Path target/release/harbor-cli.exe) {
+            $size = (Get-Item target/release/harbor-cli.exe).Length / 1MB
+            Write-Host "harbor-cli.exe: $([math]::Round($size, 2)) MB"
+          }
+          if (Test-Path target/release/harbor-tray.exe) {
+            $size = (Get-Item target/release/harbor-tray.exe).Length / 1MB
+            Write-Host "harbor-tray.exe: $([math]::Round($size, 2)) MB"
+          }
+
+  # ============================================================================
+  # Security Audit
+  # ============================================================================
+  audit:
+    name: Security Audit
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: cargo audit
+
+  # ============================================================================
+  # Check All Jobs Passed
+  # ============================================================================
+  ci-success:
+    name: CI Success
+    needs: [format, clippy, test, frontend-test, build, audit]
+    runs-on: windows-latest
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          $failed = @()
+          if ("${{ needs.format.result }}" -ne "success") { $failed += "format" }
+          if ("${{ needs.clippy.result }}" -ne "success") { $failed += "clippy" }
+          if ("${{ needs.test.result }}" -ne "success") { $failed += "test" }
+          if ("${{ needs.frontend-test.result }}" -ne "success") { $failed += "frontend-test" }
+          if ("${{ needs.build.result }}" -ne "success") { $failed += "build" }
+          if ("${{ needs.audit.result }}" -ne "success") { $failed += "audit" }
+          
+          if ($failed.Count -gt 0) {
+            Write-Host "❌ Failed jobs: $($failed -join ', ')"
+            exit 1
+          } else {
+            Write-Host "✅ All CI checks passed!"
+          }

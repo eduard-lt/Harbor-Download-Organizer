@@ -1,0 +1,88 @@
+    Checking harbor-tray v1.2.3 (C:\Users\eduard\Documents\github\Harbor\crates\tray)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `chrono`
+   --> crates\tray\src\main.rs:151:33
+    |
+151 |                 let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+    |                                 ^^^^^^ use of unresolved module or unlinked crate `chrono`
+    |
+    = help: if you wanted to use a crate named `chrono`, use `cargo add chrono` to add it to your `Cargo.toml`
+
+error[E0277]: the trait bound `ControlHandle: From<&()>` is not satisfied
+   --> crates\tray\src\main.rs:261:17
+    |
+261 |         .parent(&window)
+    |          ------ ^^^^^^^ the trait `From<&()>` is not implemented for `ControlHandle`
+    |          |
+    |          required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `From<T>`:
+              `ControlHandle` implements `From<&AnimationTimer>`
+              `ControlHandle` implements `From<&Button>`
+              `ControlHandle` implements `From<&CheckBox>`
+              `ControlHandle` implements `From<&ComboBox<D>>`
+              `ControlHandle` implements `From<&ControlHandle>`
+              `ControlHandle` implements `From<&DatePicker>`
+              `ControlHandle` implements `From<&ExternCanvas>`
+              `ControlHandle` implements `From<&Frame>`
+            and 59 others
+    = note: required for `&()` to implement `Into<ControlHandle>`
+note: required by a bound in `TrayNotificationBuilder::<'a>::parent`
+   --> C:\Users\eduard\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\native-windows-gui-1.0.13\src\controls\tray_notification.rs:277:22
+    |
+277 |     pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> TrayNotificationBuilder<'a> {
+    |                      ^^^^^^^^^^^^^^^^^^^ required by this bound in `TrayNotificationBuilder::<'a>::parent`
+
+error[E0308]: mismatched types
+   --> crates\tray\src\main.rs:263:14
+    |
+263 |         .tip("Harbor")
+    |          --- ^^^^^^^^ expected `Option<&str>`, found `&str`
+    |          |
+    |          arguments to this method are incorrect
+    |
+    = note:   expected enum `Option<&str>`
+            found reference `&'static str`
+note: method defined here
+   --> C:\Users\eduard\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\native-windows-gui-1.0.13\src\controls\tray_notification.rs:315:12
+    |
+315 |     pub fn tip(mut self, tip: Option<&'a str>) -> TrayNotificationBuilder<'a> {
+    |            ^^^
+help: try wrapping the expression in `Some`
+    |
+263 |         .tip(Some("Harbor"))
+    |              +++++        +
+
+error[E0277]: the trait bound `ControlHandle: From<&()>` is not satisfied
+   --> crates\tray\src\main.rs:269:17
+    |
+269 |         .parent(&window)
+    |          ------ ^^^^^^^ the trait `From<&()>` is not implemented for `ControlHandle`
+    |          |
+    |          required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `From<T>`:
+              `ControlHandle` implements `From<&AnimationTimer>`
+              `ControlHandle` implements `From<&Button>`
+              `ControlHandle` implements `From<&CheckBox>`
+              `ControlHandle` implements `From<&ComboBox<D>>`
+              `ControlHandle` implements `From<&ControlHandle>`
+              `ControlHandle` implements `From<&DatePicker>`
+              `ControlHandle` implements `From<&ExternCanvas>`
+              `ControlHandle` implements `From<&Frame>`
+            and 59 others
+    = note: required for `&()` to implement `Into<ControlHandle>`
+note: required by a bound in `MenuBuilder::<'a>::parent`
+   --> C:\Users\eduard\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\native-windows-gui-1.0.13\src\controls\menu.rs:198:22
+    |
+198 |     pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> MenuBuilder<'a> {
+    |                      ^^^^^^^^^^^^^^^^^^^ required by this bound in `MenuBuilder::<'a>::parent`
+
+error[E0308]: mismatched types
+   --> crates\tray\src\main.rs:316:9
+    |
+316 |         window,
+    |         ^^^^^^ expected `Window`, found `()`
+
+Some errors have detailed explanations: E0277, E0308, E0433.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `harbor-tray` (bin "harbor-tray") due to 5 previous errors

@@ -1,0 +1,8 @@
+[workspace]
+members = ["crates/core", "crates/cli", "crates/tray", "crates/tauri-app"]
+resolver = "2"
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["Eduard Olteanu"]

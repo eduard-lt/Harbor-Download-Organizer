@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Harbor",
+  "version": "1.0.0",
+  "identifier": "com.harbor.app",
+  "build": {
+    "beforeBuildCommand": "npm run build --prefix ../packages/ui",
+    "beforeDevCommand": "npm run dev --prefix ../packages/ui",
+    "devUrl": null,
+    "frontendDist": "../../packages/ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Harbor",
+        "maxHeight": 1080,
+        "width": 1920,
+        "height": 1080,
+        "minWidth": 1200,
+        "minHeight": 800,
+        "resizable": false,
+        "visible": false,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' https://api.github.com; img-src 'self' asset: https://asset.localhost data:; style-src 'self' 'unsafe-inline'; font-src 'self' asset: https://asset.localhost;",
+      "capabilities": [
+        "main"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "msi",
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    }
+  }
+}

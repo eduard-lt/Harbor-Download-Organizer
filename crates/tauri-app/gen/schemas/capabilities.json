@@ -1,0 +1,1 @@
+{"main":{"identifier":"main","description":"Main capability","local":true,"windows":["*"],"permissions":["core:default","core:window:allow-set-size","core:window:allow-center","dialog:default","shell:allow-open","notification:default"]}}

@@ -1,0 +1,11 @@
+services:
+  - name: web
+    command: "node server.js"
+    cwd: "."
+    depends_on: []
+    health_check:
+      kind: http
+      url: "http://localhost:3000/health"
+      timeout_ms: 5000
+      retries: 3
+

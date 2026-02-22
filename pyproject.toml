@@ -1,0 +1,124 @@
+[project]
+name = "harbor"
+version = "1.0.0"
+description = "Harbor specific tasks"
+
+# ============================================================================
+# BUILD & RELEASE TASKS
+# ============================================================================
+
+[tool.poe.tasks.build]
+help = "Build release binaries and installer (via Tauri)"
+cmd = "npm run tauri:build --prefix packages/ui"
+
+[tool.poe.tasks.build-debug]
+help = "Build debug binaries"
+cmd = "npm run tauri:build --prefix packages/ui -- --debug"
+
+[tool.poe.tasks.clean]
+help = "Remove build artifacts"
+cmd = "cargo clean"
+
+[tool.poe.tasks.clean-startup]
+help = "Remove ghost startup entries (e.g. from debug builds)"
+cmd = "powershell -ExecutionPolicy Bypass -File tools/cleanup.ps1"
+
+# ============================================================================
+# DEVELOPMENT TASKS
+# ============================================================================
+
+[tool.poe.tasks.dev]
+help = "Start development server (Hot Reload)"
+cmd = "npm run tauri:dev --prefix packages/ui"
+
+[tool.poe.tasks.test]
+help = "Run unit tests"
+cmd = "cargo test"
+
+[tool.poe.tasks.coverage]
+help = "Run tests with coverage and open HTML report"
+cmd = "cargo llvm-cov --open"
+
+[tool.poe.tasks.install-coverage-tools]
+help = "Install cargo-llvm-cov"
+cmd = "cargo install cargo-llvm-cov"
+
+# ============================================================================
+# LEGACY / ALIAS TASKS
+# ============================================================================
+
+[tool.poe.tasks.msi]
+help = "Alias for build"
+sequence = ["build"]
+
+[tool.poe.tasks.release]
+help = "Alias for build"
+sequence = ["build"]
+
+# ============================================================================
+# VERSION MANAGEMENT TASKS
+# ============================================================================
+
+[tool.poe.tasks.version]
+help = "Show current version"
+cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 show"
+
+[tool.poe.tasks.bump-patch]
+help = "Bump patch version (1.0.0 -> 1.0.1)"
+cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-patch"
+
+[tool.poe.tasks.bump-minor]
+help = "Bump minor version (1.0.0 -> 1.1.0)"
+cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-minor"
+
+[tool.poe.tasks.bump-major]
+help = "Bump major version (1.0.0 -> 2.0.0)"
+cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-major"
+
+[tool.poe.tasks.git-release]
+help = "Create git tag and push for current version"
+cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 git-release"
+
+# ============================================================================
+# DEPENDENCY MANAGEMENT
+# ============================================================================
+
+[tool.poe.tasks.deps-update]
+help = "Update dependencies"
+cmd = "cargo update"
+
+[tool.poe.tasks.deps-outdated]
+help = "Check for outdated dependencies (requires cargo-outdated)"
+cmd = "cargo outdated"
+
+[tool.poe.tasks.deps-tree]
+help = "Show dependency tree"
+cmd = "cargo tree"
+
+# ============================================================================
+# UTILITY TASKS
+# ============================================================================
+
+[tool.poe.tasks.install-dev-tools]
+help = "Install development tools (cargo-watch, cargo-outdated, etc.)"
+shell = """
+cargo install cargo-watch
+cargo install cargo-outdated
+echo "Development tools installed successfully!"
+"""
+
+[tool.poe.tasks.size]
+help = "Show binary sizes"
+shell = """
+if (Test-Path target/release/harbor-cli.exe) {
+    Write-Host "harbor-cli.exe: $((Get-Item target/release/harbor-cli.exe).Length / 1MB) MB"
+}
+if (Test-Path target/release/harbor-tray.exe) {
+    Write-Host "harbor-tray.exe: $((Get-Item target/release/harbor-tray.exe).Length / 1MB) MB"
+}
+"""
+interpreter = "powershell"
+
+[tool.poe.tasks.list]
+help = "List all available tasks"
+cmd = "poe"

@@ -1,0 +1,17 @@
+[package]
+name = "harbor-tray"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = "1.0.91"
+native-windows-gui = "1.0.13"
+harbor-core = { path = "../core" }
+serde_yaml = "0.9.34"
+windows = { version = "0.58", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
+chrono = "0.4"
+
+
+[dev-dependencies]
+tempfile = "3.10"
