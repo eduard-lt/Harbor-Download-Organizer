@@ -45,6 +45,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     // Load settings from backend on mount
     useEffect(() => {
         const loadSettings = async () => {
+            setUpdateState(prev => ({ ...prev, loading: true }));
             try {
                 const [enabled, version] = await Promise.all([
                     getCheckUpdates(),
@@ -53,9 +54,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 setCheckForUpdatesState(enabled);
                 setLastNotifiedVersionState(version);
                 setIsLoaded(true);
+                setUpdateState(prev => ({ ...prev, loading: false }));
             } catch (error) {
                 console.error('Failed to load update settings:', error);
                 setIsLoaded(true);
+                setUpdateState(prev => ({ ...prev, loading: false }));
             }
         };
         loadSettings();

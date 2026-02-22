@@ -13,7 +13,7 @@ vi.mock('../../package.json', () => ({
 vi.mock('../lib/tauri', () => ({
     getCheckUpdates: vi.fn().mockResolvedValue(true),
     setCheckUpdates: vi.fn().mockResolvedValue(undefined),
-    getLastNotifiedVersion: vi.fn().mockResolvedValue(null),
+    getLastNotifiedVersion: vi.fn().mockResolvedValue('1.2.0'),
     setLastNotifiedVersion: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -59,13 +59,18 @@ describe('useUpdateCheck', () => {
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
+        // Wait for potential auto-check to finish
+        await waitFor(() => {
+            expect(result.current.updateState.loading).toBe(false);
+        });
+
         await act(async () => {
             await result.current.checkNow();
         });
 
         expect(result.current.updateState.loading).toBe(false);
         expect(result.current.updateState.available).toBe(true);
-        expect(result.current.updateState.version).toBe('v1.2.1');
+        expect(result.current.updateState.version).toBe('1.2.1');
         expect(result.current.updateState.url).toBe(mockRelease.html_url);
     });
 
@@ -82,6 +87,10 @@ describe('useUpdateCheck', () => {
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
+        await waitFor(() => {
+            expect(result.current.updateState.loading).toBe(false);
+        });
+
         await act(async () => {
             await result.current.checkNow();
         });
@@ -90,8 +99,6 @@ describe('useUpdateCheck', () => {
     });
 
     it('should not show notification if already dismissed for this version', async () => {
-        localStorage.setItem('harbor_last_notified_version', 'v1.2.1');
-
         const mockRelease = {
             tag_name: 'v1.2.1',
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.1',
@@ -102,18 +109,30 @@ describe('useUpdateCheck', () => {
             json: async () => mockRelease,
         });
 
+        // Set last notified to the version we're about to "find"
+        const { getLastNotifiedVersion } = await import('../lib/tauri');
+        (getLastNotifiedVersion as any).mockResolvedValue('1.2.1');
+
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
         await waitFor(() => {
             expect(result.current.updateState.loading).toBe(false);
         });
 
-        // Should still be available (red dot), but NO notification toast
+        await act(async () => {
+            await result.current.checkNow();
+        });
+
+        // Should still be available (red dot)
         expect(result.current.updateState.available).toBe(true);
     });
 
     it('should toggle update checks', async () => {
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+
+        await waitFor(() => {
+            expect(result.current.updateState.loading).toBe(false);
+        });
 
         expect(result.current.checkForUpdates).toBe(true);
 
