@@ -35,9 +35,22 @@ cmd = "npm run tauri:dev --prefix packages/ui"
 help = "Run unit tests"
 cmd = "cargo test"
 
+[tool.poe.tasks.test-ui]
+help = "Run frontend unit tests"
+cmd = "npm run test --prefix packages/ui -- --run"
+
+[tool.poe.tasks.test-all]
+help = "Run both backend and frontend tests"
+sequence = ["test", "test-ui"]
+
 [tool.poe.tasks.coverage]
 help = "Run tests with coverage and open HTML report"
 cmd = "cargo llvm-cov --open"
+
+[tool.poe.tasks.coverage-ui]
+help = "Run frontend coverage and open report"
+shell = "npm run coverage --prefix packages/ui; if ($LastExitCode -eq 0) { start packages/ui/coverage/index.html }"
+interpreter = "powershell"
 
 [tool.poe.tasks.install-coverage-tools]
 help = "Install cargo-llvm-cov"
@@ -100,11 +113,12 @@ cmd = "cargo tree"
 # ============================================================================
 
 [tool.poe.tasks.install-dev-tools]
-help = "Install development tools (cargo-watch, cargo-outdated, etc.)"
+help = "Install development tools (cargo-watch, cargo-outdated, npm deps, etc.)"
 shell = """
 cargo install cargo-watch
 cargo install cargo-outdated
-echo "Development tools installed successfully!"
+npm install --prefix packages/ui
+echo "Development tools and dependencies installed successfully!"
 """
 
 [tool.poe.tasks.size]

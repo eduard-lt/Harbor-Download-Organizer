@@ -3,31 +3,38 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useUpdateCheck } from './useUpdateCheck';
 import { UpdateProvider } from '../context/UpdateContext';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as tauri from '../lib/tauri';
+import * as notifications from '@tauri-apps/plugin-notification';
 
 // Mock package.json
 vi.mock('../../package.json', () => ({
     default: { version: '1.2.0' },
 }));
 
-// Mock Tauri commands
-vi.mock('../lib/tauri', () => ({
-    getCheckUpdates: vi.fn().mockResolvedValue(true),
-    setCheckUpdates: vi.fn().mockResolvedValue(undefined),
-    getLastNotifiedVersion: vi.fn().mockResolvedValue('1.2.0'),
-    setLastNotifiedVersion: vi.fn().mockResolvedValue(undefined),
-}));
+// Mock Tauri commands - Auto-mocking
+vi.mock('../lib/tauri');
 
-// Mock Notification plugin
-vi.mock('@tauri-apps/plugin-notification', () => ({
-    isPermissionGranted: vi.fn().mockResolvedValue(true),
-    requestPermission: vi.fn().mockResolvedValue('granted'),
-    sendNotification: vi.fn(),
-}));
+// Mock Notification plugin - Auto-mocking
+vi.mock('@tauri-apps/plugin-notification');
 
 describe('useUpdateCheck', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        global.fetch = vi.fn();
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 404,
+            json: async () => ({}),
+        });
+
+        // Setup default mocks explicitly in beforeEach to ensure fresh state
+        vi.mocked(tauri.getCheckUpdates).mockResolvedValue(true);
+        vi.mocked(tauri.setCheckUpdates).mockResolvedValue(undefined);
+        vi.mocked(tauri.getLastNotifiedVersion).mockResolvedValue('1.2.0');
+        vi.mocked(tauri.setLastNotifiedVersion).mockResolvedValue(undefined);
+
+        vi.mocked(notifications.isPermissionGranted).mockResolvedValue(true);
+        vi.mocked(notifications.requestPermission).mockResolvedValue('granted');
+        vi.mocked(notifications.sendNotification).mockReturnValue(undefined as any);
     });
 
     afterEach(() => {
@@ -40,8 +47,11 @@ describe('useUpdateCheck', () => {
     it('should initialize with defaults', async () => {
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
-        // Initial state
-        expect(result.current.updateState.loading).toBe(false);
+        // Wait for initial loadSettings to complete
+        await waitFor(() => {
+            expect(result.current.updateState.loading).toBe(false);
+        });
+
         expect(result.current.updateState.available).toBe(false);
         expect(result.current.checkForUpdates).toBe(true);
     });
@@ -59,7 +69,7 @@ describe('useUpdateCheck', () => {
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
-        // Wait for potential auto-check to finish
+        // Wait for initial load
         await waitFor(() => {
             expect(result.current.updateState.loading).toBe(false);
         });
@@ -110,8 +120,7 @@ describe('useUpdateCheck', () => {
         });
 
         // Set last notified to the version we're about to "find"
-        const { getLastNotifiedVersion } = await import('../lib/tauri');
-        (getLastNotifiedVersion as any).mockResolvedValue('1.2.1');
+        vi.mocked(tauri.getLastNotifiedVersion).mockResolvedValue('1.2.1');
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
@@ -134,6 +143,7 @@ describe('useUpdateCheck', () => {
             expect(result.current.updateState.loading).toBe(false);
         });
 
+        // Verify initial state from mock (getCheckUpdates returns true)
         expect(result.current.checkForUpdates).toBe(true);
 
         await act(async () => {

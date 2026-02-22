@@ -190,12 +190,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
     return (
         <UpdateContext.Provider value={{
-            checkForUpdates,
-            setCheckForUpdates,
-            lastNotifiedVersion,
-            checkNow,
-            dismissNotification,
-            updateState
+            checkForUpdates: checkForUpdates,
+            setCheckForUpdates: setCheckForUpdates,
+            lastNotifiedVersion: lastNotifiedVersion,
+            checkNow: checkNow,
+            dismissNotification: dismissNotification,
+            updateState: updateState
         }}>
             {children}
         </UpdateContext.Provider>
