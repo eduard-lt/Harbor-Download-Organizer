@@ -93,10 +93,7 @@ describe('Sidebar', () => {
         localStorage.setItem('harbor-service-coach', 'true');
         const { container } = renderSidebar();
         // Coach mark tooltip should appear
-        const coachMark = container.querySelector('[class*="coach"]') ||
-            screen.queryByText(/toggle the service/i);
-        // Either the coach mark exists or the state is not shown (ok)
-        expect(container).toBeTruthy();
+        expect(container.querySelector('[class*="coach"]') || screen.queryByText(/toggle the service/i)).toBeTruthy();
     });
 
     it('opens GitHub link when GitHub button is clicked', () => {

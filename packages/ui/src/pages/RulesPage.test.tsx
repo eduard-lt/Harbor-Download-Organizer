@@ -100,7 +100,7 @@ describe('RulesPage', () => {
 
     it('opens edit modal when edit button is clicked', () => {
         render(<RulesPage />);
-        const editBtn = screen.getByTitle ? screen.getAllByRole('button').find(b => b.querySelector('.material-icons-round')?.textContent === 'edit') : null;
+        const editBtn = screen.getAllByRole('button').find(b => b.querySelector('.material-icons-round')?.textContent === 'edit');
         if (editBtn) {
             fireEvent.click(editBtn);
             expect(screen.getByText('Edit Rule')).toBeInTheDocument();
