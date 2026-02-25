@@ -236,6 +236,7 @@ fn is_partial(name: &str) -> bool {
         || lower.ends_with(".part")
         || lower.ends_with(".tmp")
         || lower.ends_with(".download")
+        || lower.ends_with(".opdownload")
 }
 
 fn matches_rule(path: &Path, meta: &fs::Metadata, rule: &Rule) -> bool {
@@ -328,6 +329,28 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             if is_partial(name) {
                 continue;
             }
+            
+            // Check for corresponding partial files. Browsers often create the target file
+            // as a placeholder while downloading into a temporary (.part, .crdownload, etc.) file.
+            let part_path = path.with_file_name(format!("{}.part", name));
+            let cr_path = path.with_file_name(format!("{}.crdownload", name));
+            let tmp_path = path.with_file_name(format!("{}.tmp", name));
+            let dl_path = path.with_file_name(format!("{}.download", name));
+            let op_path = path.with_file_name(format!("{}.opdownload", name));
+            
+            if part_path.exists()
+                || cr_path.exists()
+                || tmp_path.exists()
+                || dl_path.exists()
+                || op_path.exists()
+            {
+                continue;
+            }
+        }
+
+        // Ensure we don't move 0-byte placeholders created by browsers
+        if meta.len() == 0 {
+            continue;
         }
         if let Ok(modified) = meta.modified() {
             if SystemTime::now()
@@ -358,8 +381,10 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             }
         }
         if let Some((rule, target)) = applied {
-            fs::rename(&path, &target)
-                .with_context(|| format!("move {} -> {}", path.display(), target.display()))?;
+            if let Err(e) = fs::rename(&path, &target) {
+                eprintln!("Failed to move {} to {}: {}", path.display(), target.display(), e);
+                continue;
+            }
 
             let mut symlink_info = None;
             if rule.create_symlink.unwrap_or(false) {
