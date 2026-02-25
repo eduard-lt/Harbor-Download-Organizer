@@ -2,6 +2,7 @@ import { open } from '@tauri-apps/plugin-shell';
 import { Header } from '../components/Header';
 import { useState } from 'react';
 import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import packageJson from '../../package.json';
 
 // ... inside component ...
 
@@ -140,7 +141,7 @@ export function InfoPage() {
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-12">
                         <img src="/harbor.svg" alt="Logo" className="w-24 h-24 mx-auto mb-6" />
                         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Harbor</h2>
-                        <p className="text-slate-500 mb-8">Version 1.0.1</p>
+                        <p className="text-slate-500 mb-8">Version {packageJson.version}</p>
 
                         <p className="max-w-lg mx-auto text-slate-600 dark:text-slate-400 mb-8">
                             Harbor is a free, open-source utility designed to keep your digital life organized.

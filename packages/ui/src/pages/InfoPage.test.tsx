@@ -14,6 +14,7 @@ vi.mock('@tauri-apps/plugin-shell', () => ({
 }));
 
 import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import packageJson from '../../package.json';
 
 const baseUpdateState = {
     available: false, hasUpdate: false, version: null, url: null,
@@ -49,7 +50,7 @@ describe('InfoPage', () => {
         render(<InfoPage />);
         fireEvent.click(screen.getByText('About'));
         expect(screen.getByText('Harbor')).toBeInTheDocument();
-        expect(screen.getByText(/Version 1\.0\.0/)).toBeInTheDocument();
+        expect(screen.getByText(new RegExp(`Version ${packageJson.version}`))).toBeInTheDocument();
     });
 
     it('can switch back to User Guide from About tab', () => {

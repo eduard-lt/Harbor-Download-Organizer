@@ -329,7 +329,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             if is_partial(name) {
                 continue;
             }
-            
+
             // Check for corresponding partial files. Browsers often create the target file
             // as a placeholder while downloading into a temporary (.part, .crdownload, etc.) file.
             let part_path = path.with_file_name(format!("{}.part", name));
@@ -337,7 +337,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             let tmp_path = path.with_file_name(format!("{}.tmp", name));
             let dl_path = path.with_file_name(format!("{}.download", name));
             let op_path = path.with_file_name(format!("{}.opdownload", name));
-            
+
             if part_path.exists()
                 || cr_path.exists()
                 || tmp_path.exists()
@@ -382,7 +382,12 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
         }
         if let Some((rule, target)) = applied {
             if let Err(e) = fs::rename(&path, &target) {
-                eprintln!("Failed to move {} to {}: {}", path.display(), target.display(), e);
+                eprintln!(
+                    "Failed to move {} to {}: {}",
+                    path.display(),
+                    target.display(),
+                    e
+                );
                 continue;
             }
 
