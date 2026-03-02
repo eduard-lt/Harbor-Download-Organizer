@@ -4,7 +4,7 @@ import packageJson from '../../package.json';
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { getCheckUpdates, setCheckUpdates, getLastNotifiedVersion, setLastNotifiedVersion } from '../lib/tauri';
 
-const GITHUB_REPO = 'eduard-lt/Harbor';
+const GITHUB_REPO = 'eduard-lt/Harbor-Download-Organizer';
 
 interface UpdateState {
     available: boolean;
