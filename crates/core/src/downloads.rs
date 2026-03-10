@@ -353,8 +353,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
     let mut actions = Vec::new();
 
     // Pre-compile each rule's regex pattern once for this pass.
-    let compiled_rules: Vec<CompiledRule<'_>> =
-        cfg.rules.iter().map(CompiledRule::new).collect();
+    let compiled_rules: Vec<CompiledRule<'_>> = cfg.rules.iter().map(CompiledRule::new).collect();
 
     for entry in fs::read_dir(&base).with_context(|| format!("list {}", base.display()))? {
         let entry = entry?;
@@ -615,7 +614,11 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(matches_rule(&file_path, &meta, &CompiledRule::new(&rule_ext)));
+        assert!(matches_rule(
+            &file_path,
+            &meta,
+            &CompiledRule::new(&rule_ext)
+        ));
 
         let rule_pat = Rule {
             id: "pat-rule".to_string(),
@@ -628,7 +631,11 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(matches_rule(&file_path, &meta, &CompiledRule::new(&rule_pat)));
+        assert!(matches_rule(
+            &file_path,
+            &meta,
+            &CompiledRule::new(&rule_pat)
+        ));
 
         let rule_size = Rule {
             id: "size-rule".to_string(),
@@ -641,7 +648,11 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(matches_rule(&file_path, &meta, &CompiledRule::new(&rule_size)));
+        assert!(matches_rule(
+            &file_path,
+            &meta,
+            &CompiledRule::new(&rule_size)
+        ));
 
         let rule_fail = Rule {
             id: "fail-rule".to_string(),
@@ -654,7 +665,11 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(!matches_rule(&file_path, &meta, &CompiledRule::new(&rule_fail)));
+        assert!(!matches_rule(
+            &file_path,
+            &meta,
+            &CompiledRule::new(&rule_fail)
+        ));
 
         // Invalid regex must NOT silently match — it should be skipped (false).
         let rule_bad_re = Rule {
@@ -668,7 +683,11 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(!matches_rule(&file_path, &meta, &CompiledRule::new(&rule_bad_re)));
+        assert!(!matches_rule(
+            &file_path,
+            &meta,
+            &CompiledRule::new(&rule_bad_re)
+        ));
     }
 
     #[test]

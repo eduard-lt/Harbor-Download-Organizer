@@ -467,7 +467,10 @@ mod tests {
         assert!(content.contains("src/b.txt -> dst/b.txt (Docs) Symlinked"));
         // Verify timestamp prefix is present on every non-empty line.
         for line in content.lines().filter(|l| !l.is_empty()) {
-            assert!(line.starts_with('['), "expected timestamp prefix on: {line}");
+            assert!(
+                line.starts_with('['),
+                "expected timestamp prefix on: {line}"
+            );
         }
     }
 

@@ -572,7 +572,8 @@ mod tests {
         assert!(rules.is_empty());
 
         // Delete non-existent UUID
-        let res = impl_delete_rule(&state, "00000000-0000-0000-0000-000000000000".to_string()).await;
+        let res =
+            impl_delete_rule(&state, "00000000-0000-0000-0000-000000000000".to_string()).await;
         assert!(res.is_err());
     }
 
@@ -606,15 +607,45 @@ mod tests {
     async fn test_reorder_rules() {
         let (state, _tmp) = create_test_state();
 
-        let a = impl_create_rule(&state, "A".into(), vec![], "".into(), None, None, None, None, None)
-            .await
-            .unwrap();
-        let b = impl_create_rule(&state, "B".into(), vec![], "".into(), None, None, None, None, None)
-            .await
-            .unwrap();
-        let c = impl_create_rule(&state, "C".into(), vec![], "".into(), None, None, None, None, None)
-            .await
-            .unwrap();
+        let a = impl_create_rule(
+            &state,
+            "A".into(),
+            vec![],
+            "".into(),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        let b = impl_create_rule(
+            &state,
+            "B".into(),
+            vec![],
+            "".into(),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        let c = impl_create_rule(
+            &state,
+            "C".into(),
+            vec![],
+            "".into(),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap();
 
         // Reorder by UUID: C, A, B
         let order = vec![c.id.clone(), a.id.clone(), b.id.clone()];
