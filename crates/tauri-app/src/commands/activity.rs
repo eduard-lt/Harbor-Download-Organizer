@@ -87,7 +87,7 @@ fn parse_log_line(line: &str, id: usize) -> Option<ActivityLogDto> {
         .unwrap_or("")
         .to_lowercase();
 
-    let (icon, icon_color) = derive_icon_and_color(&ext);
+    let (icon, icon_color) = super::ui_helpers::derive_file_icon_and_color(&ext);
 
     Some(ActivityLogDto {
         id: id.to_string(),
@@ -101,34 +101,6 @@ fn parse_log_line(line: &str, id: usize) -> Option<ActivityLogDto> {
         status: "success".to_string(),
         symlink_info,
     })
-}
-
-fn derive_icon_and_color(ext: &str) -> (String, String) {
-    match ext {
-        "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "tiff" | "heic" | "avif" => {
-            ("image".to_string(), "blue".to_string())
-        }
-        "mp4" | "mkv" | "avi" | "mov" | "wmv" | "webm" => {
-            ("movie".to_string(), "indigo".to_string())
-        }
-        "mp3" | "flac" | "wav" | "aac" | "ogg" => ("music_note".to_string(), "pink".to_string()),
-        "pdf" => ("description".to_string(), "red".to_string()),
-        "doc" | "docx" | "txt" | "rtf" => ("description".to_string(), "blue".to_string()),
-        "xls" | "xlsx" | "csv" => ("table_chart".to_string(), "green".to_string()),
-        "ppt" | "pptx" => ("slideshow".to_string(), "amber".to_string()),
-        "zip" | "rar" | "7z" | "tar" | "gz" | "xz" => {
-            ("folder_zip".to_string(), "amber".to_string())
-        }
-        "exe" | "msi" | "msix" | "dmg" | "pkg" | "apk" => {
-            ("install_desktop".to_string(), "purple".to_string())
-        }
-        "iso" => ("album".to_string(), "slate".to_string()),
-        "torrent" => ("download".to_string(), "green".to_string()),
-        "html" | "htm" => ("web".to_string(), "orange".to_string()),
-        "json" | "xml" | "yaml" | "yml" => ("code".to_string(), "purple".to_string()),
-        "srt" | "vtt" => ("subtitles".to_string(), "slate".to_string()),
-        _ => ("insert_drive_file".to_string(), "slate".to_string()),
-    }
 }
 
 fn read_log_entries(reader: impl BufRead) -> Vec<ActivityLogDto> {
@@ -262,20 +234,22 @@ mod tests {
 
     #[test]
     fn test_derive_icon_and_color() {
+        use super::super::ui_helpers::derive_file_icon_and_color;
+
         assert_eq!(
-            derive_icon_and_color("jpg"),
+            derive_file_icon_and_color("jpg"),
             ("image".to_string(), "blue".to_string())
         );
         assert_eq!(
-            derive_icon_and_color("mp4"),
+            derive_file_icon_and_color("mp4"),
             ("movie".to_string(), "indigo".to_string())
         );
         assert_eq!(
-            derive_icon_and_color("txt"),
+            derive_file_icon_and_color("txt"),
             ("description".to_string(), "blue".to_string())
         );
         assert_eq!(
-            derive_icon_and_color("unknown"),
+            derive_file_icon_and_color("unknown"),
             ("insert_drive_file".to_string(), "slate".to_string())
         );
     }

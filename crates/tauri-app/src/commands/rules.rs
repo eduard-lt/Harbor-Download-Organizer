@@ -36,8 +36,13 @@ pub struct RuleDto {
 
 impl From<&Rule> for RuleDto {
     fn from(rule: &Rule) -> Self {
-        let icon = derive_icon(rule.extensions.as_ref());
-        let icon_color = derive_icon_color(rule.extensions.as_ref());
+        let ext = rule
+            .extensions
+            .as_ref()
+            .and_then(|e| e.first())
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default();
+        let (icon, icon_color) = super::ui_helpers::derive_file_icon_and_color(&ext);
 
         RuleDto {
             id: rule.id.clone(),
@@ -58,53 +63,6 @@ impl From<&Rule> for RuleDto {
             icon,
             icon_color,
         }
-    }
-}
-
-fn derive_icon(extensions: Option<&Vec<String>>) -> String {
-    let ext = extensions
-        .and_then(|e| e.first())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-
-    match ext.as_str() {
-        "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "tiff" | "heic" | "avif" => {
-            "image".to_string()
-        }
-        "mp4" | "mkv" | "avi" | "mov" | "wmv" | "webm" => "movie".to_string(),
-        "mp3" | "flac" | "wav" | "aac" | "ogg" => "music_note".to_string(),
-        "pdf" | "doc" | "docx" | "txt" | "rtf" => "description".to_string(),
-        "xls" | "xlsx" | "csv" => "table_chart".to_string(),
-        "ppt" | "pptx" => "slideshow".to_string(),
-        "zip" | "rar" | "7z" | "tar" | "gz" | "xz" => "folder_zip".to_string(),
-        "exe" | "msi" | "msix" | "dmg" | "pkg" | "apk" => "install_desktop".to_string(),
-        "iso" => "album".to_string(),
-        "torrent" => "download".to_string(),
-        "html" | "htm" => "web".to_string(),
-        "json" | "xml" | "yaml" | "yml" => "code".to_string(),
-        "srt" | "vtt" => "subtitles".to_string(),
-        _ => "insert_drive_file".to_string(),
-    }
-}
-
-fn derive_icon_color(extensions: Option<&Vec<String>>) -> String {
-    let ext = extensions
-        .and_then(|e| e.first())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-
-    match ext.as_str() {
-        "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "tiff" | "heic" | "avif" => {
-            "indigo".to_string()
-        }
-        "mp4" | "mkv" | "avi" | "mov" | "wmv" | "webm" => "purple".to_string(),
-        "mp3" | "flac" | "wav" | "aac" | "ogg" => "pink".to_string(),
-        "pdf" | "doc" | "docx" | "txt" | "rtf" | "xls" | "xlsx" | "csv" | "ppt" | "pptx" => {
-            "amber".to_string()
-        }
-        "zip" | "rar" | "7z" | "tar" | "gz" | "xz" => "slate".to_string(),
-        "exe" | "msi" | "msix" | "dmg" | "pkg" | "apk" => "red".to_string(),
-        _ => "slate".to_string(),
     }
 }
 
@@ -408,37 +366,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_derive_icon() {
-        assert_eq!(derive_icon(Some(&vec!["jpg".to_string()])), "image");
-        assert_eq!(derive_icon(Some(&vec!["mp4".to_string()])), "movie");
-        assert_eq!(derive_icon(Some(&vec!["mp3".to_string()])), "music_note");
-        assert_eq!(derive_icon(Some(&vec!["pdf".to_string()])), "description");
-        assert_eq!(derive_icon(Some(&vec!["xlsx".to_string()])), "table_chart");
-        assert_eq!(derive_icon(Some(&vec!["zip".to_string()])), "folder_zip");
-        assert_eq!(
-            derive_icon(Some(&vec!["exe".to_string()])),
-            "install_desktop"
-        );
-        assert_eq!(
-            derive_icon(Some(&vec!["unknown".to_string()])),
-            "insert_drive_file"
-        );
-        assert_eq!(derive_icon(None), "insert_drive_file");
-    }
+    fn test_derive_file_icon_and_color_via_helper() {
+        use super::super::ui_helpers::derive_file_icon_and_color;
 
-    #[test]
-    fn test_derive_icon_color() {
-        assert_eq!(derive_icon_color(Some(&vec!["jpg".to_string()])), "indigo");
-        assert_eq!(derive_icon_color(Some(&vec!["mp4".to_string()])), "purple");
-        assert_eq!(derive_icon_color(Some(&vec!["mp3".to_string()])), "pink");
-        assert_eq!(derive_icon_color(Some(&vec!["pdf".to_string()])), "amber");
-        assert_eq!(derive_icon_color(Some(&vec!["zip".to_string()])), "slate");
-        assert_eq!(derive_icon_color(Some(&vec!["exe".to_string()])), "red");
         assert_eq!(
-            derive_icon_color(Some(&vec!["unknown".to_string()])),
-            "slate"
+            derive_file_icon_and_color("jpg"),
+            ("image".to_string(), "blue".to_string())
         );
-        assert_eq!(derive_icon_color(None), "slate");
+        assert_eq!(
+            derive_file_icon_and_color("mp4"),
+            ("movie".to_string(), "indigo".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("mp3"),
+            ("music_note".to_string(), "pink".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("pdf"),
+            ("description".to_string(), "red".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("xlsx"),
+            ("table_chart".to_string(), "green".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("zip"),
+            ("folder_zip".to_string(), "amber".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("exe"),
+            ("install_desktop".to_string(), "purple".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("unknown"),
+            ("insert_drive_file".to_string(), "slate".to_string())
+        );
+        // None-equivalent: empty string → fallback
+        assert_eq!(
+            derive_file_icon_and_color(""),
+            ("insert_drive_file".to_string(), "slate".to_string())
+        );
     }
 
     use tempfile::tempdir;
