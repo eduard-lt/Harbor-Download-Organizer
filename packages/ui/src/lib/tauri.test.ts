@@ -54,7 +54,7 @@ describe('tauri API wrappers', () => {
         const fakeRule = { id: '2', ...ruleInput, icon: '', icon_color: '' };
         mockInvoke.mockResolvedValue(fakeRule);
         const result = await createRule(ruleInput);
-        expect(mockInvoke).toHaveBeenCalledWith('create_rule', ruleInput);
+        expect(mockInvoke).toHaveBeenCalledWith('create_rule', { rule: ruleInput });
         expect(result).toEqual(fakeRule);
     });
 
@@ -63,7 +63,7 @@ describe('tauri API wrappers', () => {
         const fakeRule = { id: '2', name: 'Videos Updated', extensions: [], destination: '', create_symlink: false, enabled: true, icon: '', icon_color: '' };
         mockInvoke.mockResolvedValue(fakeRule);
         const result = await updateRule(ruleUpdate);
-        expect(mockInvoke).toHaveBeenCalledWith('update_rule', ruleUpdate);
+        expect(mockInvoke).toHaveBeenCalledWith('update_rule', { rule: ruleUpdate });
         expect(result).toEqual(fakeRule);
     });
 

@@ -55,11 +55,11 @@ export const getRules = async (): Promise<Rule[]> => {
 };
 
 export const createRule = async (rule: Omit<Rule, 'id' | 'icon' | 'icon_color'>): Promise<Rule> => {
-    return await invoke('create_rule', { ...rule });
+    return await invoke('create_rule', { rule });
 };
 
 export const updateRule = async (rule: Partial<Rule> & { id: string }): Promise<Rule> => {
-    return await invoke('update_rule', { ...rule });
+    return await invoke('update_rule', { rule });
 };
 
 export const deleteRule = async (ruleId: string): Promise<void> => {
