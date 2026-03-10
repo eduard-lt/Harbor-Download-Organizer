@@ -136,3 +136,15 @@ interpreter = "powershell"
 [tool.poe.tasks.list]
 help = "List all available tasks"
 cmd = "poe"
+
+[tool.poe.tasks.lint]
+help = "Run Clippy lints"
+cmd = "cargo clippy --workspace -- -D warnings"
+
+[tool.poe.tasks.lint-ui]
+help = "Run frontend ESLint"
+cmd = "npm run lint --prefix packages/ui"
+
+[tool.poe.tasks.lint-all]
+help = "Run all linters (Clippy + ESLint)"
+sequence = ["lint", "lint-ui"]
