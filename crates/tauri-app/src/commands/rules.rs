@@ -267,19 +267,19 @@ pub async fn impl_update_rule(
 }
 
 #[tauri::command]
-pub async fn delete_rule(state: State<'_, AppState>, rule_name: String) -> Result<(), String> {
-    impl_delete_rule(&state, rule_name).await
+pub async fn delete_rule(state: State<'_, AppState>, rule_id: String) -> Result<(), String> {
+    impl_delete_rule(&state, rule_id).await
 }
 
-pub async fn impl_delete_rule(state: &AppState, rule_name: String) -> Result<(), String> {
+pub async fn impl_delete_rule(state: &AppState, rule_id: String) -> Result<(), String> {
     {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
         let original_len = config.rules.len();
-        config.rules.retain(|r| r.id != rule_name);
+        config.rules.retain(|r| r.id != rule_id);
 
         if config.rules.len() == original_len {
-            return Err(format!("Rule '{}' not found", rule_name));
+            return Err(format!("Rule '{}' not found", rule_id));
         }
 
         save_config(state, &config)?;
@@ -291,15 +291,15 @@ pub async fn impl_delete_rule(state: &AppState, rule_name: String) -> Result<(),
 #[tauri::command]
 pub async fn toggle_rule(
     state: State<'_, AppState>,
-    rule_name: String,
+    rule_id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    impl_toggle_rule(&state, rule_name, enabled).await
+    impl_toggle_rule(&state, rule_id, enabled).await
 }
 
 pub async fn impl_toggle_rule(
     state: &AppState,
-    rule_name: String,
+    rule_id: String,
     enabled: bool,
 ) -> Result<(), String> {
     {
@@ -308,8 +308,8 @@ pub async fn impl_toggle_rule(
         let rule = config
             .rules
             .iter_mut()
-            .find(|r| r.id == rule_name)
-            .ok_or_else(|| format!("Rule '{}' not found", rule_name))?;
+            .find(|r| r.id == rule_id)
+            .ok_or_else(|| format!("Rule '{}' not found", rule_id))?;
 
         rule.enabled = enabled;
         save_config(state, &config)?;
@@ -322,27 +322,33 @@ pub async fn impl_toggle_rule(
 #[tauri::command]
 pub async fn reorder_rules(
     state: State<'_, AppState>,
-    rule_names: Vec<String>,
+    rule_ids: Vec<String>,
 ) -> Result<(), String> {
-    impl_reorder_rules(&state, rule_names).await
+    impl_reorder_rules(&state, rule_ids).await
 }
 
-pub async fn impl_reorder_rules(state: &AppState, rule_names: Vec<String>) -> Result<(), String> {
+pub async fn impl_reorder_rules(state: &AppState, rule_ids: Vec<String>) -> Result<(), String> {
     {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
-        // Reorder rules based on the provided order
-        let mut new_rules: Vec<Rule> = Vec::with_capacity(rule_names.len());
+        // Build a lookup map for O(1) access
+        let rule_map: std::collections::HashMap<&str, &Rule> = config
+            .rules
+            .iter()
+            .map(|r| (r.id.as_str(), r))
+            .collect();
 
-        for name in &rule_names {
-            if let Some(rule) = config.rules.iter().find(|r| &r.id == name).cloned() {
-                new_rules.push(rule);
-            }
-        }
+        // Reorder rules based on the provided order
+        let mut new_rules: Vec<Rule> = rule_ids
+            .iter()
+            .filter_map(|id| rule_map.get(id.as_str()).copied().cloned())
+            .collect();
 
         // Add any rules that weren't in the provided list (shouldn't happen, but safety first)
+        let rule_ids_set: std::collections::HashSet<&str> =
+            rule_ids.iter().map(|s| s.as_str()).collect();
         for rule in &config.rules {
-            if !rule_names.contains(&rule.id) {
+            if !rule_ids_set.contains(rule.id.as_str()) {
                 new_rules.push(rule.clone());
             }
         }

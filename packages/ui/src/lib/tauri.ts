@@ -62,16 +62,16 @@ export const updateRule = async (rule: Partial<Rule> & { id: string }): Promise<
     return await invoke('update_rule', { ...rule });
 };
 
-export const deleteRule = async (ruleName: string): Promise<void> => {
-    return await invoke('delete_rule', { ruleName });
+export const deleteRule = async (ruleId: string): Promise<void> => {
+    return await invoke('delete_rule', { ruleId });
 };
 
-export const toggleRule = async (ruleName: string, enabled: boolean): Promise<void> => {
-    return await invoke('toggle_rule', { ruleName, enabled });
+export const toggleRule = async (ruleId: string, enabled: boolean): Promise<void> => {
+    return await invoke('toggle_rule', { ruleId, enabled });
 };
 
-export const reorderRules = async (ruleNames: string[]): Promise<void> => {
-    return await invoke('reorder_rules', { ruleNames });
+export const reorderRules = async (ruleIds: string[]): Promise<void> => {
+    return await invoke('reorder_rules', { ruleIds });
 };
 
 export const getDownloadDir = async (): Promise<string> => {
