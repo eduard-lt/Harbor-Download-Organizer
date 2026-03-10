@@ -99,8 +99,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: pictures,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -115,8 +115,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: videos,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -131,8 +131,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: music,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -147,8 +147,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: archives,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -165,8 +165,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: docs.clone(),
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -181,8 +181,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: installers,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -192,8 +192,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: isos,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -203,8 +203,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: torrents,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -219,8 +219,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: dev,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -230,8 +230,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: webpages,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -241,8 +241,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: subtitles,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
         ],
     }
@@ -404,7 +404,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
         let mut applied: Option<(&Rule, PathBuf)> = None;
         for compiled in &compiled_rules {
             // Skip disabled rules
-            if !compiled.rule.enabled.unwrap_or(true) {
+            if !compiled.rule.enabled {
                 continue;
             }
             if matches_rule(&path, &meta, compiled) {
@@ -432,7 +432,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             }
 
             let mut symlink_info = None;
-            if rule.create_symlink.unwrap_or(false) {
+            if rule.create_symlink {
                 #[cfg(windows)]
                 let res = std::os::windows::fs::symlink_file(&target, &path);
                 #[cfg(unix)]
@@ -628,8 +628,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(matches_rule(
             &file_path,
@@ -645,8 +645,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(matches_rule(
             &file_path,
@@ -662,8 +662,8 @@ mod tests {
             min_size_bytes: Some(2),
             max_size_bytes: Some(10),
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(matches_rule(
             &file_path,
@@ -679,8 +679,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(!matches_rule(
             &file_path,
@@ -697,8 +697,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(!matches_rule(
             &file_path,
@@ -756,8 +756,8 @@ mod tests {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: target.to_str().unwrap().into(),
-                create_symlink: Some(false),
-                enabled: None,
+                create_symlink: false,
+                enabled: true,
             }],
         };
 
@@ -799,8 +799,8 @@ mod tests {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: target.to_str().unwrap().into(),
-                create_symlink: None,
-                enabled: None,
+                create_symlink: false,
+                enabled: true,
             }],
             min_age_secs: None,
             tutorial_completed: None,

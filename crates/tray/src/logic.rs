@@ -379,8 +379,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: target_dir.to_string_lossy().to_string(),
-            create_symlink: None,
-            enabled: Some(true),
+            create_symlink: false,
+            enabled: true,
         });
 
         // Create a file in target

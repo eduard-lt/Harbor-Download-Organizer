@@ -53,8 +53,8 @@ impl From<&Rule> for RuleDto {
             min_size_bytes: rule.min_size_bytes,
             max_size_bytes: rule.max_size_bytes,
             destination: rule.target_dir.clone(),
-            create_symlink: rule.create_symlink.unwrap_or(false),
-            enabled: rule.enabled.unwrap_or(true),
+            create_symlink: rule.create_symlink,
+            enabled: rule.enabled,
             icon,
             icon_color,
         }
@@ -203,8 +203,8 @@ pub async fn impl_create_rule(
             min_size_bytes,
             max_size_bytes,
             target_dir: destination,
-            create_symlink,
-            enabled,
+            create_symlink: create_symlink.unwrap_or(false),
+            enabled: enabled.unwrap_or(true),
         };
 
         config.rules.push(rule.clone());
@@ -292,10 +292,10 @@ pub async fn impl_update_rule(
             rule.max_size_bytes = max_size_bytes;
         }
         if let Some(symlink) = create_symlink {
-            rule.create_symlink = Some(symlink);
+            rule.create_symlink = symlink;
         }
         if let Some(en) = enabled {
-            rule.enabled = Some(en);
+            rule.enabled = en;
         }
 
         let updated = RuleDto::from(&*rule);
@@ -353,7 +353,7 @@ pub async fn impl_toggle_rule(
             .find(|r| r.id == rule_name)
             .ok_or_else(|| format!("Rule '{}' not found", rule_name))?;
 
-        rule.enabled = Some(enabled);
+        rule.enabled = enabled;
         save_config(state, &config)?;
     }
     restart_service_if_running(state)?;
