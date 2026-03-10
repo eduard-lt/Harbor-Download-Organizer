@@ -1,8 +1,11 @@
 use crate::state::AppState;
-use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufRead, BufReader};
+use std::sync::LazyLock;
+
+use chrono::{Datelike, Local, NaiveDateTime};
+use regex::Regex;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
 /// Activity log entry for the frontend
@@ -37,18 +40,33 @@ pub struct ActivityLogsResponse {
     pub has_more: bool,
 }
 
+/// Compiled once; matches both the new timestamped format and the old format.
+///
+/// New:  `[2024-01-15 10:30:00] <src> -> <dst> (<rule>) <symlink>`
+/// Old:  `<src> -> <dst> (<rule>) <symlink>`
+///
+/// Groups:
+///   1 → optional timestamp (may be empty string)
+///   2 → source path
+///   3 → destination path
+///   4 → rule name
+///   5 → optional symlink info
+static LOG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] )?(.+?) -> (.+) \(([^)]+)\)\s*(.*)$")
+        .expect("LOG_LINE_RE is a valid pattern")
+});
+
 fn parse_log_line(line: &str, id: usize) -> Option<ActivityLogDto> {
-    // Log format: "source_path -> dest_path (rule_name) symlink_info"
-    // Example: "C:\Downloads\file.jpg -> C:\Images\file.jpg (Images) Symlink created"
+    let caps = LOG_LINE_RE.captures(line)?;
 
-    let arrow_pattern = Regex::new(r"^(.+?) -> (.+) \(([^)]+)\)\s*(.*)$").ok()?;
-
-    let caps = arrow_pattern.captures(line)?;
-
-    let source_path = caps.get(1)?.as_str().to_string();
-    let dest_path = caps.get(2)?.as_str().to_string();
-    let rule_name = caps.get(3)?.as_str().to_string();
-    let symlink_info = caps.get(4).map(|m| m.as_str().trim().to_string());
+    let timestamp = caps
+        .get(1)
+        .map(|m| m.as_str().to_string())
+        .unwrap_or_default();
+    let source_path = caps.get(2)?.as_str().to_string();
+    let dest_path = caps.get(3)?.as_str().to_string();
+    let rule_name = caps.get(4)?.as_str().to_string();
+    let symlink_info = caps.get(5).map(|m| m.as_str().trim().to_string());
     let symlink_info = if symlink_info.as_ref().map(|s| s.is_empty()).unwrap_or(true) {
         None
     } else {
@@ -73,7 +91,7 @@ fn parse_log_line(line: &str, id: usize) -> Option<ActivityLogDto> {
 
     Some(ActivityLogDto {
         id: id.to_string(),
-        timestamp: "".to_string(), // We don't have timestamps in current log format
+        timestamp,
         filename,
         icon,
         icon_color,
@@ -189,8 +207,28 @@ pub async fn get_activity_stats(state: State<'_, AppState>) -> Result<ActivitySt
     let mut rule_counts: std::collections::HashMap<String, usize> =
         std::collections::HashMap::new();
 
-    for log in logs {
-        *rule_counts.entry(log.rule_name).or_insert(0) += 1;
+    // Compute time boundaries for today and this week.
+    let now = Local::now().naive_local();
+    let today_start = now.date().and_hms_opt(0, 0, 0).unwrap_or(now);
+    let days_since_monday = now.weekday().num_days_from_monday() as i64;
+    let week_start = today_start - chrono::Duration::days(days_since_monday);
+
+    let mut files_moved_today = 0usize;
+    let mut files_moved_this_week = 0usize;
+
+    for log in &logs {
+        *rule_counts.entry(log.rule_name.clone()).or_insert(0) += 1;
+
+        if !log.timestamp.is_empty() {
+            if let Ok(dt) = NaiveDateTime::parse_from_str(&log.timestamp, "%Y-%m-%d %H:%M:%S") {
+                if dt >= today_start {
+                    files_moved_today += 1;
+                }
+                if dt >= week_start {
+                    files_moved_this_week += 1;
+                }
+            }
+        }
     }
 
     let most_active_rule = rule_counts
@@ -200,8 +238,8 @@ pub async fn get_activity_stats(state: State<'_, AppState>) -> Result<ActivitySt
 
     Ok(ActivityStats {
         total_files_moved: total,
-        files_moved_today: total, // Simplified - we don't have timestamps in current format
-        files_moved_this_week: total,
+        files_moved_today,
+        files_moved_this_week,
         most_active_rule,
     })
 }
@@ -244,9 +282,11 @@ mod tests {
 
     #[test]
     fn test_parse_log_line() {
-        let line = r#"C:\Source\file.txt -> C:\Dest\file.txt (Docs) Symlink created"#;
+        // New timestamped format
+        let line = r#"[2024-01-15 10:30:00] C:\Source\file.txt -> C:\Dest\file.txt (Docs) Symlink created"#;
         let dto = parse_log_line(line, 1).unwrap();
         assert_eq!(dto.id, "1");
+        assert_eq!(dto.timestamp, "2024-01-15 10:30:00");
         assert_eq!(dto.source_path, r"C:\Source\file.txt");
         assert_eq!(dto.dest_path, r"C:\Dest\file.txt");
         assert_eq!(dto.rule_name, "Docs");
@@ -255,10 +295,18 @@ mod tests {
         assert_eq!(dto.icon, "description");
         assert_eq!(dto.icon_color, "blue");
 
-        // Test without symlink info
-        let line2 = r#"C:\src\img.png -> C:\dst\img.png (Images) "#;
+        // New format without symlink info
+        let line2 = r#"[2024-01-15 10:30:00] C:\src\img.png -> C:\dst\img.png (Images) "#;
         let dto2 = parse_log_line(line2, 2).unwrap();
+        assert_eq!(dto2.timestamp, "2024-01-15 10:30:00");
         assert_eq!(dto2.symlink_info, None);
+
+        // Legacy format (no timestamp) is still parsed correctly.
+        let line3 = r#"C:\Source\file.txt -> C:\Dest\file.txt (Docs) Symlink created"#;
+        let dto3 = parse_log_line(line3, 3).unwrap();
+        assert_eq!(dto3.timestamp, "");
+        assert_eq!(dto3.source_path, r"C:\Source\file.txt");
+        assert_eq!(dto3.rule_name, "Docs");
     }
 
     #[test]

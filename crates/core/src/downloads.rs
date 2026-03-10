@@ -1,4 +1,4 @@
-use crate::types::Rule;
+use crate::types::{new_rule_id, Rule};
 use anyhow::{Context, Result};
 
 use regex::Regex;
@@ -9,6 +9,25 @@ use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime};
+
+/// A `Rule` with its regex pattern pre-compiled once for efficient reuse.
+struct CompiledRule<'a> {
+    rule: &'a Rule,
+    /// `None` → no pattern on this rule (skip regex check).
+    /// `Some(Ok(re))` → valid compiled regex.
+    /// `Some(Err(_))` → pattern exists but is invalid; this rule must be skipped.
+    compiled_pattern: Option<Result<Regex, regex::Error>>,
+}
+
+impl<'a> CompiledRule<'a> {
+    fn new(rule: &'a Rule) -> Self {
+        let compiled_pattern = rule.pattern.as_deref().map(Regex::new);
+        Self {
+            rule,
+            compiled_pattern,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadsConfig {
@@ -66,6 +85,7 @@ pub fn default_config() -> DownloadsConfig {
         last_notified_version: None,
         rules: vec![
             Rule {
+                id: new_rule_id(),
                 name: "Images".to_string(),
                 extensions: Some(
                     [
@@ -83,6 +103,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Videos".to_string(),
                 extensions: Some(
                     ["mp4", "mkv", "avi", "mov", "wmv", "webm"]
@@ -98,6 +119,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Music".to_string(),
                 extensions: Some(
                     ["mp3", "flac", "wav", "aac", "ogg"]
@@ -113,6 +135,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Archives".to_string(),
                 extensions: Some(
                     ["zip", "rar", "7z", "tar", "gz", "xz"]
@@ -128,6 +151,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Documents".to_string(),
                 extensions: Some(
                     [
@@ -145,6 +169,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Installers".to_string(),
                 extensions: Some(
                     ["exe", "msi", "msix", "dmg", "pkg", "apk"]
@@ -160,6 +185,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "ISOs".to_string(),
                 extensions: Some(["iso"].iter().map(|s| s.to_string()).collect()),
                 pattern: None,
@@ -170,6 +196,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Torrents".to_string(),
                 extensions: Some(["torrent"].iter().map(|s| s.to_string()).collect()),
                 pattern: None,
@@ -180,6 +207,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Dev".to_string(),
                 extensions: Some(
                     ["json", "env", "xml", "plist"]
@@ -195,6 +223,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Web Pages".to_string(),
                 extensions: Some(["html", "htm"].iter().map(|s| s.to_string()).collect()),
                 pattern: None,
@@ -205,6 +234,7 @@ pub fn default_config() -> DownloadsConfig {
                 enabled: Some(true),
             },
             Rule {
+                id: new_rule_id(),
                 name: "Subtitles".to_string(),
                 extensions: Some(["srt", "vtt"].iter().map(|s| s.to_string()).collect()),
                 pattern: None,
@@ -239,7 +269,8 @@ fn is_partial(name: &str) -> bool {
         || lower.ends_with(".opdownload")
 }
 
-fn matches_rule(path: &Path, meta: &fs::Metadata, rule: &Rule) -> bool {
+fn matches_rule(path: &Path, meta: &fs::Metadata, compiled: &CompiledRule<'_>) -> bool {
+    let rule = compiled.rule;
     if let Some(exts) = &rule.extensions {
         let ext = path
             .extension()
@@ -250,9 +281,14 @@ fn matches_rule(path: &Path, meta: &fs::Metadata, rule: &Rule) -> bool {
             return false;
         }
     }
-    if let Some(pat) = &rule.pattern {
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            if let Ok(re) = Regex::new(pat) {
+    match &compiled.compiled_pattern {
+        None => {}
+        Some(Err(_)) => {
+            // Pattern exists but failed to compile — skip this rule entirely.
+            return false;
+        }
+        Some(Ok(re)) => {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 if !re.is_match(name) {
                     return false;
                 }
@@ -315,6 +351,11 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
     let base = PathBuf::from(&cfg.download_dir);
     let min_age = Duration::from_secs(cfg.min_age_secs.unwrap_or(5));
     let mut actions = Vec::new();
+
+    // Pre-compile each rule's regex pattern once for this pass.
+    let compiled_rules: Vec<CompiledRule<'_>> =
+        cfg.rules.iter().map(CompiledRule::new).collect();
+
     for entry in fs::read_dir(&base).with_context(|| format!("list {}", base.display()))? {
         let entry = entry?;
         let path = entry.path();
@@ -362,13 +403,13 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             }
         }
         let mut applied: Option<(&Rule, PathBuf)> = None;
-        for rule in &cfg.rules {
+        for compiled in &compiled_rules {
             // Skip disabled rules
-            if !rule.enabled.unwrap_or(true) {
+            if !compiled.rule.enabled.unwrap_or(true) {
                 continue;
             }
-            if matches_rule(&path, &meta, rule) {
-                let target_dir = PathBuf::from(&rule.target_dir);
+            if matches_rule(&path, &meta, compiled) {
+                let target_dir = PathBuf::from(&compiled.rule.target_dir);
                 ensure_dir(&target_dir)?;
                 let target = target_dir.join(
                     path.file_name()
@@ -376,7 +417,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
                         .unwrap_or_default(),
                 );
                 let target = unique_target(&target);
-                applied = Some((rule, target));
+                applied = Some((compiled.rule, target));
                 break;
             }
         }
@@ -564,6 +605,7 @@ mod tests {
         let meta = fs::metadata(&file_path).unwrap();
 
         let rule_ext = Rule {
+            id: "ext-rule".to_string(),
             name: "Ext".into(),
             extensions: Some(vec!["png".into()]),
             pattern: None,
@@ -573,9 +615,10 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(matches_rule(&file_path, &meta, &rule_ext));
+        assert!(matches_rule(&file_path, &meta, &CompiledRule::new(&rule_ext)));
 
         let rule_pat = Rule {
+            id: "pat-rule".to_string(),
             name: "Pat".into(),
             extensions: None,
             pattern: Some(".*st\\.png".into()),
@@ -585,9 +628,10 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(matches_rule(&file_path, &meta, &rule_pat));
+        assert!(matches_rule(&file_path, &meta, &CompiledRule::new(&rule_pat)));
 
         let rule_size = Rule {
+            id: "size-rule".to_string(),
             name: "Size".into(),
             extensions: None,
             pattern: None,
@@ -597,9 +641,10 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(matches_rule(&file_path, &meta, &rule_size));
+        assert!(matches_rule(&file_path, &meta, &CompiledRule::new(&rule_size)));
 
         let rule_fail = Rule {
+            id: "fail-rule".to_string(),
             name: "Fail".into(),
             extensions: Some(vec!["jpg".into()]),
             pattern: None,
@@ -609,7 +654,21 @@ mod tests {
             create_symlink: None,
             enabled: None,
         };
-        assert!(!matches_rule(&file_path, &meta, &rule_fail));
+        assert!(!matches_rule(&file_path, &meta, &CompiledRule::new(&rule_fail)));
+
+        // Invalid regex must NOT silently match — it should be skipped (false).
+        let rule_bad_re = Rule {
+            id: "bad-re-rule".to_string(),
+            name: "BadRe".into(),
+            extensions: None,
+            pattern: Some("[invalid regex".into()),
+            min_size_bytes: None,
+            max_size_bytes: None,
+            target_dir: "target".into(),
+            create_symlink: None,
+            enabled: None,
+        };
+        assert!(!matches_rule(&file_path, &meta, &CompiledRule::new(&rule_bad_re)));
     }
 
     #[test]
@@ -654,6 +713,7 @@ mod tests {
             check_updates: None,
             last_notified_version: None,
             rules: vec![Rule {
+                id: "images-rule".to_string(),
                 name: "Images".into(),
                 extensions: Some(vec!["png".into()]),
                 pattern: None,
@@ -696,6 +756,7 @@ mod tests {
         let cfg = DownloadsConfig {
             download_dir: dl.to_str().unwrap().into(),
             rules: vec![Rule {
+                id: "images-cleanup-rule".to_string(),
                 name: "Images".into(),
                 extensions: None,
                 pattern: None,

@@ -91,8 +91,9 @@ impl TrayLogic {
             });
         });
 
-        let mut guard = self.handle.lock().unwrap();
-        *guard = Some(h);
+        if let Ok(mut guard) = self.handle.lock() {
+            *guard = Some(h);
+        }
     }
 
     pub fn on_file_change(&self, actions: &[OrganizeResult]) {
@@ -101,14 +102,15 @@ impl TrayLogic {
 
     pub fn stop_watching(&self) {
         self.watching.store(false, Ordering::SeqCst);
-        let mut guard = self.handle.lock().unwrap();
-        if let Some(h) = guard.take() {
-            // Unpark or wait? watch_polling checks atomic every 5s or on event.
-            // We just let it finish.
-            // On Windows we cannot easily interrupt the directory watcher.
-            // But verify thread usage:
-            #[allow(clippy::disallowed_methods)]
-            let _ = h.thread().id();
+        if let Ok(mut guard) = self.handle.lock() {
+            if let Some(h) = guard.take() {
+                // Unpark or wait? watch_polling checks atomic every 5s or on event.
+                // We just let it finish.
+                // On Windows we cannot easily interrupt the directory watcher.
+                // But verify thread usage:
+                #[allow(clippy::disallowed_methods)]
+                let _ = h.thread().id();
+            }
         }
     }
 
@@ -377,6 +379,7 @@ mod tests {
         std::fs::create_dir(&target_dir).unwrap();
 
         config.rules.push(harbor_core::types::Rule {
+            id: "test-rule-id".to_string(),
             name: "test".to_string(),
             extensions: None,
             pattern: None,

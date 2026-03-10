@@ -1,6 +1,11 @@
-pub mod config;
 pub mod downloads;
-pub mod health;
-pub mod orchestrator;
-pub mod state;
 pub mod types;
+
+#[cfg(feature = "orchestrator")]
+pub mod config;
+#[cfg(feature = "orchestrator")]
+pub mod health;
+#[cfg(feature = "orchestrator")]
+pub mod orchestrator;
+#[cfg(feature = "orchestrator")]
+pub mod state;

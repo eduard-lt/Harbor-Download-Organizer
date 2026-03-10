@@ -14,6 +14,12 @@ use winreg::enums::*;
 #[cfg(windows)]
 use winreg::RegKey;
 
+/// Maximum number of lines kept in the activity log before it is trimmed.
+const LOG_MAX_LINES: usize = 10_000;
+/// Trim the log when it exceeds this file-size threshold to avoid reading the
+/// file on every single append.
+const LOG_ROTATION_THRESHOLD_BYTES: u64 = 1_024 * 1_024; // 1 MiB
+
 /// Service status information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceStatus {
@@ -33,8 +39,10 @@ fn append_to_log(log_path: &PathBuf, actions: &[(PathBuf, PathBuf, String, Optio
     let mut buf = String::new();
     for (from, to, rule, symlink_info) in actions {
         let symlink_msg = symlink_info.as_deref().unwrap_or("");
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
         buf.push_str(&format!(
-            "{} -> {} ({}) {}\n",
+            "[{}] {} -> {} ({}) {}\n",
+            timestamp,
             from.display(),
             to.display(),
             rule,
@@ -49,6 +57,30 @@ fn append_to_log(log_path: &PathBuf, actions: &[(PathBuf, PathBuf, String, Optio
     {
         let _ = file.write_all(buf.as_bytes());
     }
+
+    rotate_log_if_needed(log_path);
+}
+
+/// Trims the log file to the last [`LOG_MAX_LINES`] lines when it grows beyond
+/// [`LOG_ROTATION_THRESHOLD_BYTES`]. This keeps memory usage bounded without
+/// paying the cost of reading the file on every append.
+fn rotate_log_if_needed(log_path: &PathBuf) {
+    let size = fs::metadata(log_path).map(|m| m.len()).unwrap_or(0);
+    if size <= LOG_ROTATION_THRESHOLD_BYTES {
+        return;
+    }
+
+    let Ok(content) = fs::read_to_string(log_path) else {
+        return;
+    };
+
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.len() <= LOG_MAX_LINES {
+        return;
+    }
+
+    let trimmed = lines[lines.len() - LOG_MAX_LINES..].join("\n") + "\n";
+    let _ = fs::write(log_path, trimmed);
 }
 
 #[tauri::command]
@@ -199,8 +231,12 @@ pub async fn set_startup_enabled(enabled: bool) -> Result<(), String> {
             let exe_path = std::env::current_exe()
                 .map_err(|e| format!("Failed to get executable path: {}", e))?;
 
+            // Wrap the path in double-quotes so Windows correctly handles paths
+            // that contain spaces (e.g. C:\Users\John Doe\AppData\...).
+            let quoted = format!("\"{}\"", exe_path.to_string_lossy());
+
             run_key
-                .set_value("Harbor", &exe_path.to_string_lossy().as_ref())
+                .set_value("Harbor", &quoted.as_str())
                 .map_err(|e| format!("Failed to set registry value: {}", e))?;
         } else {
             // Remove the startup entry
@@ -426,8 +462,13 @@ mod tests {
 
         assert!(log_path.exists());
         let content = std::fs::read_to_string(&log_path).unwrap();
+        // Each line now carries a timestamp prefix: [YYYY-MM-DD HH:MM:SS]
         assert!(content.contains("src/a.txt -> dst/a.txt (Images)"));
         assert!(content.contains("src/b.txt -> dst/b.txt (Docs) Symlinked"));
+        // Verify timestamp prefix is present on every non-empty line.
+        for line in content.lines().filter(|l| !l.is_empty()) {
+            assert!(line.starts_with('['), "expected timestamp prefix on: {line}");
+        }
     }
 
     #[test]

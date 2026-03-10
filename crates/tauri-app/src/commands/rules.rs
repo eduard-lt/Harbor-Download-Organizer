@@ -40,7 +40,7 @@ impl From<&Rule> for RuleDto {
         let icon_color = derive_icon_color(rule.extensions.as_ref());
 
         RuleDto {
-            id: rule.name.clone(),
+            id: rule.id.clone(),
             name: rule.name.clone(),
             extensions: rule
                 .extensions
@@ -192,6 +192,7 @@ pub async fn impl_create_rule(
             .collect();
 
         let rule = Rule {
+            id: harbor_core::types::new_rule_id(),
             name: name.clone(),
             extensions: if extensions.is_empty() {
                 None
@@ -264,7 +265,7 @@ pub async fn impl_update_rule(
         let rule = config
             .rules
             .iter_mut()
-            .find(|r| r.name == id)
+            .find(|r| r.id == id)
             .ok_or_else(|| format!("Rule '{}' not found", id))?;
 
         if let Some(new_name) = name {
@@ -317,7 +318,7 @@ pub async fn impl_delete_rule(state: &AppState, rule_name: String) -> Result<(),
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
         let original_len = config.rules.len();
-        config.rules.retain(|r| r.name != rule_name);
+        config.rules.retain(|r| r.id != rule_name);
 
         if config.rules.len() == original_len {
             return Err(format!("Rule '{}' not found", rule_name));
@@ -349,7 +350,7 @@ pub async fn impl_toggle_rule(
         let rule = config
             .rules
             .iter_mut()
-            .find(|r| r.name == rule_name)
+            .find(|r| r.id == rule_name)
             .ok_or_else(|| format!("Rule '{}' not found", rule_name))?;
 
         rule.enabled = Some(enabled);
@@ -376,14 +377,14 @@ pub async fn impl_reorder_rules(state: &AppState, rule_names: Vec<String>) -> Re
         let mut new_rules: Vec<Rule> = Vec::with_capacity(rule_names.len());
 
         for name in &rule_names {
-            if let Some(rule) = config.rules.iter().find(|r| &r.name == name).cloned() {
+            if let Some(rule) = config.rules.iter().find(|r| &r.id == name).cloned() {
                 new_rules.push(rule);
             }
         }
 
         // Add any rules that weren't in the provided list (shouldn't happen, but safety first)
         for rule in &config.rules {
-            if !rule_names.contains(&rule.name) {
+            if !rule_names.contains(&rule.id) {
                 new_rules.push(rule.clone());
             }
         }
@@ -506,7 +507,7 @@ mod tests {
     async fn test_update_rule() {
         let (state, _tmp) = create_test_state();
 
-        let _ = impl_create_rule(
+        let created = impl_create_rule(
             &state,
             "Rule1".to_string(),
             vec!["txt".to_string()],
@@ -522,7 +523,7 @@ mod tests {
 
         let updated = impl_update_rule(
             &state,
-            "Rule1".to_string(),
+            created.id.clone(), // use the stable UUID, not the name
             Some("Rule1_Updated".to_string()),
             Some(vec!["md".to_string()]),
             Some("NewTarget".to_string()),
@@ -550,7 +551,7 @@ mod tests {
     async fn test_delete_rule() {
         let (state, _tmp) = create_test_state();
 
-        impl_create_rule(
+        let created = impl_create_rule(
             &state,
             "To Delete".to_string(),
             vec![],
@@ -564,14 +565,14 @@ mod tests {
         .await
         .unwrap();
 
-        let res = impl_delete_rule(&state, "To Delete".to_string()).await;
+        let res = impl_delete_rule(&state, created.id.clone()).await;
         assert!(res.is_ok());
 
         let rules = impl_get_rules(&state).await.unwrap();
         assert!(rules.is_empty());
 
-        // Delete non-existent
-        let res = impl_delete_rule(&state, "NonExistent".to_string()).await;
+        // Delete non-existent UUID
+        let res = impl_delete_rule(&state, "00000000-0000-0000-0000-000000000000".to_string()).await;
         assert!(res.is_err());
     }
 
@@ -579,7 +580,7 @@ mod tests {
     async fn test_toggle_rule() {
         let (state, _tmp) = create_test_state();
 
-        impl_create_rule(
+        let created = impl_create_rule(
             &state,
             "ToggleMe".to_string(),
             vec![],
@@ -593,7 +594,7 @@ mod tests {
         .await
         .unwrap();
 
-        impl_toggle_rule(&state, "ToggleMe".to_string(), false)
+        impl_toggle_rule(&state, created.id.clone(), false)
             .await
             .unwrap();
 
@@ -605,47 +606,18 @@ mod tests {
     async fn test_reorder_rules() {
         let (state, _tmp) = create_test_state();
 
-        impl_create_rule(
-            &state,
-            "A".into(),
-            vec![],
-            "".into(),
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-        impl_create_rule(
-            &state,
-            "B".into(),
-            vec![],
-            "".into(),
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-        impl_create_rule(
-            &state,
-            "C".into(),
-            vec![],
-            "".into(),
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        .await
-        .unwrap();
+        let a = impl_create_rule(&state, "A".into(), vec![], "".into(), None, None, None, None, None)
+            .await
+            .unwrap();
+        let b = impl_create_rule(&state, "B".into(), vec![], "".into(), None, None, None, None, None)
+            .await
+            .unwrap();
+        let c = impl_create_rule(&state, "C".into(), vec![], "".into(), None, None, None, None, None)
+            .await
+            .unwrap();
 
-        let order = vec!["C".to_string(), "A".to_string(), "B".to_string()];
+        // Reorder by UUID: C, A, B
+        let order = vec![c.id.clone(), a.id.clone(), b.id.clone()];
         impl_reorder_rules(&state, order).await.unwrap();
 
         let rules = impl_get_rules(&state).await.unwrap();
