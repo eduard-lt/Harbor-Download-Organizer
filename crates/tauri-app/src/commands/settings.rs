@@ -189,11 +189,15 @@ pub async fn trigger_organize_now(state: State<'_, AppState>) -> Result<usize, S
     let config = state.config.read().map_err(|e| e.to_string())?.clone();
     let log_path = state.recent_log_path();
 
-    let actions = organize_once(&config).map_err(|e| format!("Organize failed: {}", e))?;
+    let summary = organize_once(&config).map_err(|e| format!("Organize failed: {}", e))?;
 
-    append_to_log(&log_path, &actions);
+    for err in &summary.errors {
+        eprintln!("[Harbor] {err}");
+    }
 
-    Ok(actions.len())
+    append_to_log(&log_path, &summary.moved);
+
+    Ok(summary.moved.len())
 }
 
 #[tauri::command]

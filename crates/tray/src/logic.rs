@@ -108,9 +108,12 @@ impl TrayLogic {
     }
 
     pub fn organize_now(&self) -> Result<Vec<OrganizeResult>> {
-        let actions = organize_once(&self.config)?;
-        self.append_recent(&actions);
-        Ok(actions)
+        let summary = organize_once(&self.config)?;
+        for err in &summary.errors {
+            eprintln!("[Harbor] {err}");
+        }
+        self.append_recent(&summary.moved);
+        Ok(summary.moved)
     }
 
     pub fn cleanup_old_symlinks(&self) -> Result<usize> {

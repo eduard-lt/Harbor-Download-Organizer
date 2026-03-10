@@ -84,8 +84,11 @@ fn execute_command(
         }
         Commands::DownloadsOrganize { path } => {
             let cfg = harbor_core::downloads::load_downloads_config(&path)?;
-            let actions = harbor_core::downloads::organize_once(&cfg)?;
-            for result in actions {
+            let summary = harbor_core::downloads::organize_once(&cfg)?;
+            for err in &summary.errors {
+                eprintln!("[Harbor] {err}");
+            }
+            for result in summary.moved {
                 let sym = result.symlink_info.unwrap_or_default();
                 println!("{} -> {} ({}) {}", result.source.display(), result.destination.display(), result.rule_name, sym);
             }

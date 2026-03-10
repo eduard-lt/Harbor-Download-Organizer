@@ -48,6 +48,14 @@ pub struct OrganizeResult {
     pub symlink_info: Option<String>,
 }
 
+/// Summary returned by [`organize_once`], containing both successfully moved files
+/// and any per-file errors that occurred during the pass.
+#[derive(Debug, Default)]
+pub struct OrganizeSummary {
+    pub moved: Vec<OrganizeResult>,
+    pub errors: Vec<String>,
+}
+
 /// Loads and parses the downloads configuration file.
 ///
 /// This function reads a YAML file from the specified path, parses it into a
@@ -353,10 +361,10 @@ fn unique_target(target: &Path) -> PathBuf {
 ///
 /// Returns a list of actions taken, where each action is a tuple:
 /// `(original_path, new_path, rule_name, symlink_info)`.
-pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
+pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
     let base = PathBuf::from(&cfg.download_dir);
     let min_age = Duration::from_secs(cfg.min_age_secs.unwrap_or(5));
-    let mut actions = Vec::new();
+    let mut summary = OrganizeSummary::default();
 
     // Pre-compile each rule's regex pattern once for this pass.
     let compiled_rules: Vec<CompiledRule<'_>> = cfg.rules.iter().map(CompiledRule::new).collect();
@@ -428,12 +436,11 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
         }
         if let Some((rule, target)) = applied {
             if let Err(e) = fs::rename(&path, &target) {
-                eprintln!(
-                    "Failed to move {} to {}: {}",
+                summary.errors.push(format!(
+                    "Failed to move '{}' to '{}': {e}",
                     path.display(),
-                    target.display(),
-                    e
-                );
+                    target.display()
+                ));
                 continue;
             }
 
@@ -461,7 +468,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
                 }
             }
 
-            actions.push(OrganizeResult {
+            summary.moved.push(OrganizeResult {
                 source: path,
                 destination: target.clone(),
                 rule_name: rule.name.clone(),
@@ -469,7 +476,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
             });
         }
     }
-    Ok(actions)
+    Ok(summary)
 }
 
 /// Continuously polls the download directory and runs organization logic.
@@ -492,9 +499,12 @@ where
             break;
         }
         match organize_once(cfg) {
-            Ok(actions) => {
-                if !actions.is_empty() {
-                    callback(&actions);
+            Ok(summary) => {
+                for err in &summary.errors {
+                    eprintln!("[Harbor] {err}");
+                }
+                if !summary.moved.is_empty() {
+                    callback(&summary.moved);
                 }
             }
             Err(e) => eprintln!("organize error: {}", e),
@@ -773,8 +783,8 @@ mod tests {
         };
 
         // Run
-        let actions = organize_once(&cfg).unwrap();
-        assert_eq!(actions.len(), 1);
+        let summary = organize_once(&cfg).unwrap();
+        assert_eq!(summary.moved.len(), 1);
         assert!(!file_path.exists());
         assert!(target.join("test.png").exists());
     }
