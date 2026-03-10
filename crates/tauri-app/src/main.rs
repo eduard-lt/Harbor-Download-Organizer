@@ -25,12 +25,16 @@ fn main() {
     if !cfg_path.exists() {
         let default_config_path = harbor_dir.join("harbor.downloads.yaml.default");
         if default_config_path.exists() {
-            let _ = std::fs::copy(&default_config_path, &cfg_path);
+            if let Err(e) = std::fs::copy(&default_config_path, &cfg_path) {
+                eprintln!("[Harbor] Warning: failed to copy default config to disk: {e}");
+            }
         } else {
             // Create default config
             let config = default_config();
             if let Ok(yaml) = serde_yaml::to_string(&config) {
-                let _ = std::fs::write(&cfg_path, yaml);
+                if let Err(e) = std::fs::write(&cfg_path, yaml) {
+                    eprintln!("[Harbor] Warning: failed to write config to disk: {e}");
+                }
             }
         }
     }
@@ -112,7 +116,9 @@ fn main() {
             // --- AutoStart Logic ---
             let autostart_manager = app.autolaunch();
             // Always update the autostart registration to ensure args (like --minimized) are correct
-            let _ = autostart_manager.enable();
+            if let Err(e) = autostart_manager.enable() {
+                eprintln!("[Harbor] Warning: failed to enable autostart: {e}");
+            }
 
             // --- Smart Visibility Logic ---
             let args: Vec<String> = std::env::args().collect();

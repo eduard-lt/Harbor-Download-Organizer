@@ -10,7 +10,7 @@ use tauri::State;
 /// Frontend-facing rule representation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleDto {
-    /// Rule name (used as ID)
+    /// Unique rule identifier (UUID)
     pub id: String,
     /// Display name
     pub name: String,
