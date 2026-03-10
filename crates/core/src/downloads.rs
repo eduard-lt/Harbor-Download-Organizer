@@ -40,7 +40,13 @@ pub struct DownloadsConfig {
     pub last_notified_version: Option<String>,
 }
 
-pub type OrganizeResult = (PathBuf, PathBuf, String, Option<String>);
+#[derive(Debug, Clone)]
+pub struct OrganizeResult {
+    pub source: PathBuf,
+    pub destination: PathBuf,
+    pub rule_name: String,
+    pub symlink_info: Option<String>,
+}
 
 /// Loads and parses the downloads configuration file.
 ///
@@ -455,7 +461,12 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
                 }
             }
 
-            actions.push((path, target.clone(), rule.name.clone(), symlink_info));
+            actions.push(OrganizeResult {
+                source: path,
+                destination: target.clone(),
+                rule_name: rule.name.clone(),
+                symlink_info,
+            });
         }
     }
     Ok(actions)

@@ -160,15 +160,15 @@ impl TrayLogic {
             .open(&self.log_path)
         {
             use std::io::Write;
-            for (from, to, rule, _) in actions {
+            for result in actions {
                 let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
                 let _ = writeln!(
                     file,
                     "[{}] Moved {} -> {} (Rule: {})",
                     timestamp,
-                    from.file_name().unwrap_or_default().to_string_lossy(),
-                    to.display(),
-                    rule
+                    result.source.file_name().unwrap_or_default().to_string_lossy(),
+                    result.destination.display(),
+                    result.rule_name
                 );
             }
         }
@@ -351,12 +351,12 @@ mod tests {
         let (config, tmp) = create_test_config();
         let logic = TrayLogic::new(config).with_log_path(tmp.path().join("test.log"));
 
-        let action = (
-            PathBuf::from("a.txt"),
-            PathBuf::from("b.txt"),
-            "rule".to_string(),
-            None,
-        );
+        let action = OrganizeResult {
+            source: PathBuf::from("a.txt"),
+            destination: PathBuf::from("b.txt"),
+            rule_name: "rule".to_string(),
+            symlink_info: None,
+        };
         logic.on_file_change(&[action]);
 
         assert!(logic.log_path.exists());
@@ -423,7 +423,12 @@ mod tests {
         let log_path = tmp.path().join("nested").join("dir").join("log.txt");
         let logic = TrayLogic::new(config).with_log_path(log_path.clone());
 
-        let action = (PathBuf::from("a"), PathBuf::from("b"), "rule".into(), None);
+        let action = OrganizeResult {
+            source: PathBuf::from("a"),
+            destination: PathBuf::from("b"),
+            rule_name: "rule".into(),
+            symlink_info: None,
+        };
         logic.on_file_change(&[action]);
 
         assert!(log_path.exists());

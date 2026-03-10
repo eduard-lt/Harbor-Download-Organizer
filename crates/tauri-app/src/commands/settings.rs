@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling};
+use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling, OrganizeResult};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -27,7 +27,7 @@ pub struct ServiceStatus {
     pub uptime_seconds: Option<u64>,
 }
 
-fn append_to_log(log_path: &PathBuf, actions: &[(PathBuf, PathBuf, String, Option<String>)]) {
+fn append_to_log(log_path: &PathBuf, actions: &[OrganizeResult]) {
     if actions.is_empty() {
         return;
     }
@@ -37,15 +37,15 @@ fn append_to_log(log_path: &PathBuf, actions: &[(PathBuf, PathBuf, String, Optio
     }
 
     let mut buf = String::new();
-    for (from, to, rule, symlink_info) in actions {
-        let symlink_msg = symlink_info.as_deref().unwrap_or("");
+    for result in actions {
+        let symlink_msg = result.symlink_info.as_deref().unwrap_or("");
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
         buf.push_str(&format!(
             "[{}] {} -> {} ({}) {}\n",
             timestamp,
-            from.display(),
-            to.display(),
-            rule,
+            result.source.display(),
+            result.destination.display(),
+            result.rule_name,
             symlink_msg
         ));
     }
@@ -444,18 +444,18 @@ mod tests {
         let log_path = tmp.path().join("logs").join("recent.log");
 
         let actions = vec![
-            (
-                PathBuf::from("src/a.txt"),
-                PathBuf::from("dst/a.txt"),
-                "Images".to_string(),
-                None,
-            ),
-            (
-                PathBuf::from("src/b.txt"),
-                PathBuf::from("dst/b.txt"),
-                "Docs".to_string(),
-                Some("Symlinked".to_string()),
-            ),
+            OrganizeResult {
+                source: PathBuf::from("src/a.txt"),
+                destination: PathBuf::from("dst/a.txt"),
+                rule_name: "Images".to_string(),
+                symlink_info: None,
+            },
+            OrganizeResult {
+                source: PathBuf::from("src/b.txt"),
+                destination: PathBuf::from("dst/b.txt"),
+                rule_name: "Docs".to_string(),
+                symlink_info: Some("Symlinked".to_string()),
+            },
         ];
 
         append_to_log(&log_path, &actions);
