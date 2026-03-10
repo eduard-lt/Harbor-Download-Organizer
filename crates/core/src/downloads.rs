@@ -10,6 +10,18 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+/// Returns the Harbor application data directory: `%LOCALAPPDATA%\Harbor`
+pub fn harbor_app_dir() -> PathBuf {
+    std::env::var("LOCALAPPDATA")
+        .map(|p| PathBuf::from(p).join("Harbor"))
+        .unwrap_or(PathBuf::from("C:\\Harbor"))
+}
+
+/// Returns the path to the recent moves log file: `%LOCALAPPDATA%\Harbor\recent_moves.log`
+pub fn harbor_log_path() -> PathBuf {
+    harbor_app_dir().join("recent_moves.log")
+}
+
 /// A `Rule` with its regex pattern pre-compiled once for efficient reuse.
 struct CompiledRule<'a> {
     rule: &'a Rule,

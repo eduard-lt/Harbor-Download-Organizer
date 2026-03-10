@@ -67,7 +67,7 @@ impl TrayLogic {
             config: Arc::new(config),
             watching: Arc::new(AtomicBool::new(false)),
             handle: Arc::new(Mutex::new(None)),
-            log_path: Self::default_log_path(),
+            log_path: harbor_core::downloads::harbor_log_path(),
         }
     }
 
@@ -129,22 +129,6 @@ impl TrayLogic {
                 });
         }
         Ok(count)
-    }
-
-    fn default_log_path() -> PathBuf {
-        std::env::var("LOCALAPPDATA")
-            .map(|p| PathBuf::from(p).join("Harbor").join("recent_moves.log"))
-            .unwrap_or(PathBuf::from("C:\\Harbor\\recent_moves.log"))
-    }
-
-    pub fn local_appdata_harbor() -> PathBuf {
-        std::env::var("LOCALAPPDATA")
-            .map(|p| PathBuf::from(p).join("Harbor"))
-            .unwrap_or(PathBuf::from("C:\\Harbor"))
-    }
-
-    pub fn recent_log_path() -> PathBuf {
-        Self::default_log_path()
     }
 
     fn append_recent(&self, actions: &[OrganizeResult]) {

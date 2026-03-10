@@ -33,9 +33,6 @@ impl AppState {
 
     /// Get the path to the recent moves log
     pub fn recent_log_path(&self) -> PathBuf {
-        self.config_path
-            .parent()
-            .unwrap_or(&self.config_path)
-            .join("recent_moves.log")
+        harbor_core::downloads::harbor_log_path()
     }
 }

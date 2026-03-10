@@ -6,17 +6,10 @@ mod state;
 use harbor_core::downloads::{default_config, load_downloads_config};
 
 use state::AppState;
-use std::path::PathBuf;
 use tauri::{Emitter, Manager};
 
-fn local_appdata_harbor() -> PathBuf {
-    std::env::var("LOCALAPPDATA")
-        .map(|p| PathBuf::from(p).join("Harbor"))
-        .unwrap_or(PathBuf::from("C:\\Harbor"))
-}
-
 fn main() {
-    let harbor_dir = local_appdata_harbor();
+    let harbor_dir = harbor_core::downloads::harbor_app_dir();
     let _ = std::fs::create_dir_all(&harbor_dir);
 
     let cfg_path = harbor_dir.join("harbor.downloads.yaml");
