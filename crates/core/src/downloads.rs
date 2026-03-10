@@ -494,23 +494,32 @@ where
 }
 
 fn expand_env(input: &str) -> String {
-    let mut out = String::with_capacity(input.len());
-    let mut i = 0;
-    let bytes = input.as_bytes();
-    while i < bytes.len() {
-        if bytes[i] == b'%' {
+    let mut result = String::with_capacity(input.len());
+    let mut chars = input.char_indices().peekable();
+    while let Some((i, ch)) = chars.next() {
+        if ch == '%' {
+            // Find the closing '%'
             if let Some(end) = input[i + 1..].find('%') {
-                let var = &input[i + 1..i + 1 + end];
-                let val = std::env::var(var).unwrap_or_else(|_| "".to_string());
-                out.push_str(&val);
-                i += end + 2;
-                continue;
+                let var_name = &input[i + 1..i + 1 + end];
+                if !var_name.is_empty() {
+                    let value = std::env::var(var_name).unwrap_or_default();
+                    result.push_str(&value);
+                    // Advance chars past the closing '%'
+                    let closing_pos = i + 1 + end;
+                    while let Some(&(j, _)) = chars.peek() {
+                        if j <= closing_pos {
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    continue;
+                }
             }
         }
-        out.push(bytes[i] as char);
-        i += 1;
+        result.push(ch);
     }
-    out
+    result
 }
 
 /// Scans the download directory for old symlinks created by Harbor and removes them.
@@ -580,6 +589,14 @@ mod tests {
         assert_eq!(expand_env("%TEST_VAR%"), "world");
         assert_eq!(expand_env("No vars"), "No vars");
         assert_eq!(expand_env("Unknown %MISSING_VAR%"), "Unknown ");
+    }
+
+    #[test]
+    fn test_expand_env_non_ascii() {
+        // Paths with non-ASCII chars in the non-variable portion should pass through unchanged
+        let input = "C:\\Utilisateurs\\Édouard\\Documents";
+        let result = expand_env(input);
+        assert_eq!(result, input);
     }
 
     #[test]
