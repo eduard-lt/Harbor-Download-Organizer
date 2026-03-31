@@ -13,12 +13,11 @@
     "windows": [
       {
         "title": "Harbor",
-        "maxHeight": 1080,
-        "width": 1920,
-        "height": 1080,
-        "minWidth": 1200,
-        "minHeight": 800,
-        "resizable": false,
+        "width": 1200,
+        "height": 800,
+        "minWidth": 1000,
+        "minHeight": 700,
+        "resizable": true,
         "visible": false,
         "fullscreen": false,
         "decorations": true,
