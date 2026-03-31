@@ -1,6 +1,6 @@
 [project]
 name = "harbor"
-version = "1.0.3"
+version = "1.0.4"
 description = "Harbor specific tasks"
 
 # ============================================================================
@@ -77,15 +77,15 @@ help = "Show current version"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 show"
 
 [tool.poe.tasks.bump-patch]
-help = "Bump patch version (1.0.3 -> 1.0.4)"
+help = "Bump patch version (1.0.4 -> 1.0.5)"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-patch"
 
 [tool.poe.tasks.bump-minor]
-help = "Bump minor version (1.0.3 -> 1.1.0)"
+help = "Bump minor version (1.0.4 -> 1.1.0)"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-minor"
 
 [tool.poe.tasks.bump-major]
-help = "Bump major version (1.0.3 -> 2.0.0)"
+help = "Bump major version (1.0.4 -> 2.0.0)"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-major"
 
 [tool.poe.tasks.git-release]
@@ -136,3 +136,15 @@ interpreter = "powershell"
 [tool.poe.tasks.list]
 help = "List all available tasks"
 cmd = "poe"
+
+[tool.poe.tasks.lint]
+help = "Run Clippy lints"
+cmd = "cargo clippy --workspace -- -D warnings"
+
+[tool.poe.tasks.lint-ui]
+help = "Run frontend ESLint"
+cmd = "npm run lint --prefix packages/ui"
+
+[tool.poe.tasks.lint-all]
+help = "Run all linters (Clippy + ESLint)"
+sequence = ["lint", "lint-ui"]

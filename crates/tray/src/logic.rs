@@ -67,7 +67,7 @@ impl TrayLogic {
             config: Arc::new(config),
             watching: Arc::new(AtomicBool::new(false)),
             handle: Arc::new(Mutex::new(None)),
-            log_path: Self::default_log_path(),
+            log_path: harbor_core::downloads::harbor_log_path(),
         }
     }
 
@@ -103,21 +103,17 @@ impl TrayLogic {
     pub fn stop_watching(&self) {
         self.watching.store(false, Ordering::SeqCst);
         if let Ok(mut guard) = self.handle.lock() {
-            if let Some(h) = guard.take() {
-                // Unpark or wait? watch_polling checks atomic every 5s or on event.
-                // We just let it finish.
-                // On Windows we cannot easily interrupt the directory watcher.
-                // But verify thread usage:
-                #[allow(clippy::disallowed_methods)]
-                let _ = h.thread().id();
-            }
+            guard.take(); // drop the handle
         }
     }
 
     pub fn organize_now(&self) -> Result<Vec<OrganizeResult>> {
-        let actions = organize_once(&self.config)?;
-        self.append_recent(&actions);
-        Ok(actions)
+        let summary = organize_once(&self.config)?;
+        for err in &summary.errors {
+            eprintln!("[Harbor] {err}");
+        }
+        self.append_recent(&summary.moved);
+        Ok(summary.moved)
     }
 
     pub fn cleanup_old_symlinks(&self) -> Result<usize> {
@@ -133,22 +129,6 @@ impl TrayLogic {
                 });
         }
         Ok(count)
-    }
-
-    fn default_log_path() -> PathBuf {
-        std::env::var("LOCALAPPDATA")
-            .map(|p| PathBuf::from(p).join("Harbor").join("recent_moves.log"))
-            .unwrap_or(PathBuf::from("C:\\Harbor\\recent_moves.log"))
-    }
-
-    pub fn local_appdata_harbor() -> PathBuf {
-        std::env::var("LOCALAPPDATA")
-            .map(|p| PathBuf::from(p).join("Harbor"))
-            .unwrap_or(PathBuf::from("C:\\Harbor"))
-    }
-
-    pub fn recent_log_path() -> PathBuf {
-        Self::default_log_path()
     }
 
     fn append_recent(&self, actions: &[OrganizeResult]) {
@@ -167,15 +147,15 @@ impl TrayLogic {
             .open(&self.log_path)
         {
             use std::io::Write;
-            for (from, to, rule, _) in actions {
+            for result in actions {
                 let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
                 let _ = writeln!(
                     file,
                     "[{}] Moved {} -> {} (Rule: {})",
                     timestamp,
-                    from.file_name().unwrap_or_default().to_string_lossy(),
-                    to.display(),
-                    rule
+                    result.source.file_name().unwrap_or_default().to_string_lossy(),
+                    result.destination.display(),
+                    result.rule_name
                 );
             }
         }
@@ -358,12 +338,12 @@ mod tests {
         let (config, tmp) = create_test_config();
         let logic = TrayLogic::new(config).with_log_path(tmp.path().join("test.log"));
 
-        let action = (
-            PathBuf::from("a.txt"),
-            PathBuf::from("b.txt"),
-            "rule".to_string(),
-            None,
-        );
+        let action = OrganizeResult {
+            source: PathBuf::from("a.txt"),
+            destination: PathBuf::from("b.txt"),
+            rule_name: "rule".to_string(),
+            symlink_info: None,
+        };
         logic.on_file_change(&[action]);
 
         assert!(logic.log_path.exists());
@@ -386,8 +366,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: target_dir.to_string_lossy().to_string(),
-            create_symlink: None,
-            enabled: Some(true),
+            create_symlink: false,
+            enabled: true,
         });
 
         // Create a file in target
@@ -430,7 +410,12 @@ mod tests {
         let log_path = tmp.path().join("nested").join("dir").join("log.txt");
         let logic = TrayLogic::new(config).with_log_path(log_path.clone());
 
-        let action = (PathBuf::from("a"), PathBuf::from("b"), "rule".into(), None);
+        let action = OrganizeResult {
+            source: PathBuf::from("a"),
+            destination: PathBuf::from("b"),
+            rule_name: "rule".into(),
+            symlink_info: None,
+        };
         logic.on_file_change(&[action]);
 
         assert!(log_path.exists());

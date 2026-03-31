@@ -57,13 +57,14 @@ pub struct Rule {
     pub min_size_bytes: Option<u64>,
     pub max_size_bytes: Option<u64>,
     pub target_dir: String,
-    pub create_symlink: Option<bool>,
+    #[serde(default)]
+    pub create_symlink: bool,
     #[serde(default = "default_enabled")]
-    pub enabled: Option<bool>,
+    pub enabled: bool,
 }
 
-fn default_enabled() -> Option<bool> {
-    Some(true)
+fn default_enabled() -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -96,8 +97,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".to_string(),
-            create_symlink: None,
-            enabled: Some(true),
+            create_symlink: false,
+            enabled: true,
         };
         let json = serde_json::to_string(&r).unwrap();
         let r2: Rule = serde_json::from_str(&json).unwrap();
@@ -107,7 +108,7 @@ mod tests {
     #[test]
     fn test_rule_serde_missing_id_gets_default() {
         // Simulates deserializing an old config that has no `id` field.
-        let json = r#"{"name":"old","target_dir":"t","extensions":null,"pattern":null,"min_size_bytes":null,"max_size_bytes":null,"create_symlink":null,"enabled":null}"#;
+        let json = r#"{"name":"old","target_dir":"t","extensions":null,"pattern":null,"min_size_bytes":null,"max_size_bytes":null}"#;
         let r: Rule = serde_json::from_str(json).unwrap();
         assert_eq!(r.name, "old");
         // A UUID should have been generated automatically.

@@ -10,6 +10,18 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+/// Returns the Harbor application data directory: `%LOCALAPPDATA%\Harbor`
+pub fn harbor_app_dir() -> PathBuf {
+    std::env::var("LOCALAPPDATA")
+        .map(|p| PathBuf::from(p).join("Harbor"))
+        .unwrap_or(PathBuf::from("C:\\Harbor"))
+}
+
+/// Returns the path to the recent moves log file: `%LOCALAPPDATA%\Harbor\recent_moves.log`
+pub fn harbor_log_path() -> PathBuf {
+    harbor_app_dir().join("recent_moves.log")
+}
+
 /// A `Rule` with its regex pattern pre-compiled once for efficient reuse.
 struct CompiledRule<'a> {
     rule: &'a Rule,
@@ -40,7 +52,21 @@ pub struct DownloadsConfig {
     pub last_notified_version: Option<String>,
 }
 
-pub type OrganizeResult = (PathBuf, PathBuf, String, Option<String>);
+#[derive(Debug, Clone)]
+pub struct OrganizeResult {
+    pub source: PathBuf,
+    pub destination: PathBuf,
+    pub rule_name: String,
+    pub symlink_info: Option<String>,
+}
+
+/// Summary returned by [`organize_once`], containing both successfully moved files
+/// and any per-file errors that occurred during the pass.
+#[derive(Debug, Default)]
+pub struct OrganizeSummary {
+    pub moved: Vec<OrganizeResult>,
+    pub errors: Vec<String>,
+}
 
 /// Loads and parses the downloads configuration file.
 ///
@@ -99,8 +125,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: pictures,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -115,8 +141,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: videos,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -131,8 +157,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: music,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -147,8 +173,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: archives,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -165,8 +191,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: docs.clone(),
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -181,8 +207,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: installers,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -192,8 +218,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: isos,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -203,8 +229,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: torrents,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -219,8 +245,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: dev,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -230,8 +256,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: webpages,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
             Rule {
                 id: new_rule_id(),
@@ -241,8 +267,8 @@ pub fn default_config() -> DownloadsConfig {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: subtitles,
-                create_symlink: None,
-                enabled: Some(true),
+                create_symlink: false,
+                enabled: true,
             },
         ],
     }
@@ -347,10 +373,10 @@ fn unique_target(target: &Path) -> PathBuf {
 ///
 /// Returns a list of actions taken, where each action is a tuple:
 /// `(original_path, new_path, rule_name, symlink_info)`.
-pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
+pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
     let base = PathBuf::from(&cfg.download_dir);
     let min_age = Duration::from_secs(cfg.min_age_secs.unwrap_or(5));
-    let mut actions = Vec::new();
+    let mut summary = OrganizeSummary::default();
 
     // Pre-compile each rule's regex pattern once for this pass.
     let compiled_rules: Vec<CompiledRule<'_>> = cfg.rules.iter().map(CompiledRule::new).collect();
@@ -404,7 +430,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
         let mut applied: Option<(&Rule, PathBuf)> = None;
         for compiled in &compiled_rules {
             // Skip disabled rules
-            if !compiled.rule.enabled.unwrap_or(true) {
+            if !compiled.rule.enabled {
                 continue;
             }
             if matches_rule(&path, &meta, compiled) {
@@ -422,17 +448,16 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
         }
         if let Some((rule, target)) = applied {
             if let Err(e) = fs::rename(&path, &target) {
-                eprintln!(
-                    "Failed to move {} to {}: {}",
+                summary.errors.push(format!(
+                    "Failed to move '{}' to '{}': {e}",
                     path.display(),
-                    target.display(),
-                    e
-                );
+                    target.display()
+                ));
                 continue;
             }
 
             let mut symlink_info = None;
-            if rule.create_symlink.unwrap_or(false) {
+            if rule.create_symlink {
                 #[cfg(windows)]
                 let res = std::os::windows::fs::symlink_file(&target, &path);
                 #[cfg(unix)]
@@ -455,10 +480,15 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<OrganizeResult>> {
                 }
             }
 
-            actions.push((path, target.clone(), rule.name.clone(), symlink_info));
+            summary.moved.push(OrganizeResult {
+                source: path,
+                destination: target.clone(),
+                rule_name: rule.name.clone(),
+                symlink_info,
+            });
         }
     }
-    Ok(actions)
+    Ok(summary)
 }
 
 /// Continuously polls the download directory and runs organization logic.
@@ -481,9 +511,12 @@ where
             break;
         }
         match organize_once(cfg) {
-            Ok(actions) => {
-                if !actions.is_empty() {
-                    callback(&actions);
+            Ok(summary) => {
+                for err in &summary.errors {
+                    eprintln!("[Harbor] {err}");
+                }
+                if !summary.moved.is_empty() {
+                    callback(&summary.moved);
                 }
             }
             Err(e) => eprintln!("organize error: {}", e),
@@ -494,23 +527,32 @@ where
 }
 
 fn expand_env(input: &str) -> String {
-    let mut out = String::with_capacity(input.len());
-    let mut i = 0;
-    let bytes = input.as_bytes();
-    while i < bytes.len() {
-        if bytes[i] == b'%' {
+    let mut result = String::with_capacity(input.len());
+    let mut chars = input.char_indices().peekable();
+    while let Some((i, ch)) = chars.next() {
+        if ch == '%' {
+            // Find the closing '%'
             if let Some(end) = input[i + 1..].find('%') {
-                let var = &input[i + 1..i + 1 + end];
-                let val = std::env::var(var).unwrap_or_else(|_| "".to_string());
-                out.push_str(&val);
-                i += end + 2;
-                continue;
+                let var_name = &input[i + 1..i + 1 + end];
+                if !var_name.is_empty() {
+                    let value = std::env::var(var_name).unwrap_or_default();
+                    result.push_str(&value);
+                    // Advance chars past the closing '%'
+                    let closing_pos = i + 1 + end;
+                    while let Some(&(j, _)) = chars.peek() {
+                        if j <= closing_pos {
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    continue;
+                }
             }
         }
-        out.push(bytes[i] as char);
-        i += 1;
+        result.push(ch);
     }
-    out
+    result
 }
 
 /// Scans the download directory for old symlinks created by Harbor and removes them.
@@ -583,6 +625,14 @@ mod tests {
     }
 
     #[test]
+    fn test_expand_env_non_ascii() {
+        // Paths with non-ASCII chars in the non-variable portion should pass through unchanged
+        let input = "C:\\Utilisateurs\\Édouard\\Documents";
+        let result = expand_env(input);
+        assert_eq!(result, input);
+    }
+
+    #[test]
     fn test_is_partial() {
         assert!(is_partial("file.crdownload"));
         assert!(is_partial("file.part"));
@@ -611,8 +661,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(matches_rule(
             &file_path,
@@ -628,8 +678,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(matches_rule(
             &file_path,
@@ -645,8 +695,8 @@ mod tests {
             min_size_bytes: Some(2),
             max_size_bytes: Some(10),
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(matches_rule(
             &file_path,
@@ -662,8 +712,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(!matches_rule(
             &file_path,
@@ -680,8 +730,8 @@ mod tests {
             min_size_bytes: None,
             max_size_bytes: None,
             target_dir: "target".into(),
-            create_symlink: None,
-            enabled: None,
+            create_symlink: false,
+            enabled: true,
         };
         assert!(!matches_rule(
             &file_path,
@@ -739,14 +789,14 @@ mod tests {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: target.to_str().unwrap().into(),
-                create_symlink: Some(false),
-                enabled: None,
+                create_symlink: false,
+                enabled: true,
             }],
         };
 
         // Run
-        let actions = organize_once(&cfg).unwrap();
-        assert_eq!(actions.len(), 1);
+        let summary = organize_once(&cfg).unwrap();
+        assert_eq!(summary.moved.len(), 1);
         assert!(!file_path.exists());
         assert!(target.join("test.png").exists());
     }
@@ -782,8 +832,8 @@ mod tests {
                 min_size_bytes: None,
                 max_size_bytes: None,
                 target_dir: target.to_str().unwrap().into(),
-                create_symlink: None,
-                enabled: None,
+                create_symlink: false,
+                enabled: true,
             }],
             min_age_secs: None,
             tutorial_completed: None,

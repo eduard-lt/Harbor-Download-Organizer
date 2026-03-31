@@ -1,5 +1,5 @@
 use crate::state::AppState;
-use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling};
+use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling, OrganizeResult};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -20,6 +20,13 @@ const LOG_MAX_LINES: usize = 10_000;
 /// file on every single append.
 const LOG_ROTATION_THRESHOLD_BYTES: u64 = 1_024 * 1_024; // 1 MiB
 
+/// Serializes the current config state to disk.
+fn save_config_to_disk(state: &AppState) -> Result<(), String> {
+    let config = state.config.read().map_err(|e| e.to_string())?;
+    let yaml = serde_yaml::to_string(&*config).map_err(|e| e.to_string())?;
+    std::fs::write(&state.config_path, yaml).map_err(|e| e.to_string())
+}
+
 /// Service status information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceStatus {
@@ -27,7 +34,7 @@ pub struct ServiceStatus {
     pub uptime_seconds: Option<u64>,
 }
 
-fn append_to_log(log_path: &PathBuf, actions: &[(PathBuf, PathBuf, String, Option<String>)]) {
+fn append_to_log(log_path: &PathBuf, actions: &[OrganizeResult]) {
     if actions.is_empty() {
         return;
     }
@@ -37,15 +44,15 @@ fn append_to_log(log_path: &PathBuf, actions: &[(PathBuf, PathBuf, String, Optio
     }
 
     let mut buf = String::new();
-    for (from, to, rule, symlink_info) in actions {
-        let symlink_msg = symlink_info.as_deref().unwrap_or("");
+    for result in actions {
+        let symlink_msg = result.symlink_info.as_deref().unwrap_or("");
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
         buf.push_str(&format!(
             "[{}] {} -> {} ({}) {}\n",
             timestamp,
-            from.display(),
-            to.display(),
-            rule,
+            result.source.display(),
+            result.destination.display(),
+            result.rule_name,
             symlink_msg
         ));
     }
@@ -163,13 +170,7 @@ pub fn persist_service_state(state: &AppState, enabled: bool) -> Result<(), Stri
         let mut config = state.config.write().map_err(|e| e.to_string())?;
         config.service_enabled = Some(enabled);
     }
-    // Save to disk
-    let config = state.config.read().map_err(|e| e.to_string())?;
-    if let Ok(yaml) = serde_yaml::to_string(&*config) {
-        std::fs::write(&state.config_path, yaml)
-            .map_err(|e| format!("Failed to write config: {}", e))?;
-    }
-    Ok(())
+    save_config_to_disk(state)
 }
 
 #[tauri::command]
@@ -189,11 +190,15 @@ pub async fn trigger_organize_now(state: State<'_, AppState>) -> Result<usize, S
     let config = state.config.read().map_err(|e| e.to_string())?.clone();
     let log_path = state.recent_log_path();
 
-    let actions = organize_once(&config).map_err(|e| format!("Organize failed: {}", e))?;
+    let summary = organize_once(&config).map_err(|e| format!("Organize failed: {}", e))?;
 
-    append_to_log(&log_path, &actions);
+    for err in &summary.errors {
+        eprintln!("[Harbor] {err}");
+    }
 
-    Ok(actions.len())
+    append_to_log(&log_path, &summary.moved);
+
+    Ok(summary.moved.len())
 }
 
 #[tauri::command]
@@ -319,32 +324,12 @@ pub async fn get_config_path(state: State<'_, AppState>) -> Result<String, Strin
 pub async fn reset_to_defaults(state: State<'_, AppState>) -> Result<(), String> {
     let config = harbor_core::downloads::default_config();
 
-    // Save to disk
-    if let Ok(yaml) = serde_yaml::to_string(&config) {
-        std::fs::write(&state.config_path, yaml)
-            .map_err(|e| format!("Failed to write config: {}", e))?;
-    } else {
-        return Err("Failed to serialize default config".to_string());
+    {
+        let mut state_config = state.config.write().map_err(|e| e.to_string())?;
+        *state_config = config;
     }
 
-    // Update state
-    let mut state_config = state.config.write().map_err(|e| e.to_string())?;
-    *state_config = config;
-
-    // Restart service if running to pick up new config
-    // We can just rely on internal_start_service logic which re-reads config if we stop/start?
-    // Actually, internal_start_service reads from state.config via read lock.
-    // But verify if the running thread picks up changes?
-    // The running thread has a CLONE of the config at start.
-    // So if service is running, we MUST restart it.
-
-    // We can't access `internal_stop_service` easily if we are holding a write lock on config?
-    // No, locks are separate. global `watcher_flag` and `watcher_handle` vs `config` RwLock.
-
-    // But we are holding `state.config` write lock right now.
-    // `internal_start_service` needs `state.config` read lock.
-    // So we must drop our write lock before calling any service functions.
-    drop(state_config);
+    save_config_to_disk(&state)?;
 
     // Stop and start service to apply changes
     let _ = internal_stop_service(&state);
@@ -371,17 +356,7 @@ pub async fn set_tutorial_completed(
         let mut config = state.config.write().map_err(|e| e.to_string())?;
         config.tutorial_completed = Some(completed);
     }
-
-    // Save to disk
-    let config = state.config.read().map_err(|e| e.to_string())?;
-    if let Ok(yaml) = serde_yaml::to_string(&*config) {
-        std::fs::write(&state.config_path, yaml)
-            .map_err(|e| format!("Failed to write config: {}", e))?;
-    } else {
-        return Err("Failed to serialize config".to_string());
-    }
-
-    Ok(())
+    save_config_to_disk(&state)
 }
 
 #[tauri::command]
@@ -397,13 +372,7 @@ pub async fn set_check_updates(state: State<'_, AppState>, enabled: bool) -> Res
         let mut config = state.config.write().map_err(|e| e.to_string())?;
         config.check_updates = Some(enabled);
     }
-    // Save to disk
-    let config = state.config.read().map_err(|e| e.to_string())?;
-    if let Ok(yaml) = serde_yaml::to_string(&*config) {
-        std::fs::write(&state.config_path, yaml)
-            .map_err(|e| format!("Failed to write config: {}", e))?;
-    }
-    Ok(())
+    save_config_to_disk(&state)
 }
 
 #[tauri::command]
@@ -423,13 +392,7 @@ pub async fn set_last_notified_version(
         let mut config = state.config.write().map_err(|e| e.to_string())?;
         config.last_notified_version = Some(version);
     }
-    // Save to disk
-    let config = state.config.read().map_err(|e| e.to_string())?;
-    if let Ok(yaml) = serde_yaml::to_string(&*config) {
-        std::fs::write(&state.config_path, yaml)
-            .map_err(|e| format!("Failed to write config: {}", e))?;
-    }
-    Ok(())
+    save_config_to_disk(&state)
 }
 
 #[cfg(test)]
@@ -444,18 +407,18 @@ mod tests {
         let log_path = tmp.path().join("logs").join("recent.log");
 
         let actions = vec![
-            (
-                PathBuf::from("src/a.txt"),
-                PathBuf::from("dst/a.txt"),
-                "Images".to_string(),
-                None,
-            ),
-            (
-                PathBuf::from("src/b.txt"),
-                PathBuf::from("dst/b.txt"),
-                "Docs".to_string(),
-                Some("Symlinked".to_string()),
-            ),
+            OrganizeResult {
+                source: PathBuf::from("src/a.txt"),
+                destination: PathBuf::from("dst/a.txt"),
+                rule_name: "Images".to_string(),
+                symlink_info: None,
+            },
+            OrganizeResult {
+                source: PathBuf::from("src/b.txt"),
+                destination: PathBuf::from("dst/b.txt"),
+                rule_name: "Docs".to_string(),
+                symlink_info: Some("Symlinked".to_string()),
+            },
         ];
 
         append_to_log(&log_path, &actions);

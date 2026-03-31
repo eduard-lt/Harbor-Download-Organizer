@@ -84,10 +84,13 @@ fn execute_command(
         }
         Commands::DownloadsOrganize { path } => {
             let cfg = harbor_core::downloads::load_downloads_config(&path)?;
-            let actions = harbor_core::downloads::organize_once(&cfg)?;
-            for (from, to, rule, symlink_info) in actions {
-                let sym = symlink_info.unwrap_or_default();
-                println!("{} -> {} ({}) {}", from.display(), to.display(), rule, sym);
+            let summary = harbor_core::downloads::organize_once(&cfg)?;
+            for err in &summary.errors {
+                eprintln!("[Harbor] {err}");
+            }
+            for result in summary.moved {
+                let sym = result.symlink_info.unwrap_or_default();
+                println!("{} -> {} ({}) {}", result.source.display(), result.destination.display(), result.rule_name, sym);
             }
             Ok(())
         }
@@ -103,9 +106,9 @@ fn execute_command(
                 interval_secs,
                 &should_continue,
                 |actions| {
-                    for (from, to, rule, symlink_info) in actions {
-                        let sym = symlink_info.as_deref().unwrap_or_default();
-                        println!("{} -> {} ({}) {}", from.display(), to.display(), rule, sym);
+                    for result in actions {
+                        let sym = result.symlink_info.as_deref().unwrap_or_default();
+                        println!("{} -> {} ({}) {}", result.source.display(), result.destination.display(), result.rule_name, sym);
                     }
                 },
             )?;

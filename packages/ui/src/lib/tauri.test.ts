@@ -54,7 +54,7 @@ describe('tauri API wrappers', () => {
         const fakeRule = { id: '2', ...ruleInput, icon: '', icon_color: '' };
         mockInvoke.mockResolvedValue(fakeRule);
         const result = await createRule(ruleInput);
-        expect(mockInvoke).toHaveBeenCalledWith('create_rule', ruleInput);
+        expect(mockInvoke).toHaveBeenCalledWith('create_rule', { rule: ruleInput });
         expect(result).toEqual(fakeRule);
     });
 
@@ -63,26 +63,26 @@ describe('tauri API wrappers', () => {
         const fakeRule = { id: '2', name: 'Videos Updated', extensions: [], destination: '', create_symlink: false, enabled: true, icon: '', icon_color: '' };
         mockInvoke.mockResolvedValue(fakeRule);
         const result = await updateRule(ruleUpdate);
-        expect(mockInvoke).toHaveBeenCalledWith('update_rule', ruleUpdate);
+        expect(mockInvoke).toHaveBeenCalledWith('update_rule', { rule: ruleUpdate });
         expect(result).toEqual(fakeRule);
     });
 
-    it('deleteRule calls invoke("delete_rule") with ruleName', async () => {
+    it('deleteRule calls invoke("delete_rule") with ruleId', async () => {
         mockInvoke.mockResolvedValue(undefined);
         await deleteRule('Videos');
-        expect(mockInvoke).toHaveBeenCalledWith('delete_rule', { ruleName: 'Videos' });
+        expect(mockInvoke).toHaveBeenCalledWith('delete_rule', { ruleId: 'Videos' });
     });
 
-    it('toggleRule calls invoke("toggle_rule") with ruleName and enabled', async () => {
+    it('toggleRule calls invoke("toggle_rule") with ruleId and enabled', async () => {
         mockInvoke.mockResolvedValue(undefined);
         await toggleRule('Images', false);
-        expect(mockInvoke).toHaveBeenCalledWith('toggle_rule', { ruleName: 'Images', enabled: false });
+        expect(mockInvoke).toHaveBeenCalledWith('toggle_rule', { ruleId: 'Images', enabled: false });
     });
 
-    it('reorderRules calls invoke("reorder_rules") with ruleNames', async () => {
+    it('reorderRules calls invoke("reorder_rules") with ruleIds', async () => {
         mockInvoke.mockResolvedValue(undefined);
         await reorderRules(['rule1', 'rule2']);
-        expect(mockInvoke).toHaveBeenCalledWith('reorder_rules', { ruleNames: ['rule1', 'rule2'] });
+        expect(mockInvoke).toHaveBeenCalledWith('reorder_rules', { ruleIds: ['rule1', 'rule2'] });
     });
 
     it('getDownloadDir calls invoke("get_download_dir")', async () => {

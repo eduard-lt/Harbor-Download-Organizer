@@ -45,7 +45,7 @@ function GlobalContextMenuListener() {
 }
 
 function App() {
-  // Initialize window size persistence
+  // Initialize window size persistence and DPI awareness
   useWindowSize();
 
   return (

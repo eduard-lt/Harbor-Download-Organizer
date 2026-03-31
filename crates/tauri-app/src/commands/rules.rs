@@ -7,10 +7,37 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::State;
 
+/// Request struct for creating a new rule
+#[derive(Debug, serde::Deserialize)]
+pub struct CreateRuleRequest {
+    pub name: String,
+    pub extensions: Vec<String>,
+    pub destination: String,
+    pub pattern: Option<String>,
+    pub min_size_bytes: Option<u64>,
+    pub max_size_bytes: Option<u64>,
+    pub create_symlink: Option<bool>,
+    pub enabled: Option<bool>,
+}
+
+/// Request struct for updating an existing rule
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdateRuleRequest {
+    pub id: String,
+    pub name: Option<String>,
+    pub extensions: Option<Vec<String>>,
+    pub destination: Option<String>,
+    pub pattern: Option<String>,
+    pub min_size_bytes: Option<u64>,
+    pub max_size_bytes: Option<u64>,
+    pub create_symlink: Option<bool>,
+    pub enabled: Option<bool>,
+}
+
 /// Frontend-facing rule representation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleDto {
-    /// Rule name (used as ID)
+    /// Unique rule identifier (UUID)
     pub id: String,
     /// Display name
     pub name: String,
@@ -36,8 +63,13 @@ pub struct RuleDto {
 
 impl From<&Rule> for RuleDto {
     fn from(rule: &Rule) -> Self {
-        let icon = derive_icon(rule.extensions.as_ref());
-        let icon_color = derive_icon_color(rule.extensions.as_ref());
+        let ext = rule
+            .extensions
+            .as_ref()
+            .and_then(|e| e.first())
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default();
+        let (icon, icon_color) = super::ui_helpers::derive_file_icon_and_color(&ext);
 
         RuleDto {
             id: rule.id.clone(),
@@ -53,58 +85,11 @@ impl From<&Rule> for RuleDto {
             min_size_bytes: rule.min_size_bytes,
             max_size_bytes: rule.max_size_bytes,
             destination: rule.target_dir.clone(),
-            create_symlink: rule.create_symlink.unwrap_or(false),
-            enabled: rule.enabled.unwrap_or(true),
+            create_symlink: rule.create_symlink,
+            enabled: rule.enabled,
             icon,
             icon_color,
         }
-    }
-}
-
-fn derive_icon(extensions: Option<&Vec<String>>) -> String {
-    let ext = extensions
-        .and_then(|e| e.first())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-
-    match ext.as_str() {
-        "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "tiff" | "heic" | "avif" => {
-            "image".to_string()
-        }
-        "mp4" | "mkv" | "avi" | "mov" | "wmv" | "webm" => "movie".to_string(),
-        "mp3" | "flac" | "wav" | "aac" | "ogg" => "music_note".to_string(),
-        "pdf" | "doc" | "docx" | "txt" | "rtf" => "description".to_string(),
-        "xls" | "xlsx" | "csv" => "table_chart".to_string(),
-        "ppt" | "pptx" => "slideshow".to_string(),
-        "zip" | "rar" | "7z" | "tar" | "gz" | "xz" => "folder_zip".to_string(),
-        "exe" | "msi" | "msix" | "dmg" | "pkg" | "apk" => "install_desktop".to_string(),
-        "iso" => "album".to_string(),
-        "torrent" => "download".to_string(),
-        "html" | "htm" => "web".to_string(),
-        "json" | "xml" | "yaml" | "yml" => "code".to_string(),
-        "srt" | "vtt" => "subtitles".to_string(),
-        _ => "insert_drive_file".to_string(),
-    }
-}
-
-fn derive_icon_color(extensions: Option<&Vec<String>>) -> String {
-    let ext = extensions
-        .and_then(|e| e.first())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-
-    match ext.as_str() {
-        "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "tiff" | "heic" | "avif" => {
-            "indigo".to_string()
-        }
-        "mp4" | "mkv" | "avi" | "mov" | "wmv" | "webm" => "purple".to_string(),
-        "mp3" | "flac" | "wav" | "aac" | "ogg" => "pink".to_string(),
-        "pdf" | "doc" | "docx" | "txt" | "rtf" | "xls" | "xlsx" | "csv" | "ppt" | "pptx" => {
-            "amber".to_string()
-        }
-        "zip" | "rar" | "7z" | "tar" | "gz" | "xz" => "slate".to_string(),
-        "exe" | "msi" | "msix" | "dmg" | "pkg" | "apk" => "red".to_string(),
-        _ => "slate".to_string(),
     }
 }
 
@@ -138,78 +123,52 @@ pub async fn impl_get_rules(state: &AppState) -> Result<Vec<RuleDto>, String> {
 }
 
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
 pub async fn create_rule(
     state: State<'_, AppState>,
-    name: String,
-    extensions: Vec<String>,
-    destination: String,
-    pattern: Option<String>,
-    min_size_bytes: Option<u64>,
-    max_size_bytes: Option<u64>,
-    create_symlink: Option<bool>,
-    enabled: Option<bool>,
+    rule: CreateRuleRequest,
 ) -> Result<RuleDto, String> {
-    impl_create_rule(
-        &state,
-        name,
-        extensions,
-        destination,
-        pattern,
-        min_size_bytes,
-        max_size_bytes,
-        create_symlink,
-        enabled,
-    )
-    .await
+    impl_create_rule(&state, rule).await
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn impl_create_rule(
     state: &AppState,
-    name: String,
-    extensions: Vec<String>,
-    destination: String,
-    pattern: Option<String>,
-    min_size_bytes: Option<u64>,
-    max_size_bytes: Option<u64>,
-    create_symlink: Option<bool>,
-    enabled: Option<bool>,
+    rule: CreateRuleRequest,
 ) -> Result<RuleDto, String> {
     let new_rule = {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
         // Check if rule with this name already exists
-        if config.rules.iter().any(|r| r.name == name) {
-            return Err(format!("Rule with name '{}' already exists", name));
+        if config.rules.iter().any(|r| r.name == rule.name) {
+            return Err(format!("Rule with name '{}' already exists", rule.name));
         }
 
         // Convert extensions: remove leading dots if present
-        let extensions: Vec<String> = extensions
+        let extensions: Vec<String> = rule
+            .extensions
             .into_iter()
             .map(|e| e.trim_start_matches('.').to_string())
             .filter(|e| !e.is_empty())
             .collect();
 
-        let rule = Rule {
+        let new = Rule {
             id: harbor_core::types::new_rule_id(),
-            name: name.clone(),
+            name: rule.name.clone(),
             extensions: if extensions.is_empty() {
                 None
             } else {
                 Some(extensions)
             },
-            pattern,
-            min_size_bytes,
-            max_size_bytes,
-            target_dir: destination,
-            create_symlink,
-            enabled,
+            pattern: rule.pattern,
+            min_size_bytes: rule.min_size_bytes,
+            max_size_bytes: rule.max_size_bytes,
+            target_dir: rule.destination,
+            create_symlink: rule.create_symlink.unwrap_or(false),
+            enabled: rule.enabled.unwrap_or(true),
         };
 
-        config.rules.push(rule.clone());
+        config.rules.push(new.clone());
         save_config(state, &config)?;
-        rule
+        new
     };
 
     restart_service_if_running(state)?;
@@ -218,87 +177,57 @@ pub async fn impl_create_rule(
 }
 
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
 pub async fn update_rule(
     state: State<'_, AppState>,
-    id: String,
-    name: Option<String>,
-    extensions: Option<Vec<String>>,
-    destination: Option<String>,
-    pattern: Option<String>,
-    min_size_bytes: Option<u64>,
-    max_size_bytes: Option<u64>,
-    create_symlink: Option<bool>,
-    enabled: Option<bool>,
+    rule: UpdateRuleRequest,
 ) -> Result<RuleDto, String> {
-    impl_update_rule(
-        &state,
-        id,
-        name,
-        extensions,
-        destination,
-        pattern,
-        min_size_bytes,
-        max_size_bytes,
-        create_symlink,
-        enabled,
-    )
-    .await
+    impl_update_rule(&state, rule).await
 }
 
-#[allow(clippy::too_many_arguments)]
 pub async fn impl_update_rule(
     state: &AppState,
-    id: String,
-    name: Option<String>,
-    extensions: Option<Vec<String>>,
-    destination: Option<String>,
-    pattern: Option<String>,
-    min_size_bytes: Option<u64>,
-    max_size_bytes: Option<u64>,
-    create_symlink: Option<bool>,
-    enabled: Option<bool>,
+    rule: UpdateRuleRequest,
 ) -> Result<RuleDto, String> {
     let updated = {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
-        let rule = config
+        let r = config
             .rules
             .iter_mut()
-            .find(|r| r.id == id)
-            .ok_or_else(|| format!("Rule '{}' not found", id))?;
+            .find(|r| r.id == rule.id)
+            .ok_or_else(|| format!("Rule '{}' not found", rule.id))?;
 
-        if let Some(new_name) = name {
-            rule.name = new_name;
+        if let Some(new_name) = rule.name {
+            r.name = new_name;
         }
-        if let Some(exts) = extensions {
+        if let Some(exts) = rule.extensions {
             let exts: Vec<String> = exts
                 .into_iter()
                 .map(|e| e.trim_start_matches('.').to_string())
                 .filter(|e| !e.is_empty())
                 .collect();
-            rule.extensions = if exts.is_empty() { None } else { Some(exts) };
+            r.extensions = if exts.is_empty() { None } else { Some(exts) };
         }
-        if let Some(dest) = destination {
-            rule.target_dir = dest;
+        if let Some(dest) = rule.destination {
+            r.target_dir = dest;
         }
-        if pattern.is_some() {
-            rule.pattern = pattern;
+        if rule.pattern.is_some() {
+            r.pattern = rule.pattern;
         }
-        if min_size_bytes.is_some() {
-            rule.min_size_bytes = min_size_bytes;
+        if rule.min_size_bytes.is_some() {
+            r.min_size_bytes = rule.min_size_bytes;
         }
-        if max_size_bytes.is_some() {
-            rule.max_size_bytes = max_size_bytes;
+        if rule.max_size_bytes.is_some() {
+            r.max_size_bytes = rule.max_size_bytes;
         }
-        if let Some(symlink) = create_symlink {
-            rule.create_symlink = Some(symlink);
+        if let Some(symlink) = rule.create_symlink {
+            r.create_symlink = symlink;
         }
-        if let Some(en) = enabled {
-            rule.enabled = Some(en);
+        if let Some(en) = rule.enabled {
+            r.enabled = en;
         }
 
-        let updated = RuleDto::from(&*rule);
+        let updated = RuleDto::from(&*r);
         save_config(state, &config)?;
         updated
     };
@@ -309,19 +238,19 @@ pub async fn impl_update_rule(
 }
 
 #[tauri::command]
-pub async fn delete_rule(state: State<'_, AppState>, rule_name: String) -> Result<(), String> {
-    impl_delete_rule(&state, rule_name).await
+pub async fn delete_rule(state: State<'_, AppState>, rule_id: String) -> Result<(), String> {
+    impl_delete_rule(&state, rule_id).await
 }
 
-pub async fn impl_delete_rule(state: &AppState, rule_name: String) -> Result<(), String> {
+pub async fn impl_delete_rule(state: &AppState, rule_id: String) -> Result<(), String> {
     {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
         let original_len = config.rules.len();
-        config.rules.retain(|r| r.id != rule_name);
+        config.rules.retain(|r| r.id != rule_id);
 
         if config.rules.len() == original_len {
-            return Err(format!("Rule '{}' not found", rule_name));
+            return Err(format!("Rule '{}' not found", rule_id));
         }
 
         save_config(state, &config)?;
@@ -333,15 +262,15 @@ pub async fn impl_delete_rule(state: &AppState, rule_name: String) -> Result<(),
 #[tauri::command]
 pub async fn toggle_rule(
     state: State<'_, AppState>,
-    rule_name: String,
+    rule_id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    impl_toggle_rule(&state, rule_name, enabled).await
+    impl_toggle_rule(&state, rule_id, enabled).await
 }
 
 pub async fn impl_toggle_rule(
     state: &AppState,
-    rule_name: String,
+    rule_id: String,
     enabled: bool,
 ) -> Result<(), String> {
     {
@@ -350,10 +279,10 @@ pub async fn impl_toggle_rule(
         let rule = config
             .rules
             .iter_mut()
-            .find(|r| r.id == rule_name)
-            .ok_or_else(|| format!("Rule '{}' not found", rule_name))?;
+            .find(|r| r.id == rule_id)
+            .ok_or_else(|| format!("Rule '{}' not found", rule_id))?;
 
-        rule.enabled = Some(enabled);
+        rule.enabled = enabled;
         save_config(state, &config)?;
     }
     restart_service_if_running(state)?;
@@ -364,27 +293,33 @@ pub async fn impl_toggle_rule(
 #[tauri::command]
 pub async fn reorder_rules(
     state: State<'_, AppState>,
-    rule_names: Vec<String>,
+    rule_ids: Vec<String>,
 ) -> Result<(), String> {
-    impl_reorder_rules(&state, rule_names).await
+    impl_reorder_rules(&state, rule_ids).await
 }
 
-pub async fn impl_reorder_rules(state: &AppState, rule_names: Vec<String>) -> Result<(), String> {
+pub async fn impl_reorder_rules(state: &AppState, rule_ids: Vec<String>) -> Result<(), String> {
     {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
-        // Reorder rules based on the provided order
-        let mut new_rules: Vec<Rule> = Vec::with_capacity(rule_names.len());
+        // Build a lookup map for O(1) access
+        let rule_map: std::collections::HashMap<&str, &Rule> = config
+            .rules
+            .iter()
+            .map(|r| (r.id.as_str(), r))
+            .collect();
 
-        for name in &rule_names {
-            if let Some(rule) = config.rules.iter().find(|r| &r.id == name).cloned() {
-                new_rules.push(rule);
-            }
-        }
+        // Reorder rules based on the provided order
+        let mut new_rules: Vec<Rule> = rule_ids
+            .iter()
+            .filter_map(|id| rule_map.get(id.as_str()).copied().cloned())
+            .collect();
 
         // Add any rules that weren't in the provided list (shouldn't happen, but safety first)
+        let rule_ids_set: std::collections::HashSet<&str> =
+            rule_ids.iter().map(|s| s.as_str()).collect();
         for rule in &config.rules {
-            if !rule_names.contains(&rule.id) {
+            if !rule_ids_set.contains(rule.id.as_str()) {
                 new_rules.push(rule.clone());
             }
         }
@@ -408,37 +343,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_derive_icon() {
-        assert_eq!(derive_icon(Some(&vec!["jpg".to_string()])), "image");
-        assert_eq!(derive_icon(Some(&vec!["mp4".to_string()])), "movie");
-        assert_eq!(derive_icon(Some(&vec!["mp3".to_string()])), "music_note");
-        assert_eq!(derive_icon(Some(&vec!["pdf".to_string()])), "description");
-        assert_eq!(derive_icon(Some(&vec!["xlsx".to_string()])), "table_chart");
-        assert_eq!(derive_icon(Some(&vec!["zip".to_string()])), "folder_zip");
-        assert_eq!(
-            derive_icon(Some(&vec!["exe".to_string()])),
-            "install_desktop"
-        );
-        assert_eq!(
-            derive_icon(Some(&vec!["unknown".to_string()])),
-            "insert_drive_file"
-        );
-        assert_eq!(derive_icon(None), "insert_drive_file");
-    }
+    fn test_derive_file_icon_and_color_via_helper() {
+        use super::super::ui_helpers::derive_file_icon_and_color;
 
-    #[test]
-    fn test_derive_icon_color() {
-        assert_eq!(derive_icon_color(Some(&vec!["jpg".to_string()])), "indigo");
-        assert_eq!(derive_icon_color(Some(&vec!["mp4".to_string()])), "purple");
-        assert_eq!(derive_icon_color(Some(&vec!["mp3".to_string()])), "pink");
-        assert_eq!(derive_icon_color(Some(&vec!["pdf".to_string()])), "amber");
-        assert_eq!(derive_icon_color(Some(&vec!["zip".to_string()])), "slate");
-        assert_eq!(derive_icon_color(Some(&vec!["exe".to_string()])), "red");
         assert_eq!(
-            derive_icon_color(Some(&vec!["unknown".to_string()])),
-            "slate"
+            derive_file_icon_and_color("jpg"),
+            ("image".to_string(), "blue".to_string())
         );
-        assert_eq!(derive_icon_color(None), "slate");
+        assert_eq!(
+            derive_file_icon_and_color("mp4"),
+            ("movie".to_string(), "indigo".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("mp3"),
+            ("music_note".to_string(), "pink".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("pdf"),
+            ("description".to_string(), "red".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("xlsx"),
+            ("table_chart".to_string(), "green".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("zip"),
+            ("folder_zip".to_string(), "amber".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("exe"),
+            ("install_desktop".to_string(), "purple".to_string())
+        );
+        assert_eq!(
+            derive_file_icon_and_color("unknown"),
+            ("insert_drive_file".to_string(), "slate".to_string())
+        );
+        // None-equivalent: empty string → fallback
+        assert_eq!(
+            derive_file_icon_and_color(""),
+            ("insert_drive_file".to_string(), "slate".to_string())
+        );
     }
 
     use tempfile::tempdir;
@@ -467,14 +411,16 @@ mod tests {
 
         let rule = impl_create_rule(
             &state,
-            "New Rule".to_string(),
-            vec!["txt".to_string()],
-            "Target".to_string(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "New Rule".to_string(),
+                extensions: vec!["txt".to_string()],
+                destination: "Target".to_string(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await;
 
@@ -490,14 +436,16 @@ mod tests {
         // Duplicate name should fail
         let res = impl_create_rule(
             &state,
-            "New Rule".to_string(),
-            vec!["txt".to_string()],
-            "Target".to_string(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "New Rule".to_string(),
+                extensions: vec!["txt".to_string()],
+                destination: "Target".to_string(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await;
         assert!(res.is_err());
@@ -509,29 +457,33 @@ mod tests {
 
         let created = impl_create_rule(
             &state,
-            "Rule1".to_string(),
-            vec!["txt".to_string()],
-            "Target".to_string(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "Rule1".to_string(),
+                extensions: vec!["txt".to_string()],
+                destination: "Target".to_string(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await
         .unwrap();
 
         let updated = impl_update_rule(
             &state,
-            created.id.clone(), // use the stable UUID, not the name
-            Some("Rule1_Updated".to_string()),
-            Some(vec!["md".to_string()]),
-            Some("NewTarget".to_string()),
-            None,
-            None,
-            None,
-            None,
-            None,
+            UpdateRuleRequest {
+                id: created.id.clone(),
+                name: Some("Rule1_Updated".to_string()),
+                extensions: Some(vec!["md".to_string()]),
+                destination: Some("NewTarget".to_string()),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await;
 
@@ -553,14 +505,16 @@ mod tests {
 
         let created = impl_create_rule(
             &state,
-            "To Delete".to_string(),
-            vec![],
-            "".to_string(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "To Delete".to_string(),
+                extensions: vec![],
+                destination: "".to_string(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await
         .unwrap();
@@ -583,14 +537,16 @@ mod tests {
 
         let created = impl_create_rule(
             &state,
-            "ToggleMe".to_string(),
-            vec![],
-            "".to_string(),
-            None,
-            None,
-            None,
-            None,
-            Some(true),
+            CreateRuleRequest {
+                name: "ToggleMe".to_string(),
+                extensions: vec![],
+                destination: "".to_string(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: Some(true),
+            },
         )
         .await
         .unwrap();
@@ -609,40 +565,46 @@ mod tests {
 
         let a = impl_create_rule(
             &state,
-            "A".into(),
-            vec![],
-            "".into(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "A".into(),
+                extensions: vec![],
+                destination: "".into(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await
         .unwrap();
         let b = impl_create_rule(
             &state,
-            "B".into(),
-            vec![],
-            "".into(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "B".into(),
+                extensions: vec![],
+                destination: "".into(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await
         .unwrap();
         let c = impl_create_rule(
             &state,
-            "C".into(),
-            vec![],
-            "".into(),
-            None,
-            None,
-            None,
-            None,
-            None,
+            CreateRuleRequest {
+                name: "C".into(),
+                extensions: vec![],
+                destination: "".into(),
+                pattern: None,
+                min_size_bytes: None,
+                max_size_bytes: None,
+                create_symlink: None,
+                enabled: None,
+            },
         )
         .await
         .unwrap();

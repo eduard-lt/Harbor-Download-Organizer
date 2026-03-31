@@ -1,4 +1,5 @@
 use anyhow::Result;
+use harbor_core::downloads::{harbor_app_dir, harbor_log_path};
 use native_windows_gui as nwg;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -33,7 +34,7 @@ fn main() -> Result<()> {
 
     nwg::init()?;
 
-    let cfg_path = TrayLogic::local_appdata_harbor().join("harbor.downloads.yaml");
+    let cfg_path = harbor_app_dir().join("harbor.downloads.yaml");
 
     // Load config using refactored function
     let cfg = load_initial_config(&cfg_path)?;
@@ -150,7 +151,7 @@ fn main() -> Result<()> {
                     } else if handle == ui.item_open_cfg {
                         open_config(&cfg_open_path);
                     } else if handle == ui.item_open_recent {
-                        let p = TrayLogic::recent_log_path();
+                        let p = harbor_log_path();
                         if !p.exists() {
                             if let Some(parent) = p.parent() {
                                 let _ = std::fs::create_dir_all(parent);
