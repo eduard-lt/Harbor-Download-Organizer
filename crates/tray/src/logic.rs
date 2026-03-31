@@ -153,7 +153,11 @@ impl TrayLogic {
                     file,
                     "[{}] Moved {} -> {} (Rule: {})",
                     timestamp,
-                    result.source.file_name().unwrap_or_default().to_string_lossy(),
+                    result
+                        .source
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy(),
                     result.destination.display(),
                     result.rule_name
                 );

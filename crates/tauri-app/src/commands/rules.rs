@@ -303,11 +303,8 @@ pub async fn impl_reorder_rules(state: &AppState, rule_ids: Vec<String>) -> Resu
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
         // Build a lookup map for O(1) access
-        let rule_map: std::collections::HashMap<&str, &Rule> = config
-            .rules
-            .iter()
-            .map(|r| (r.id.as_str(), r))
-            .collect();
+        let rule_map: std::collections::HashMap<&str, &Rule> =
+            config.rules.iter().map(|r| (r.id.as_str(), r)).collect();
 
         // Reorder rules based on the provided order
         let mut new_rules: Vec<Rule> = rule_ids

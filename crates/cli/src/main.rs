@@ -90,7 +90,13 @@ fn execute_command(
             }
             for result in summary.moved {
                 let sym = result.symlink_info.unwrap_or_default();
-                println!("{} -> {} ({}) {}", result.source.display(), result.destination.display(), result.rule_name, sym);
+                println!(
+                    "{} -> {} ({}) {}",
+                    result.source.display(),
+                    result.destination.display(),
+                    result.rule_name,
+                    sym
+                );
             }
             Ok(())
         }
@@ -108,7 +114,13 @@ fn execute_command(
                 |actions| {
                     for result in actions {
                         let sym = result.symlink_info.as_deref().unwrap_or_default();
-                        println!("{} -> {} ({}) {}", result.source.display(), result.destination.display(), result.rule_name, sym);
+                        println!(
+                            "{} -> {} ({}) {}",
+                            result.source.display(),
+                            result.destination.display(),
+                            result.rule_name,
+                            sym
+                        );
                     }
                 },
             )?;
