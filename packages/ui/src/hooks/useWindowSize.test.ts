@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useWindowSize, PRESET_SIZES } from './useWindowSize';
+import * as window from '@tauri-apps/api/window';
 
 const mockSetSize = vi.fn().mockResolvedValue(undefined);
 const mockCenter = vi.fn().mockResolvedValue(undefined);
+const mockCurrentMonitor = vi.fn();
 
 vi.mock('@tauri-apps/api/window', () => ({
     getCurrentWindow: () => ({
         setSize: mockSetSize,
         center: mockCenter,
     }),
+    currentMonitor: () => mockCurrentMonitor(),
     LogicalSize: class {
         width: number;
         height: number;
@@ -21,20 +24,46 @@ describe('useWindowSize', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        // Reset mock to default screen size
+        mockCurrentMonitor.mockResolvedValue({
+            size: { width: 1920, height: 1080 }
+        });
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it('defaults to Large preset when nothing is saved in localStorage', async () => {
+    it('defaults to Medium preset for 1920x1080 screen when nothing is saved', async () => {
         const { result } = renderHook(() => useWindowSize());
         await waitFor(() => expect(result.current.currentSize).not.toBeNull());
+        expect(result.current.currentSize).toEqual(PRESET_SIZES[1]); // Medium for 1920x1080
+    });
+
+    it('defaults to Compact preset for small screens', async () => {
+        mockCurrentMonitor.mockResolvedValue({
+            size: { width: 1366, height: 768 }
+        });
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+        const { result } = renderHook(() => useWindowSize());
+        await waitFor(() => expect(result.current.currentSize).not.toBeNull(), { timeout: 3000 });
+        expect(result.current.currentSize).toEqual(PRESET_SIZES[0]); // Compact
+        consoleSpy.mockRestore();
+    });
+
+    it('defaults to Large preset for large screens', async () => {
+        mockCurrentMonitor.mockResolvedValue({
+            size: { width: 2560, height: 1440 }
+        });
+        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+        const { result } = renderHook(() => useWindowSize());
+        await waitFor(() => expect(result.current.currentSize).not.toBeNull(), { timeout: 3000 });
         expect(result.current.currentSize).toEqual(PRESET_SIZES[2]); // Large
+        consoleSpy.mockRestore();
     });
 
     it('loads saved size from localStorage', async () => {
-        const savedSize = { label: 'Small', width: 1280, height: 800 };
+        const savedSize = { label: 'Compact', width: 1000, height: 700 };
         localStorage.setItem('harbor-window-size', JSON.stringify(savedSize));
 
         const { result } = renderHook(() => useWindowSize());
@@ -45,14 +74,12 @@ describe('useWindowSize', () => {
         expect(mockCenter).toHaveBeenCalled();
     });
 
-    it('ignores invalid JSON in localStorage, currentSize stays null', async () => {
+    it('ignores invalid JSON in localStorage and applies default', async () => {
         localStorage.setItem('harbor-window-size', 'invalid-json');
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
         const { result } = renderHook(() => useWindowSize());
-        // With bad JSON, we are still inside "if (saved)" so the else
-        // Large-default branch is NOT reached. currentSize stays null.
-        await new Promise(r => setTimeout(r, 50));
-        expect(result.current.currentSize).toBeNull();
+        await waitFor(() => expect(result.current.currentSize).not.toBeNull());
+        expect(result.current.currentSize).toEqual(PRESET_SIZES[1]); // Medium default for 1920x1080
         consoleSpy.mockRestore();
     });
 
@@ -71,7 +98,7 @@ describe('useWindowSize', () => {
         await waitFor(() => expect(result.current.currentSize).not.toBeNull());
 
         await act(async () => {
-            await result.current.setSize(PRESET_SIZES[0]); // Small
+            await result.current.setSize(PRESET_SIZES[0]); // Compact
         });
 
         expect(result.current.currentSize).toEqual(PRESET_SIZES[0]);
