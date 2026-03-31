@@ -9,12 +9,66 @@ permissions:
   contents: write
 
 jobs:
-  build-windows:
+  # ============================================================================
+  # Quality Gates - Run tests before releasing
+  # ============================================================================
+  quality-check:
+    name: Pre-Release Quality Check
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: packages/ui/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('packages/ui/package-lock.json') }}
+
+      - name: Install Frontend Dependencies
+        working-directory: packages/ui
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: packages/ui
+        run: npm run build
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run frontend tests
+        working-directory: packages/ui
+        run: npm run test -- --run
+
+      - name: Run Rust tests
+        run: cargo test --all --all-features --verbose
+
+  # ============================================================================
+  # Build and Release - Only after quality checks pass
+  # ============================================================================
+  build-windows:
+    name: Build & Release
+    runs-on: windows-latest
+    needs: [quality-check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       
       - name: Install cargo-wix
         run: cargo install cargo-wix
@@ -23,6 +77,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: packages/ui/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('packages/ui/package-lock.json') }}
 
       - name: Install Frontend Dependencies
         working-directory: packages/ui
