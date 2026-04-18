@@ -7,6 +7,41 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::State;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum NullableField<T> {
+    Missing,
+    Null,
+    Value(T),
+}
+
+impl<T> Default for NullableField<T> {
+    fn default() -> Self {
+        Self::Missing
+    }
+}
+
+impl<T> NullableField<T> {
+    fn is_provided(&self) -> bool {
+        !matches!(self, Self::Missing)
+    }
+}
+
+impl<'de, T> serde::Deserialize<'de> for NullableField<T>
+where
+    T: serde::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = Option::<T>::deserialize(deserializer)?;
+        Ok(match value {
+            Some(v) => Self::Value(v),
+            None => Self::Null,
+        })
+    }
+}
+
 /// Request struct for creating a new rule
 #[derive(Debug, serde::Deserialize)]
 pub struct CreateRuleRequest {
@@ -25,11 +60,15 @@ pub struct CreateRuleRequest {
 pub struct UpdateRuleRequest {
     pub id: String,
     pub name: Option<String>,
-    pub extensions: Option<Vec<String>>,
+    #[serde(default)]
+    pub extensions: NullableField<Vec<String>>,
     pub destination: Option<String>,
-    pub pattern: Option<String>,
-    pub min_size_bytes: Option<u64>,
-    pub max_size_bytes: Option<u64>,
+    #[serde(default)]
+    pub pattern: NullableField<String>,
+    #[serde(default)]
+    pub min_size_bytes: NullableField<u64>,
+    #[serde(default)]
+    pub max_size_bytes: NullableField<u64>,
     pub create_symlink: Option<bool>,
     pub enabled: Option<bool>,
 }
@@ -98,6 +137,24 @@ fn save_config(state: &AppState, config: &DownloadsConfig) -> Result<(), String>
         serde_yaml::to_string(config).map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&state.config_path, yaml).map_err(|e| format!("Failed to write config: {}", e))?;
     Ok(())
+}
+
+#[derive(Serialize)]
+struct ValidationErrorResponse {
+    code: &'static str,
+    message: String,
+    fields: Vec<&'static str>,
+}
+
+fn validation_error(message: impl Into<String>, fields: Vec<&'static str>) -> String {
+    serde_json::to_string(&ValidationErrorResponse {
+        code: "validation_error",
+        message: message.into(),
+        fields,
+    })
+    .unwrap_or_else(|_| {
+        "{\"code\":\"validation_error\",\"message\":\"Validation failed\"}".to_string()
+    })
 }
 
 fn restart_service_if_running(state: &AppState) -> Result<(), String> {
@@ -188,42 +245,84 @@ pub async fn impl_update_rule(
     state: &AppState,
     rule: UpdateRuleRequest,
 ) -> Result<RuleDto, String> {
+    let UpdateRuleRequest {
+        id,
+        name,
+        extensions,
+        destination,
+        pattern,
+        min_size_bytes,
+        max_size_bytes,
+        create_symlink,
+        enabled,
+    } = rule;
+
     let updated = {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
         let r = config
             .rules
             .iter_mut()
-            .find(|r| r.id == rule.id)
-            .ok_or_else(|| format!("Rule '{}' not found", rule.id))?;
+            .find(|r| r.id == id)
+            .ok_or_else(|| format!("Rule '{}' not found", id))?;
 
-        if let Some(new_name) = rule.name {
+        let next_min_size = match min_size_bytes {
+            NullableField::Missing => r.min_size_bytes,
+            NullableField::Null => None,
+            NullableField::Value(value) => Some(value),
+        };
+        let next_max_size = match max_size_bytes {
+            NullableField::Missing => r.max_size_bytes,
+            NullableField::Null => None,
+            NullableField::Value(value) => Some(value),
+        };
+
+        if let (Some(min), Some(max)) = (next_min_size, next_max_size) {
+            if min > max {
+                return Err(validation_error(
+                    "min_size_bytes cannot be greater than max_size_bytes",
+                    vec!["min_size_bytes", "max_size_bytes"],
+                ));
+            }
+        }
+
+        if let Some(new_name) = name {
             r.name = new_name;
         }
-        if let Some(exts) = rule.extensions {
-            let exts: Vec<String> = exts
-                .into_iter()
-                .map(|e| e.trim_start_matches('.').to_string())
-                .filter(|e| !e.is_empty())
-                .collect();
-            r.extensions = if exts.is_empty() { None } else { Some(exts) };
+        if extensions.is_provided() {
+            r.extensions = match extensions {
+                NullableField::Missing => r.extensions.clone(),
+                NullableField::Null => None,
+                NullableField::Value(values) => {
+                    let normalized: Vec<String> = values
+                        .into_iter()
+                        .map(|e| e.trim_start_matches('.').to_string())
+                        .filter(|e| !e.is_empty())
+                        .collect();
+                    if normalized.is_empty() { None } else { Some(normalized) }
+                }
+            };
         }
-        if let Some(dest) = rule.destination {
+        if let Some(dest) = destination {
             r.target_dir = dest;
         }
-        if rule.pattern.is_some() {
-            r.pattern = rule.pattern;
+        if pattern.is_provided() {
+            r.pattern = match pattern {
+                NullableField::Missing => r.pattern.clone(),
+                NullableField::Null => None,
+                NullableField::Value(next_pattern) => Some(next_pattern),
+            };
         }
-        if rule.min_size_bytes.is_some() {
-            r.min_size_bytes = rule.min_size_bytes;
+        if min_size_bytes.is_provided() {
+            r.min_size_bytes = next_min_size;
         }
-        if rule.max_size_bytes.is_some() {
-            r.max_size_bytes = rule.max_size_bytes;
+        if max_size_bytes.is_provided() {
+            r.max_size_bytes = next_max_size;
         }
-        if let Some(symlink) = rule.create_symlink {
+        if let Some(symlink) = create_symlink {
             r.create_symlink = symlink;
         }
-        if let Some(en) = rule.enabled {
+        if let Some(en) = enabled {
             r.enabled = en;
         }
 
@@ -474,11 +573,11 @@ mod tests {
             UpdateRuleRequest {
                 id: created.id.clone(),
                 name: Some("Rule1_Updated".to_string()),
-                extensions: Some(vec!["md".to_string()]),
+                extensions: NullableField::Value(vec!["md".to_string()]),
                 destination: Some("NewTarget".to_string()),
-                pattern: None,
-                min_size_bytes: None,
-                max_size_bytes: None,
+                pattern: NullableField::Missing,
+                min_size_bytes: NullableField::Missing,
+                max_size_bytes: NullableField::Missing,
                 create_symlink: None,
                 enabled: None,
             },
