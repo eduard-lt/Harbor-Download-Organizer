@@ -662,6 +662,37 @@ mod tests {
         assert!(error.contains("max_size_bytes"));
     }
 
+    #[test]
+    fn test_restart_service_if_running_debounces_rapid_requests() {
+        let (state, _tmp) = create_test_state();
+
+        internal_start_service(&state).unwrap();
+        restart_service_if_running(&state).unwrap();
+        let after_first = state
+            .service_start_time
+            .lock()
+            .unwrap()
+            .as_ref()
+            .copied()
+            .unwrap();
+
+        restart_service_if_running(&state).unwrap();
+        let after_second = state
+            .service_start_time
+            .lock()
+            .unwrap()
+            .as_ref()
+            .copied()
+            .unwrap();
+
+        assert_eq!(
+            after_first, after_second,
+            "rapid restart requests should coalesce into one restart"
+        );
+
+        internal_stop_service(&state).unwrap();
+    }
+
     #[tokio::test]
     async fn test_delete_rule() {
         let (state, _tmp) = create_test_state();
