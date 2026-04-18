@@ -79,6 +79,7 @@ fn main() {
             commands::get_service_status,
             commands::start_service,
             commands::stop_service,
+            commands::retry_service_restart,
             commands::trigger_organize_now,
             commands::get_startup_enabled,
             commands::set_startup_enabled,

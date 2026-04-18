@@ -1,4 +1,7 @@
-use crate::commands::settings::{internal_start_service, internal_stop_service};
+use crate::commands::settings::{
+    internal_start_service, internal_stop_service,
+    restart_service_if_running as restart_monitoring_if_running,
+};
 use crate::state::AppState;
 use harbor_core::downloads::DownloadsConfig;
 use harbor_core::types::Rule;
@@ -158,15 +161,7 @@ fn validation_error(message: impl Into<String>, fields: Vec<&'static str>) -> St
 }
 
 fn restart_service_if_running(state: &AppState) -> Result<(), String> {
-    let flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
-    let is_running = flag_guard.is_some();
-    drop(flag_guard);
-
-    if is_running {
-        internal_stop_service(state)?;
-        internal_start_service(state)?;
-    }
-    Ok(())
+    restart_monitoring_if_running(state)
 }
 
 #[tauri::command]

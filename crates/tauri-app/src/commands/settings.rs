@@ -1,4 +1,4 @@
-use crate::state::AppState;
+use crate::state::{AppState, ServiceLifecycleState};
 use crate::commands::error_contract::{map_legacy_organize_error, AppError, AppErrorDto};
 use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling, OrganizeResult};
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 use tauri::State;
 
 #[cfg(windows)]
@@ -20,6 +21,8 @@ const LOG_MAX_LINES: usize = 10_000;
 /// Trim the log when it exceeds this file-size threshold to avoid reading the
 /// file on every single append.
 const LOG_ROTATION_THRESHOLD_BYTES: u64 = 1_024 * 1_024; // 1 MiB
+/// Coalescing window for rapid restart requests triggered by bursty rule edits.
+pub const RESTART_DEBOUNCE_WINDOW: Duration = Duration::from_millis(500);
 
 /// Serializes the current config state to disk.
 fn save_config_to_disk(state: &AppState) -> Result<(), String> {
@@ -33,6 +36,8 @@ fn save_config_to_disk(state: &AppState) -> Result<(), String> {
 pub struct ServiceStatus {
     pub running: bool,
     pub uptime_seconds: Option<u64>,
+    pub degraded: bool,
+    pub degraded_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -126,10 +131,30 @@ pub async fn get_service_status(state: State<'_, AppState>) -> Result<ServiceSta
         None
     };
 
+    let degraded_reason = state
+        .degraded_reason
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+
     Ok(ServiceStatus {
         running,
         uptime_seconds,
+        degraded: degraded_reason.is_some(),
+        degraded_reason,
     })
+}
+
+fn set_lifecycle_state(state: &AppState, lifecycle: ServiceLifecycleState) -> Result<(), String> {
+    let mut guard = state.service_lifecycle.lock().map_err(|e| e.to_string())?;
+    *guard = lifecycle;
+    Ok(())
+}
+
+fn set_degraded_reason(state: &AppState, reason: Option<String>) -> Result<(), String> {
+    let mut guard = state.degraded_reason.lock().map_err(|e| e.to_string())?;
+    *guard = reason;
+    Ok(())
 }
 
 pub fn internal_start_service(state: &AppState) -> Result<(), String> {
@@ -164,6 +189,9 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
     let mut time_guard = state.service_start_time.lock().map_err(|e| e.to_string())?;
     *time_guard = Some(std::time::Instant::now());
 
+    set_degraded_reason(state, None)?;
+    set_lifecycle_state(state, ServiceLifecycleState::Running)?;
+
     Ok(())
 }
 
@@ -175,17 +203,112 @@ pub fn internal_stop_service(state: &AppState) -> Result<(), String> {
         flag.store(false, Ordering::SeqCst);
     }
 
-    // We don't join the thread here to avoid blocking the UI,
-    // but since we've set its specific flag to false, it WILL exit
-    // on its next loop iteration (within 5 seconds).
-
     let mut guard = state.watcher_handle.lock().map_err(|e| e.to_string())?;
-    *guard = None;
+    let handle = guard.take();
+    drop(guard);
+
+    if let Some(handle) = handle {
+        handle
+            .join()
+            .map_err(|_| "Failed to join watcher thread during shutdown".to_string())?;
+    }
 
     let mut time_guard = state.service_start_time.lock().map_err(|e| e.to_string())?;
     *time_guard = None;
+    set_lifecycle_state(state, ServiceLifecycleState::Stopped)?;
 
     Ok(())
+}
+
+fn mark_service_degraded(state: &AppState, reason: impl Into<String>) -> Result<(), String> {
+    let reason = reason.into();
+    set_degraded_reason(state, Some(reason))?;
+    set_lifecycle_state(state, ServiceLifecycleState::Degraded)
+}
+
+pub fn restart_service_if_running(state: &AppState) -> Result<(), String> {
+    let flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
+    let is_running = flag_guard.is_some();
+    drop(flag_guard);
+
+    if !is_running {
+        return Ok(());
+    }
+
+    let now = std::time::Instant::now();
+    {
+        let mut last_restart = state
+            .last_restart_request
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if let Some(previous) = *last_restart {
+            if now.duration_since(previous) < RESTART_DEBOUNCE_WINDOW {
+                return Ok(());
+            }
+        }
+        *last_restart = Some(now);
+    }
+
+    {
+        let mut restart_guard = state
+            .restart_in_progress
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if *restart_guard {
+            return Ok(());
+        }
+        *restart_guard = true;
+    }
+
+    let restart_result = (|| -> Result<(), String> {
+        set_lifecycle_state(state, ServiceLifecycleState::Restarting)?;
+        internal_stop_service(state)?;
+        internal_start_service(state)?;
+        set_lifecycle_state(state, ServiceLifecycleState::Running)?;
+        Ok(())
+    })();
+
+    let mut restart_guard = state
+        .restart_in_progress
+        .lock()
+        .map_err(|e| e.to_string())?;
+    *restart_guard = false;
+    drop(restart_guard);
+
+    if let Err(error) = restart_result {
+        mark_service_degraded(
+            state,
+            format!("Restart failed after configuration update: {error}"),
+        )?;
+        return Err(error);
+    }
+
+    Ok(())
+}
+
+pub fn impl_retry_service_restart(state: &AppState) -> Result<(), String> {
+    set_lifecycle_state(state, ServiceLifecycleState::Restarting)?;
+    let restart_result = restart_service_if_running(state);
+
+    match restart_result {
+        Ok(()) => {
+            let running = state
+                .watcher_flag
+                .lock()
+                .map_err(|e| e.to_string())?
+                .is_some();
+            if !running {
+                internal_start_service(state)?;
+            }
+            set_degraded_reason(state, None)?;
+            set_lifecycle_state(state, ServiceLifecycleState::Running)?;
+            Ok(())
+        }
+        Err(error) => {
+            mark_service_degraded(state, format!("Retry restart failed: {error}"))?;
+            Err(error)
+        }
+    }
 }
 
 pub fn persist_service_state(state: &AppState, enabled: bool) -> Result<(), String> {
@@ -206,6 +329,11 @@ pub async fn start_service(state: State<'_, AppState>) -> Result<(), String> {
 pub async fn stop_service(state: State<'_, AppState>) -> Result<(), String> {
     persist_service_state(&state, false)?;
     internal_stop_service(&state)
+}
+
+#[tauri::command]
+pub async fn retry_service_restart(state: State<'_, AppState>) -> Result<(), String> {
+    impl_retry_service_restart(&state)
 }
 
 #[tauri::command]
@@ -760,5 +888,74 @@ mod tests {
             response.failure_groups[0].legacy_errors[0],
             "Download directory is required"
         );
+    }
+
+    #[test]
+    fn restart_service_if_running_marks_degraded_when_restart_fails() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = DownloadsConfig {
+            download_dir: "DL".to_string(),
+            rules: vec![],
+            min_age_secs: Some(0),
+            tutorial_completed: Some(false),
+            service_enabled: Some(true),
+            check_updates: Some(true),
+            last_notified_version: None,
+        };
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+
+        internal_start_service(&state).unwrap();
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = state.config.write().unwrap();
+            panic!("poison config lock");
+        }));
+
+        let result = restart_service_if_running(&state);
+        assert!(result.is_err());
+
+        let degraded_reason = state.degraded_reason.lock().unwrap().clone();
+        assert!(degraded_reason.is_some());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Degraded
+        );
+    }
+
+    #[test]
+    fn retry_service_restart_recovers_from_degraded_state() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = DownloadsConfig {
+            download_dir: "DL".to_string(),
+            rules: vec![],
+            min_age_secs: Some(0),
+            tutorial_completed: Some(false),
+            service_enabled: Some(true),
+            check_updates: Some(true),
+            last_notified_version: None,
+        };
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+
+        mark_service_degraded(&state, "restart failed previously").unwrap();
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Degraded
+        );
+
+        impl_retry_service_restart(&state).unwrap();
+
+        let degraded_reason = state.degraded_reason.lock().unwrap().clone();
+        assert!(degraded_reason.is_none());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Running
+        );
+        assert!(state.watcher_flag.lock().unwrap().is_some());
+
+        internal_stop_service(&state).unwrap();
     }
 }
