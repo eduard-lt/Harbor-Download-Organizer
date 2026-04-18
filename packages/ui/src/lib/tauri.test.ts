@@ -15,6 +15,7 @@ import {
     startService,
     stopService,
     triggerOrganizeNow,
+    retryServiceRestart,
     getStartupEnabled,
     setStartupEnabled,
     reloadConfig,
@@ -147,10 +148,50 @@ describe('tauri API wrappers', () => {
     });
 
     it('triggerOrganizeNow calls invoke("trigger_organize_now")', async () => {
-        mockInvoke.mockResolvedValue(5);
+        const organizeResult = {
+            status: 'partial_failure',
+            message: 'Organize finished with 1 move(s) and 1 failure(s).',
+            moved_count: 1,
+            moved: 1,
+            total_failures: 1,
+            errors: ['legacy error'],
+            failure_groups: [
+                {
+                    code: 'filesystem_error',
+                    message: 'File operation failed during move_file',
+                    count: 1,
+                    failures: [],
+                    legacy_errors: ['legacy error'],
+                },
+            ],
+        };
+        mockInvoke.mockResolvedValue(organizeResult);
         const result = await triggerOrganizeNow();
         expect(mockInvoke).toHaveBeenCalledWith('trigger_organize_now');
-        expect(result).toBe(5);
+        expect(result).toEqual(organizeResult);
+    });
+
+    it('retryServiceRestart calls invoke("retry_service_restart")', async () => {
+        mockInvoke.mockResolvedValue(undefined);
+        await retryServiceRestart();
+        expect(mockInvoke).toHaveBeenCalledWith('retry_service_restart');
+    });
+
+    it('updateRule preserves explicit null clear values', async () => {
+        const ruleUpdate = { id: '2', pattern: null, min_size_bytes: null };
+        const fakeRule = {
+            id: '2',
+            name: 'Videos Updated',
+            extensions: [],
+            destination: '',
+            create_symlink: false,
+            enabled: true,
+            icon: '',
+            icon_color: '',
+        };
+        mockInvoke.mockResolvedValue(fakeRule);
+        await updateRule(ruleUpdate);
+        expect(mockInvoke).toHaveBeenCalledWith('update_rule', { rule: ruleUpdate });
     });
 
     it('getStartupEnabled calls invoke("get_startup_enabled")', async () => {
