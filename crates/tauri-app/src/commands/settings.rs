@@ -398,7 +398,7 @@ pub async fn set_last_notified_version(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use harbor_core::downloads::DownloadsConfig;
+    use harbor_core::downloads::{DownloadsConfig, OrganizeSummary};
     use tempfile::tempdir;
 
     #[test]
@@ -552,5 +552,65 @@ mod tests {
         // 5. Verify persistence
         let content = std::fs::read_to_string(&cfg_path).unwrap();
         assert!(content.contains("last_notified_version: v1.5.0"));
+    }
+
+    #[test]
+    fn trigger_organize_now_maps_summary_to_structured_response() {
+        let summary = OrganizeSummary {
+            moved: vec![OrganizeResult {
+                source: PathBuf::from(r"C:\Users\Alice\Downloads\ok.txt"),
+                destination: PathBuf::from(r"C:\Users\Alice\Downloads\Docs\ok.txt"),
+                rule_name: "Docs".to_string(),
+                symlink_info: None,
+            }],
+            errors: vec![format!(
+                "Failed to move '{}' to '{}': Access denied",
+                r"C:\Users\Alice\Downloads\locked.txt",
+                r"C:\Users\Alice\Downloads\Docs\locked.txt"
+            )],
+        };
+
+        let response =
+            map_organize_summary_to_response(summary, std::path::Path::new(r"C:\Users\Alice\Downloads"));
+
+        assert_eq!(response.status, "partial_failure");
+        assert_eq!(response.moved_count, 1);
+        assert_eq!(response.moved, 1);
+        assert_eq!(response.failure_groups.len(), 1);
+        assert_eq!(response.failure_groups[0].code, "filesystem_error");
+        assert_eq!(
+            response.failure_groups[0].failures[0]
+                .details
+                .source_path
+                .as_deref(),
+            Some("locked.txt")
+        );
+        assert!(response.failure_groups[0].failures[0]
+            .details
+            .remediation_hint
+            .is_some());
+    }
+
+    #[test]
+    fn trigger_organize_now_failure_response_keeps_legacy_compatibility_fields() {
+        let response = organize_now_failure_response(
+            AppError::Validation {
+                field: "download_dir".to_string(),
+                message: "Download directory is required".to_string(),
+                remediation_hint: "Set a valid download directory in Settings.".to_string(),
+                legacy_error: "Download directory is required".to_string(),
+            },
+            std::path::Path::new(r"C:\Users\Alice\Downloads"),
+        );
+
+        assert_eq!(response.status, "failed");
+        assert_eq!(response.moved_count, 0);
+        assert_eq!(response.moved, 0);
+        assert_eq!(response.failure_groups[0].code, "validation_error");
+        assert_eq!(response.failure_groups[0].legacy_errors.len(), 1);
+        assert_eq!(
+            response.failure_groups[0].legacy_errors[0],
+            "Download directory is required"
+        );
     }
 }
