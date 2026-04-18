@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { ServiceStatus } from '../lib/tauri';
+import type { OrganizeNowResponse, ServiceStatus } from '../lib/tauri';
 import {
     getServiceStatus,
     startService,
@@ -21,7 +21,7 @@ interface SettingsContextType {
     error: string | null;
     toggleService: () => Promise<void>;
     toggleStartup: () => Promise<void>;
-    organizeNow: () => Promise<number>;
+    organizeNow: () => Promise<OrganizeNowResponse>;
     reload: () => Promise<void>;
     reset: () => Promise<void>;
     refresh: () => Promise<void>;
@@ -106,8 +106,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const organizeNow = async () => {
         try {
             setOrganizing(true);
-            const count = await triggerOrganizeNow();
-            return count;
+            const result = await triggerOrganizeNow();
+            return result;
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             throw err;

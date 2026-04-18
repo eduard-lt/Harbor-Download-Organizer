@@ -45,6 +45,75 @@ export interface ActivityLogsResponse {
 export interface ServiceStatus {
     running: boolean;
     uptime_seconds?: number;
+    degraded?: boolean;
+    degraded_reason?: string | null;
+}
+
+export interface AppErrorDetails {
+    field?: string;
+    operation?: string;
+    resource?: string;
+    source_path?: string;
+    destination_path?: string;
+    reason?: string;
+    remediation_hint?: string;
+}
+
+export interface AppErrorDto {
+    code: string;
+    message: string;
+    details: AppErrorDetails;
+    legacy_error: string;
+}
+
+export interface OrganizeFailureGroup {
+    code: string;
+    message: string;
+    count: number;
+    failures: AppErrorDto[];
+    legacy_errors: string[];
+}
+
+export interface OrganizeNowResponse {
+    status: 'success' | 'partial_failure' | 'failed' | string;
+    message: string;
+    moved_count: number;
+    // legacy compatibility field from backend
+    moved: number;
+    total_failures: number;
+    // legacy compatibility field from backend
+    errors: string[];
+    failure_groups: OrganizeFailureGroup[];
+}
+
+export interface UpdateRuleRequest {
+    id: string;
+    name?: string;
+    extensions?: string[] | null;
+    destination?: string;
+    pattern?: string | null;
+    min_size_bytes?: number | null;
+    max_size_bytes?: number | null;
+    create_symlink?: boolean;
+    enabled?: boolean;
+}
+
+export interface RuleValidationErrorPayload {
+    code: 'validation_error';
+    message: string;
+    fields?: string[];
+}
+
+export class RuleValidationError extends Error {
+    code: 'validation_error';
+    fields: string[];
+
+    constructor(message: string, fields: string[] = []) {
+        super(message);
+        this.name = 'RuleValidationError';
+        this.code = 'validation_error';
+        this.fields = fields;
+    }
 }
 
 // --- API Functions ---
@@ -58,8 +127,29 @@ export const createRule = async (rule: Omit<Rule, 'id' | 'icon' | 'icon_color'>)
     return await invoke('create_rule', { rule });
 };
 
-export const updateRule = async (rule: Partial<Rule> & { id: string }): Promise<Rule> => {
-    return await invoke('update_rule', { rule });
+function tryParseValidationError(error: unknown): RuleValidationError | null {
+    const message = error instanceof Error ? error.message : String(error);
+    try {
+        const parsed = JSON.parse(message) as RuleValidationErrorPayload;
+        if (parsed.code === 'validation_error') {
+            return new RuleValidationError(parsed.message, parsed.fields ?? []);
+        }
+    } catch {
+        // non-json error payload
+    }
+    return null;
+}
+
+export const updateRule = async (rule: UpdateRuleRequest): Promise<Rule> => {
+    try {
+        return await invoke('update_rule', { rule });
+    } catch (error) {
+        const validationError = tryParseValidationError(error);
+        if (validationError) {
+            throw validationError;
+        }
+        throw error;
+    }
 };
 
 export const deleteRule = async (ruleId: string): Promise<void> => {
@@ -108,8 +198,12 @@ export const stopService = async (): Promise<void> => {
     return await invoke('stop_service');
 };
 
-export const triggerOrganizeNow = async (): Promise<number> => {
+export const triggerOrganizeNow = async (): Promise<OrganizeNowResponse> => {
     return await invoke('trigger_organize_now');
+};
+
+export const retryServiceRestart = async (): Promise<void> => {
+    return await invoke('retry_service_restart');
 };
 
 export const getStartupEnabled = async (): Promise<boolean> => {
