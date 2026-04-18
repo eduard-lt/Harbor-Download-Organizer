@@ -338,6 +338,7 @@ pub async fn get_download_dir(state: State<'_, AppState>) -> Result<String, Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_derive_file_icon_and_color_via_helper() {
@@ -494,6 +495,72 @@ mod tests {
         let rules = impl_get_rules(&state).await.unwrap();
         assert_eq!(rules.len(), 1);
         assert_eq!(rules[0].name, "Rule1_Updated");
+    }
+
+    #[tokio::test]
+    async fn test_update_rule_explicit_null_clears_optional_fields() {
+        let (state, _tmp) = create_test_state();
+
+        let created = impl_create_rule(
+            &state,
+            CreateRuleRequest {
+                name: "RuleToClear".to_string(),
+                extensions: vec!["txt".to_string()],
+                destination: "Target".to_string(),
+                pattern: Some("invoice".to_string()),
+                min_size_bytes: Some(10),
+                max_size_bytes: Some(100),
+                create_symlink: None,
+                enabled: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let request: UpdateRuleRequest = serde_json::from_value(json!({
+            "id": created.id,
+            "pattern": null,
+            "min_size_bytes": null,
+            "max_size_bytes": null
+        }))
+        .unwrap();
+
+        let updated = impl_update_rule(&state, request).await.unwrap();
+        assert_eq!(updated.pattern, None);
+        assert_eq!(updated.min_size_bytes, None);
+        assert_eq!(updated.max_size_bytes, None);
+    }
+
+    #[tokio::test]
+    async fn test_update_rule_rejects_invalid_size_range() {
+        let (state, _tmp) = create_test_state();
+
+        let created = impl_create_rule(
+            &state,
+            CreateRuleRequest {
+                name: "RuleWithRange".to_string(),
+                extensions: vec!["txt".to_string()],
+                destination: "Target".to_string(),
+                pattern: None,
+                min_size_bytes: Some(10),
+                max_size_bytes: Some(100),
+                create_symlink: None,
+                enabled: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let request: UpdateRuleRequest = serde_json::from_value(json!({
+            "id": created.id,
+            "min_size_bytes": 200,
+            "max_size_bytes": 100
+        }))
+        .unwrap();
+
+        let error = impl_update_rule(&state, request).await.unwrap_err();
+        assert!(error.contains("min_size_bytes"));
+        assert!(error.contains("max_size_bytes"));
     }
 
     #[tokio::test]
