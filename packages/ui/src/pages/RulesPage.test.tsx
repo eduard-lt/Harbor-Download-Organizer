@@ -156,4 +156,28 @@ describe('RulesPage', () => {
         // Tutorial should show after the timer (500ms delay)
         await waitFor(() => expect(screen.queryByText('Welcome to Harbor!')).not.toBeNull(), { timeout: 2000 });
     });
+
+    it('sends explicit null clears when editing a rule with clear controls', async () => {
+        render(<RulesPage />);
+        const editBtn = screen.getAllByRole('button').find(b => b.querySelector('.material-icons-round')?.textContent === 'edit');
+        expect(editBtn).toBeTruthy();
+        fireEvent.click(editBtn!);
+
+        fireEvent.click(screen.getByLabelText('Clear pattern'));
+        fireEvent.click(screen.getByLabelText('Clear minimum size'));
+        fireEvent.click(screen.getByLabelText('Clear maximum size'));
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Save Rule'));
+        });
+
+        await waitFor(() =>
+            expect(mockUseRules.editRule).toHaveBeenCalledWith(expect.objectContaining({
+                id: '1',
+                pattern: null,
+                min_size_bytes: null,
+                max_size_bytes: null,
+            }))
+        );
+    });
 });

@@ -1,12 +1,33 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ActivityTable } from './ActivityTable';
-import type { ActivityLog } from '../lib/tauri';
+import type { ActivityLog, OrganizeFailureGroup } from '../lib/tauri';
 
 const makeLog = (overrides?: Partial<ActivityLog>): ActivityLog => ({
     id: '1', timestamp: '2024-01-01T10:00:00Z', filename: 'photo.jpg',
     icon: '📷', icon_color: '#fff', source_path: 'C:\\Downloads\\photo.jpg',
     dest_path: 'C:\\Pictures\\photo.jpg', rule_name: 'Images', status: 'success',
+    ...overrides,
+});
+
+const makeFailureGroup = (overrides?: Partial<OrganizeFailureGroup>): OrganizeFailureGroup => ({
+    code: 'filesystem_error',
+    message: 'File operation failed',
+    count: 1,
+    failures: [
+        {
+            code: 'filesystem_error',
+            message: 'File operation failed',
+            legacy_error: 'legacy error',
+            details: {
+                source_path: 'C:\\Users\\Alice\\Downloads\\sub\\locked.txt',
+                destination_path: 'C:\\Users\\Alice\\Downloads\\Docs\\locked.txt',
+                reason: 'Access denied',
+                remediation_hint: 'Close applications locking the file and retry.',
+            },
+        },
+    ],
+    legacy_errors: ['legacy error'],
     ...overrides,
 });
 
@@ -71,5 +92,18 @@ describe('ActivityTable', () => {
     it('capitalizes status text', () => {
         render(<ActivityTable logs={[makeLog({ status: 'success' })]} />);
         expect(screen.getByText('Success')).toBeInTheDocument();
+    });
+
+    it('renders grouped failures with remediation hints', () => {
+        render(<ActivityTable logs={[]} failureGroups={[makeFailureGroup()]} />);
+        expect(screen.getByText('filesystem_error')).toBeInTheDocument();
+        expect(screen.getByText('Access denied')).toBeInTheDocument();
+        expect(screen.getByText('Close applications locking the file and retry.')).toBeInTheDocument();
+    });
+
+    it('does not display raw absolute source paths in grouped failures', () => {
+        render(<ActivityTable logs={[]} failureGroups={[makeFailureGroup()]} />);
+        expect(screen.queryByText('C:\\Users\\Alice\\Downloads\\sub\\locked.txt')).not.toBeInTheDocument();
+        expect(screen.getByText(/locked\.txt/)).toBeInTheDocument();
     });
 });

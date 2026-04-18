@@ -13,6 +13,9 @@ const onSave = vi.fn();
 
 const mockRule: Rule = {
     id: '1', name: 'Images', extensions: ['jpg', 'png'], destination: 'C:\\Pictures',
+    pattern: '^IMG_',
+    min_size_bytes: 100,
+    max_size_bytes: 1000,
     create_symlink: false, enabled: true, icon: '📷', icon_color: 'indigo',
 };
 
@@ -138,5 +141,39 @@ describe('RuleModal', () => {
         await waitFor(() => expect(onSave).toHaveBeenCalledWith(
             expect.objectContaining({ enabled: true })
         ));
+    });
+
+    it('sends explicit null clears for optional fields when clear toggles are used', async () => {
+        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} initialData={mockRule} />);
+        fireEvent.click(screen.getByLabelText('Clear pattern'));
+        fireEvent.click(screen.getByLabelText('Clear minimum size'));
+        fireEvent.click(screen.getByLabelText('Clear maximum size'));
+
+        await act(async () => {
+            fireEvent.submit(container.querySelector('form')!);
+        });
+
+        await waitFor(() => {
+            expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+                pattern: null,
+                min_size_bytes: null,
+                max_size_bytes: null,
+            }));
+        });
+    });
+
+    it('shows field-level size validation and blocks submit for invalid range', async () => {
+        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
+        fireEvent.change(screen.getByPlaceholderText('e.g. Images'), { target: { value: 'Docs' } });
+        fireEvent.change(screen.getByPlaceholderText('C:\\Users\\Name\\Pictures'), { target: { value: 'C:\\Docs' } });
+        fireEvent.change(screen.getByPlaceholderText('e.g. 1048576'), { target: { value: '200' } });
+        fireEvent.change(screen.getByPlaceholderText('e.g. 1073741824'), { target: { value: '100' } });
+
+        await act(async () => {
+            fireEvent.submit(container.querySelector('form')!);
+        });
+
+        expect(screen.getByText('Minimum size must be less than or equal to maximum size.')).toBeInTheDocument();
+        expect(onSave).not.toHaveBeenCalled();
     });
 });

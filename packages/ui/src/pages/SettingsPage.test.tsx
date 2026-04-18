@@ -47,7 +47,35 @@ describe('SettingsPage', () => {
         error: null,
         toggleService: vi.fn(),
         toggleStartup: vi.fn(),
-        organizeNow: vi.fn(),
+        organizeNow: vi.fn().mockResolvedValue({
+            status: 'partial_failure',
+            message: 'Organize finished with 1 move(s) and 1 failure(s).',
+            moved_count: 1,
+            moved: 1,
+            total_failures: 1,
+            errors: ['legacy error'],
+            failure_groups: [
+                {
+                    code: 'filesystem_error',
+                    message: 'File operation failed during move_file',
+                    count: 1,
+                    failures: [
+                        {
+                            code: 'filesystem_error',
+                            message: 'File operation failed during move_file',
+                            legacy_error: 'legacy error',
+                            details: {
+                                source_path: 'locked.txt',
+                                destination_path: 'Docs\\locked.txt',
+                                reason: 'Access denied',
+                                remediation_hint: 'Close applications locking the file and retry.',
+                            },
+                        },
+                    ],
+                    legacy_errors: ['legacy error'],
+                },
+            ],
+        }),
         reload: vi.fn().mockResolvedValue(undefined),
         reset: vi.fn().mockResolvedValue(undefined),
         refresh: vi.fn(),
@@ -238,5 +266,15 @@ describe('SettingsPage', () => {
     it('shows N/A when no uptime_seconds', () => {
         render(<SettingsPage />);
         expect(screen.getByText('N/A')).toBeInTheDocument();
+    });
+
+    it('runs organize now and shows toast + inline grouped failures', async () => {
+        render(<SettingsPage />);
+        fireEvent.click(screen.getByText('Organize Now'));
+        await waitFor(() => expect(mockSettings.organizeNow).toHaveBeenCalled());
+        expect(screen.getByText('Organize finished with 1 move(s) and 1 failure(s).')).toBeInTheDocument();
+        expect(screen.getByText('filesystem_error')).toBeInTheDocument();
+        expect(screen.getByText('Access denied')).toBeInTheDocument();
+        expect(screen.getByText('Close applications locking the file and retry.')).toBeInTheDocument();
     });
 });
