@@ -2,10 +2,21 @@ import { useState, useEffect } from 'react';
 import type { Rule } from '../lib/tauri';
 import { open } from '@tauri-apps/plugin-dialog';
 
+export interface RuleFormData {
+    name: string;
+    extensions: string[];
+    destination: string;
+    pattern?: string | null;
+    min_size_bytes?: number | null;
+    max_size_bytes?: number | null;
+    create_symlink: boolean;
+    enabled: boolean;
+}
+
 interface RuleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (rule: Omit<Rule, 'id' | 'icon' | 'icon_color'>) => Promise<void>;
+    onSave: (rule: RuleFormData) => Promise<void>;
     initialData?: Rule | null;
 }
 
@@ -14,9 +25,15 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
     const [extensions, setExtensions] = useState('');
     const [destination, setDestination] = useState('');
     const [pattern, setPattern] = useState('');
+    const [minSizeBytes, setMinSizeBytes] = useState('');
+    const [maxSizeBytes, setMaxSizeBytes] = useState('');
+    const [clearPattern, setClearPattern] = useState(false);
+    const [clearMinSize, setClearMinSize] = useState(false);
+    const [clearMaxSize, setClearMaxSize] = useState(false);
     const [createSymlink, setCreateSymlink] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<{ min_size_bytes?: string; max_size_bytes?: string }>({});
 
     useEffect(() => {
         if (initialData) {
@@ -24,6 +41,11 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
             setExtensions(initialData.extensions.join(', '));
             setDestination(initialData.destination);
             setPattern(initialData.pattern || '');
+            setMinSizeBytes(initialData.min_size_bytes != null ? String(initialData.min_size_bytes) : '');
+            setMaxSizeBytes(initialData.max_size_bytes != null ? String(initialData.max_size_bytes) : '');
+            setClearPattern(false);
+            setClearMinSize(false);
+            setClearMaxSize(false);
             setCreateSymlink(initialData.create_symlink);
         } else {
             resetForm();
@@ -35,8 +57,14 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
         setExtensions('');
         setDestination('');
         setPattern('');
+        setMinSizeBytes('');
+        setMaxSizeBytes('');
+        setClearPattern(false);
+        setClearMinSize(false);
+        setClearMaxSize(false);
         setCreateSymlink(false);
         setError(null);
+        setFieldErrors({});
     };
 
     const handleBrowse = async () => {
@@ -59,6 +87,7 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setFieldErrors({});
 
         try {
             const extList = extensions
@@ -66,11 +95,34 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                 .map((s) => s.trim())
                 .filter((s) => s.length > 0);
 
+            const parsedMin = minSizeBytes.trim() === '' ? undefined : Number(minSizeBytes);
+            const parsedMax = maxSizeBytes.trim() === '' ? undefined : Number(maxSizeBytes);
+
+            const nextFieldErrors: { min_size_bytes?: string; max_size_bytes?: string } = {};
+            if (!clearMinSize && parsedMin != null && Number.isNaN(parsedMin)) {
+                nextFieldErrors.min_size_bytes = 'Minimum size must be a valid number.';
+            }
+            if (!clearMaxSize && parsedMax != null && Number.isNaN(parsedMax)) {
+                nextFieldErrors.max_size_bytes = 'Maximum size must be a valid number.';
+            }
+            if (!clearMinSize && !clearMaxSize && parsedMin != null && parsedMax != null && parsedMin > parsedMax) {
+                nextFieldErrors.min_size_bytes = 'Minimum size must be less than or equal to maximum size.';
+                nextFieldErrors.max_size_bytes = 'Minimum size must be less than or equal to maximum size.';
+            }
+
+            if (Object.keys(nextFieldErrors).length > 0) {
+                setFieldErrors(nextFieldErrors);
+                setLoading(false);
+                return;
+            }
+
             await onSave({
                 name,
                 extensions: extList,
                 destination,
-                pattern: pattern || undefined,
+                pattern: clearPattern ? null : (pattern || undefined),
+                min_size_bytes: clearMinSize ? null : parsedMin,
+                max_size_bytes: clearMaxSize ? null : parsedMax,
                 create_symlink: createSymlink,
                 enabled: initialData ? initialData.enabled : true,
             });
@@ -171,9 +223,72 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                             type="text"
                             value={pattern}
                             onChange={(e) => setPattern(e.target.value)}
+                            disabled={clearPattern}
                             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
                             placeholder="e.g. ^IMG_\d+"
                         />
+                        <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                            <input
+                                type="checkbox"
+                                checked={clearPattern}
+                                onChange={(e) => setClearPattern(e.target.checked)}
+                            />
+                            Clear pattern
+                        </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                Minimum Size (bytes)
+                            </label>
+                            <input
+                                type="number"
+                                min={0}
+                                value={minSizeBytes}
+                                onChange={(e) => setMinSizeBytes(e.target.value)}
+                                disabled={clearMinSize}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
+                                placeholder="e.g. 1048576"
+                            />
+                            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                <input
+                                    type="checkbox"
+                                    checked={clearMinSize}
+                                    onChange={(e) => setClearMinSize(e.target.checked)}
+                                />
+                                Clear minimum size
+                            </label>
+                            {fieldErrors.min_size_bytes && (
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.min_size_bytes}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                Maximum Size (bytes)
+                            </label>
+                            <input
+                                type="number"
+                                min={0}
+                                value={maxSizeBytes}
+                                onChange={(e) => setMaxSizeBytes(e.target.value)}
+                                disabled={clearMaxSize}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
+                                placeholder="e.g. 1073741824"
+                            />
+                            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                <input
+                                    type="checkbox"
+                                    checked={clearMaxSize}
+                                    onChange={(e) => setClearMaxSize(e.target.checked)}
+                                />
+                                Clear maximum size
+                            </label>
+                            {fieldErrors.max_size_bytes && (
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.max_size_bytes}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3 pt-2">

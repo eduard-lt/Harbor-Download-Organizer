@@ -1,9 +1,23 @@
+import { useEffect, useState } from 'react';
 import { Header } from '../components/Header';
 import { ActivityTable } from '../components/ActivityTable';
 import { useActivity } from '../hooks/useActivity';
+import type { OrganizeFailureGroup } from '../lib/tauri';
 
 export function ActivityLogsPage() {
   const { logs, loading, error, hasMore, loadMore, total } = useActivity();
+  const [lastFailureGroups, setLastFailureGroups] = useState<OrganizeFailureGroup[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem('harbor:lastOrganizeResult');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { failure_groups?: OrganizeFailureGroup[] };
+      setLastFailureGroups(parsed.failure_groups ?? []);
+    } catch {
+      setLastFailureGroups([]);
+    }
+  }, []);
 
   return (
     <>
@@ -18,7 +32,7 @@ export function ActivityLogsPage() {
           <div className="text-center p-8 text-slate-500">Loading activity...</div>
         ) : (
           <>
-            <ActivityTable logs={logs} />
+            <ActivityTable logs={logs} failureGroups={lastFailureGroups} />
             {hasMore && (
               <div className="flex justify-center mt-6">
                 <button

@@ -45,8 +45,8 @@ describe('ActivityTable', () => {
     it('renders a row with filename, paths, rule name and status', () => {
         render(<ActivityTable logs={[makeLog()]} />);
         expect(screen.getByText('photo.jpg')).toBeInTheDocument();
-        expect(screen.getByText('C:\\Downloads\\photo.jpg')).toBeInTheDocument();
-        expect(screen.getByText('C:\\Pictures\\photo.jpg')).toBeInTheDocument();
+        expect(screen.getByText('Downloads\\photo.jpg')).toBeInTheDocument();
+        expect(screen.getByText('Pictures\\photo.jpg')).toBeInTheDocument();
         expect(screen.getByText('Images')).toBeInTheDocument();
         expect(screen.getByText('Success')).toBeInTheDocument();
     });

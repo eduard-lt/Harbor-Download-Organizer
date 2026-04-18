@@ -270,9 +270,9 @@ describe('SettingsPage', () => {
 
     it('runs organize now and shows toast + inline grouped failures', async () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Organize Now'));
+        fireEvent.click(screen.getByRole('button', { name: 'Organize Now' }));
         await waitFor(() => expect(mockSettings.organizeNow).toHaveBeenCalled());
-        expect(screen.getByText('Organize finished with 1 move(s) and 1 failure(s).')).toBeInTheDocument();
+        expect(screen.getAllByText('Organize finished with 1 move(s) and 1 failure(s).').length).toBeGreaterThan(1);
         expect(screen.getByText('filesystem_error')).toBeInTheDocument();
         expect(screen.getByText('Access denied')).toBeInTheDocument();
         expect(screen.getByText('Close applications locking the file and retry.')).toBeInTheDocument();

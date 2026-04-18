@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { StatCard } from '../components/StatCard';
 import { useRules } from '../hooks/useRules';
-import { RuleModal } from '../components/RuleModal';
+import { RuleModal, type RuleFormData } from '../components/RuleModal';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { TutorialModal } from '../components/TutorialModal';
-import type { Rule } from '../lib/tauri';
+import type { Rule, UpdateRuleRequest } from '../lib/tauri';
 import { formatPath } from '../lib/format';
 
 const iconColorClassesLight: Record<string, string> = {
@@ -46,13 +46,22 @@ export function RulesPage() {
     checkTutorial();
   }, []);
 
-  const handleCreate = async (ruleData: Omit<Rule, 'id' | 'icon' | 'icon_color'>) => {
-    await addRule(ruleData);
+  const handleCreate = async (ruleData: RuleFormData) => {
+    await addRule({
+      ...ruleData,
+      pattern: ruleData.pattern ?? undefined,
+      min_size_bytes: ruleData.min_size_bytes ?? undefined,
+      max_size_bytes: ruleData.max_size_bytes ?? undefined,
+    });
   };
 
-  const handleUpdate = async (ruleData: Omit<Rule, 'id' | 'icon' | 'icon_color'>) => {
+  const handleUpdate = async (ruleData: RuleFormData) => {
     if (!editingRule) return;
-    await editRule({ ...ruleData, id: editingRule.id });
+    const payload: UpdateRuleRequest = {
+      ...ruleData,
+      id: editingRule.id,
+    };
+    await editRule(payload);
   };
 
   const openCreateModal = () => {

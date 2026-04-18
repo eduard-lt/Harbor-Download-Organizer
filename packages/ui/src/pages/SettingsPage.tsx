@@ -5,6 +5,8 @@ import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { useState } from 'react';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useWindowSize } from '../hooks/useWindowSize';
+import { ActivityTable } from '../components/ActivityTable';
+import type { OrganizeNowResponse } from '../lib/tauri';
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -13,9 +15,11 @@ export function SettingsPage() {
     serviceStatus,
     startupEnabled,
     loading,
+    organizing,
     error,
     toggleService,
     toggleStartup,
+    organizeNow,
     reload,
     reset,
   } = useSettings();
@@ -37,6 +41,7 @@ export function SettingsPage() {
 
   const [showResetModal, setShowResetModal] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [organizeResult, setOrganizeResult] = useState<OrganizeNowResponse | null>(null);
 
   const handleReload = async () => {
     await reload();
@@ -48,6 +53,14 @@ export function SettingsPage() {
     await reset();
     setShowResetModal(false);
     setFeedbackMessage('Settings have been reset to defaults.');
+    setTimeout(() => setFeedbackMessage(null), 3000);
+  };
+
+  const handleOrganizeNow = async () => {
+    const result = await organizeNow();
+    setOrganizeResult(result);
+    window.sessionStorage.setItem('harbor:lastOrganizeResult', JSON.stringify(result));
+    setFeedbackMessage(result.message);
     setTimeout(() => setFeedbackMessage(null), 3000);
   };
 
@@ -309,6 +322,40 @@ export function SettingsPage() {
                     Reload
                   </button>
                 </div>
+              </div>
+            </section>
+
+            {/* Organize Now */}
+            <section>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+                <span className="material-icons-round mr-2 text-primary">bolt</span>
+                Organize Now
+              </h3>
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Trigger an immediate organization run and review reliability outcomes inline.
+                  </p>
+                  <button
+                    onClick={handleOrganizeNow}
+                    disabled={organizing}
+                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {organizing ? 'Organizing...' : 'Organize Now'}
+                  </button>
+                </div>
+
+                {organizeResult && (
+                  <div className="mt-4 p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2">{organizeResult.message}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+                      Moved: {organizeResult.moved_count} · Failures: {organizeResult.total_failures}
+                    </p>
+                    {organizeResult.failure_groups.length > 0 && (
+                      <ActivityTable logs={[]} failureGroups={organizeResult.failure_groups} />
+                    )}
+                  </div>
+                )}
               </div>
             </section>
 

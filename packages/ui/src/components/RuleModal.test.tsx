@@ -173,7 +173,7 @@ describe('RuleModal', () => {
             fireEvent.submit(container.querySelector('form')!);
         });
 
-        expect(screen.getByText('Minimum size must be less than or equal to maximum size.')).toBeInTheDocument();
+        expect(screen.getAllByText('Minimum size must be less than or equal to maximum size.').length).toBeGreaterThan(0);
         expect(onSave).not.toHaveBeenCalled();
     });
 });

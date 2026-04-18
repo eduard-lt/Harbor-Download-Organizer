@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Rule } from '../lib/tauri';
+import type { Rule, UpdateRuleRequest } from '../lib/tauri';
 import { getRules, createRule, updateRule, deleteRule, toggleRule, reorderRules } from '../lib/tauri';
 
 export function useRules() {
@@ -35,7 +35,7 @@ export function useRules() {
         }
     };
 
-    const editRule = async (rule: Partial<Rule> & { id: string }) => {
+    const editRule = async (rule: UpdateRuleRequest) => {
         try {
             const updated = await updateRule(rule);
             setRules((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
