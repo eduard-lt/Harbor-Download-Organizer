@@ -5,7 +5,6 @@ pub mod settings;
 pub mod ui_helpers;
 
 pub use activity::*;
-pub use error_contract::*;
 pub use rules::*;
 pub use settings::*;
 

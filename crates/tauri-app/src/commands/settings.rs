@@ -1,9 +1,10 @@
 use crate::state::AppState;
+use crate::commands::error_contract::{map_legacy_organize_error, AppError, AppErrorDto};
 use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling, OrganizeResult};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
@@ -32,6 +33,28 @@ fn save_config_to_disk(state: &AppState) -> Result<(), String> {
 pub struct ServiceStatus {
     pub running: bool,
     pub uptime_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OrganizeFailureGroupDto {
+    pub code: String,
+    pub message: String,
+    pub count: usize,
+    pub failures: Vec<AppErrorDto>,
+    pub legacy_errors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OrganizeNowResponse {
+    pub status: String,
+    pub message: String,
+    pub moved_count: usize,
+    /// Compatibility field for existing consumers that expect a simple count.
+    pub moved: usize,
+    pub total_failures: usize,
+    /// Compatibility field preserving legacy string-based errors.
+    pub errors: Vec<String>,
+    pub failure_groups: Vec<OrganizeFailureGroupDto>,
 }
 
 fn append_to_log(log_path: &PathBuf, actions: &[OrganizeResult]) {
@@ -186,11 +209,55 @@ pub async fn stop_service(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn trigger_organize_now(state: State<'_, AppState>) -> Result<usize, String> {
-    let config = state.config.read().map_err(|e| e.to_string())?.clone();
+pub async fn trigger_organize_now(
+    state: State<'_, AppState>,
+) -> Result<OrganizeNowResponse, String> {
+    Ok(impl_trigger_organize_now(&state).await)
+}
+
+pub async fn impl_trigger_organize_now(state: &AppState) -> OrganizeNowResponse {
+    let config = match state.config.read() {
+        Ok(guard) => guard.clone(),
+        Err(e) => {
+            return organize_now_failure_response(
+                AppError::Internal {
+                    message: "Failed to read app state configuration".to_string(),
+                    remediation_hint:
+                        "Retry the operation. If this persists, restart Harbor.".to_string(),
+                    legacy_error: e.to_string(),
+                },
+                Path::new(""),
+            );
+        }
+    };
+
+    if config.download_dir.trim().is_empty() {
+        return organize_now_failure_response(
+            AppError::Validation {
+                field: "download_dir".to_string(),
+                message: "Download directory is required".to_string(),
+                remediation_hint: "Set a valid download directory in Settings before organizing."
+                    .to_string(),
+                legacy_error: "Download directory is required".to_string(),
+            },
+            Path::new(""),
+        );
+    }
+
+    let download_dir = Path::new(&config.download_dir);
     let log_path = state.recent_log_path();
 
-    let summary = organize_once(&config).map_err(|e| format!("Organize failed: {}", e))?;
+    let summary = match organize_once(&config) {
+        Ok(summary) => summary,
+        Err(e) => {
+            let legacy = format!("Organize failed: {}", e);
+            eprintln!("[Harbor] {legacy}");
+            return organize_now_failure_response(
+                map_legacy_organize_error(&legacy),
+                download_dir,
+            );
+        }
+    };
 
     for err in &summary.errors {
         eprintln!("[Harbor] {err}");
@@ -198,7 +265,88 @@ pub async fn trigger_organize_now(state: State<'_, AppState>) -> Result<usize, S
 
     append_to_log(&log_path, &summary.moved);
 
-    Ok(summary.moved.len())
+    map_organize_summary_to_response(summary, download_dir)
+}
+
+fn group_errors_by_code(errors: &[AppErrorDto]) -> Vec<OrganizeFailureGroupDto> {
+    let mut groups: Vec<OrganizeFailureGroupDto> = Vec::new();
+    for error in errors {
+        if let Some(existing) = groups
+            .iter_mut()
+            .find(|group| group.code == error.code && group.message == error.message)
+        {
+            existing.count += 1;
+            existing.legacy_errors.push(error.legacy_error.clone());
+            existing.failures.push(error.clone());
+            continue;
+        }
+
+        groups.push(OrganizeFailureGroupDto {
+            code: error.code.clone(),
+            message: error.message.clone(),
+            count: 1,
+            failures: vec![error.clone()],
+            legacy_errors: vec![error.legacy_error.clone()],
+        });
+    }
+    groups
+}
+
+fn derive_status(moved_count: usize, failure_count: usize) -> String {
+    if failure_count == 0 {
+        "success".to_string()
+    } else if moved_count > 0 {
+        "partial_failure".to_string()
+    } else {
+        "failed".to_string()
+    }
+}
+
+fn response_message(moved_count: usize, failure_count: usize) -> String {
+    if failure_count == 0 {
+        format!("Organize complete: moved {} file(s).", moved_count)
+    } else {
+        format!(
+            "Organize finished with {} move(s) and {} failure(s).",
+            moved_count, failure_count
+        )
+    }
+}
+
+fn map_organize_summary_to_response(summary: harbor_core::downloads::OrganizeSummary, download_dir: &Path) -> OrganizeNowResponse {
+    let structured_failures: Vec<AppErrorDto> = summary
+        .errors
+        .iter()
+        .map(|error| map_legacy_organize_error(error).to_dto(Some(download_dir)))
+        .collect();
+    let failure_groups = group_errors_by_code(&structured_failures);
+    let moved_count = summary.moved.len();
+    let failure_count = structured_failures.len();
+
+    OrganizeNowResponse {
+        status: derive_status(moved_count, failure_count),
+        message: response_message(moved_count, failure_count),
+        moved_count,
+        moved: moved_count,
+        total_failures: failure_count,
+        errors: summary.errors,
+        failure_groups,
+    }
+}
+
+fn organize_now_failure_response(error: AppError, download_dir: &Path) -> OrganizeNowResponse {
+    let failure = error.to_dto(Some(download_dir));
+    let failure_groups = group_errors_by_code(std::slice::from_ref(&failure));
+
+    OrganizeNowResponse {
+        status: "failed".to_string(),
+        message: "Organize failed before file moves could complete.".to_string(),
+        moved_count: 0,
+        moved: 0,
+        total_failures: 1,
+        errors: vec![failure.legacy_error.clone()],
+        failure_groups,
+    }
 }
 
 #[tauri::command]
