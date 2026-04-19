@@ -891,6 +891,117 @@ mod tests {
     }
 
     #[test]
+    fn trigger_organize_now_tray_outcome_maps_partial_and_failed_to_actionable_messages() {
+        let partial_response = OrganizeNowResponse {
+            status: "partial_failure".to_string(),
+            message: "Organize finished with 1 move(s) and 2 failure(s).".to_string(),
+            moved_count: 1,
+            moved: 1,
+            total_failures: 2,
+            errors: vec![],
+            failure_groups: vec![OrganizeFailureGroupDto {
+                code: "filesystem_error".to_string(),
+                message: "Failed to move file".to_string(),
+                count: 2,
+                failures: vec![
+                    AppErrorDto {
+                        code: "filesystem_error".to_string(),
+                        message: "Failed to move file".to_string(),
+                        details: crate::commands::error_contract::AppErrorDetailsDto {
+                            field: None,
+                            operation: Some("move".to_string()),
+                            resource: None,
+                            source_path: Some("locked.txt".to_string()),
+                            destination_path: Some("Docs/locked.txt".to_string()),
+                            reason: Some("Access denied".to_string()),
+                            remediation_hint: Some(
+                                "Close apps using the file and retry.".to_string(),
+                            ),
+                        },
+                        legacy_error: "Access denied".to_string(),
+                    },
+                    AppErrorDto {
+                        code: "filesystem_error".to_string(),
+                        message: "Failed to move file".to_string(),
+                        details: crate::commands::error_contract::AppErrorDetailsDto {
+                            field: None,
+                            operation: Some("move".to_string()),
+                            resource: None,
+                            source_path: Some("in_use.txt".to_string()),
+                            destination_path: Some("Docs/in_use.txt".to_string()),
+                            reason: Some("In use".to_string()),
+                            remediation_hint: Some("Close the file and retry.".to_string()),
+                        },
+                        legacy_error: "In use".to_string(),
+                    },
+                ],
+                legacy_errors: vec!["Access denied".to_string(), "In use".to_string()],
+            }],
+        };
+
+        let partial_outcome = map_tray_organize_outcome(&partial_response);
+        assert_eq!(partial_outcome.severity, "warning");
+        assert!(partial_outcome.message.contains("filesystem_error"));
+        assert!(partial_outcome.message.contains("Close apps using the file and retry."));
+
+        let failed_response = OrganizeNowResponse {
+            status: "failed".to_string(),
+            message: "Organize failed before file moves could complete.".to_string(),
+            moved_count: 0,
+            moved: 0,
+            total_failures: 1,
+            errors: vec!["legacy parsing only".to_string()],
+            failure_groups: vec![OrganizeFailureGroupDto {
+                code: "validation_error".to_string(),
+                message: "Download directory is required".to_string(),
+                count: 1,
+                failures: vec![AppErrorDto {
+                    code: "validation_error".to_string(),
+                    message: "Download directory is required".to_string(),
+                    details: crate::commands::error_contract::AppErrorDetailsDto {
+                        field: Some("download_dir".to_string()),
+                        operation: None,
+                        resource: None,
+                        source_path: None,
+                        destination_path: None,
+                        reason: None,
+                        remediation_hint: Some(
+                            "Set a valid download directory in Settings.".to_string(),
+                        ),
+                    },
+                    legacy_error: "Download directory is required".to_string(),
+                }],
+                legacy_errors: vec!["Download directory is required".to_string()],
+            }],
+        };
+
+        let failed_outcome = map_tray_organize_outcome(&failed_response);
+        assert_eq!(failed_outcome.severity, "error");
+        assert!(failed_outcome.message.contains("validation_error"));
+        assert!(failed_outcome
+            .message
+            .contains("Set a valid download directory in Settings."));
+    }
+
+    #[test]
+    fn trigger_organize_now_tray_outcome_maps_success_to_non_error_message() {
+        let response = OrganizeNowResponse {
+            status: "success".to_string(),
+            message: "Organize complete: moved 3 file(s).".to_string(),
+            moved_count: 3,
+            moved: 3,
+            total_failures: 0,
+            errors: vec!["legacy error should not drive success messaging".to_string()],
+            failure_groups: vec![],
+        };
+
+        let outcome = map_tray_organize_outcome(&response);
+        assert_eq!(outcome.severity, "info");
+        assert_eq!(outcome.message, "Organize complete: moved 3 file(s).");
+        assert!(outcome.remediation_summary.is_none());
+    }
+
+    #[test]
     fn restart_service_if_running_marks_degraded_when_restart_fails() {
         let tmp = tempdir().unwrap();
         let cfg_path = tmp.path().join("config.yaml");
