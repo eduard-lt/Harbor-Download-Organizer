@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 // --- Types ---
 
@@ -44,9 +45,20 @@ export interface ActivityLogsResponse {
 
 export interface ServiceStatus {
     running: boolean;
+    lifecycle_state?: 'stopped' | 'running' | 'restarting' | 'degraded' | string;
     uptime_seconds?: number;
+    stop_join_pending?: boolean;
     degraded?: boolean;
     degraded_reason?: string | null;
+}
+
+export interface ServiceStatusEvent {
+    status: ServiceStatus;
+}
+
+export interface StartupStatusEvent {
+    enabled: boolean;
+    phase: 'intent' | 'reconciled' | string;
 }
 
 export interface AppErrorDetails {
@@ -212,6 +224,22 @@ export const getStartupEnabled = async (): Promise<boolean> => {
 
 export const setStartupEnabled = async (enabled: boolean): Promise<void> => {
     return await invoke('set_startup_enabled', { enabled });
+};
+
+export const subscribeServiceStatus = async (
+    onStatus: (status: ServiceStatus) => void
+): Promise<UnlistenFn> => {
+    return await listen<ServiceStatusEvent>('harbor://service-status', (event) => {
+        onStatus(event.payload.status);
+    });
+};
+
+export const subscribeStartupStatus = async (
+    onStatus: (event: StartupStatusEvent) => void
+): Promise<UnlistenFn> => {
+    return await listen<StartupStatusEvent>('harbor://startup-status', (event) => {
+        onStatus(event.payload);
+    });
 };
 
 export const reloadConfig = async (): Promise<void> => {

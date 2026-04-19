@@ -4,10 +4,13 @@ import {
     getServiceStatus,
     startService,
     stopService,
+    retryServiceRestart,
     triggerOrganizeNow,
     getStartupEnabled,
     setStartupEnabled as setStartupEnabledApi,
     getDownloadDir,
+    subscribeServiceStatus,
+    subscribeStartupStatus,
     reloadConfig,
     resetToDefaults
 } from '../lib/tauri';
@@ -20,6 +23,7 @@ interface SettingsContextType {
     organizing: boolean;
     error: string | null;
     toggleService: () => Promise<void>;
+    retryService: () => Promise<void>;
     toggleStartup: () => Promise<void>;
     organizeNow: () => Promise<OrganizeNowResponse>;
     reload: () => Promise<void>;
@@ -30,7 +34,12 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-    const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({ running: false });
+    const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
+        running: false,
+        lifecycle_state: 'stopped',
+        degraded: false,
+        degraded_reason: null,
+    });
     const [startupEnabled, setStartupEnabled] = useState(false);
     const [downloadDir, setDownloadDir] = useState('');
     const [loading, setLoading] = useState(true);
@@ -56,50 +65,74 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Poll service status every 5 seconds to stay in sync with backend
+    // Event-first updates with polling fallback for missed/delayed events.
     useEffect(() => {
+        let unlistenService: (() => void) | undefined;
+        let unlistenStartup: (() => void) | undefined;
+
+        const setupListeners = async () => {
+            unlistenService = await subscribeServiceStatus((status) => {
+                setServiceStatus(status);
+                getServiceStatus().then(setServiceStatus).catch(console.error);
+            });
+
+            unlistenStartup = await subscribeStartupStatus((event) => {
+                setStartupEnabled(event.enabled);
+                getStartupEnabled().then(setStartupEnabled).catch(console.error);
+            });
+        };
+
         fetchStatus();
+        setupListeners().catch(console.error);
+
         const interval = setInterval(() => {
-            getServiceStatus().then(setServiceStatus).catch(console.error);
+            Promise.all([getServiceStatus(), getStartupEnabled()])
+                .then(([status, startup]) => {
+                    setServiceStatus(status);
+                    setStartupEnabled(startup);
+                })
+                .catch(console.error);
         }, 5000);
-        return () => clearInterval(interval);
+
+        return () => {
+            clearInterval(interval);
+            unlistenService?.();
+            unlistenStartup?.();
+        };
     }, [fetchStatus]);
 
     const toggleService = async () => {
         try {
-            // Optimistic update
-            const newRunningState = !serviceStatus.running;
-            setServiceStatus(prev => ({ ...prev, running: newRunningState }));
-
             if (serviceStatus.running) {
                 await stopService();
             } else {
                 await startService();
             }
-            // Fetch validation
-            const status = await getServiceStatus();
-            setServiceStatus(status);
+            await fetchStatus();
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
-            // Revert on error
-            fetchStatus();
+            await fetchStatus();
+        }
+    };
+
+    const retryService = async () => {
+        try {
+            await retryServiceRestart();
+            await fetchStatus();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            await fetchStatus();
         }
     };
 
     const toggleStartup = async () => {
         try {
-            // Optimistic update
             const newState = !startupEnabled;
-            setStartupEnabled(newState);
-
             await setStartupEnabledApi(newState);
-
-            // Validation
-            const enabled = await getStartupEnabled();
-            setStartupEnabled(enabled);
+            await fetchStatus();
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
-            fetchStatus();
+            await fetchStatus();
         }
     };
 
@@ -145,6 +178,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             organizing,
             error,
             toggleService,
+            retryService,
             toggleStartup,
             organizeNow,
             reload,

@@ -16,6 +16,8 @@ import {
     stopService,
     triggerOrganizeNow,
     retryServiceRestart,
+    subscribeServiceStatus,
+    subscribeStartupStatus,
     getStartupEnabled,
     setStartupEnabled,
     reloadConfig,
@@ -32,14 +34,20 @@ import {
 
 // Mock invoke from @tauri-apps/api/core
 const mockInvoke = vi.fn();
+const mockListen = vi.fn();
 
 vi.mock('@tauri-apps/api/core', () => ({
     invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 
+vi.mock('@tauri-apps/api/event', () => ({
+    listen: (...args: unknown[]) => mockListen(...args),
+}));
+
 describe('tauri API wrappers', () => {
     beforeEach(() => {
         mockInvoke.mockReset();
+        mockListen.mockReset();
     });
 
     it('getRules calls invoke("get_rules")', async () => {
@@ -129,10 +137,38 @@ describe('tauri API wrappers', () => {
     });
 
     it('getServiceStatus calls invoke("get_service_status")', async () => {
-        mockInvoke.mockResolvedValue({ running: true, uptime_seconds: 120 });
+        mockInvoke.mockResolvedValue({ running: true, lifecycle_state: 'running', uptime_seconds: 120 });
         const result = await getServiceStatus();
         expect(mockInvoke).toHaveBeenCalledWith('get_service_status');
-        expect(result).toEqual({ running: true, uptime_seconds: 120 });
+        expect(result).toEqual({ running: true, lifecycle_state: 'running', uptime_seconds: 120 });
+    });
+
+    it('subscribeServiceStatus listens on service status event', async () => {
+        const unlisten = vi.fn();
+        mockListen.mockResolvedValue(unlisten);
+        const onStatus = vi.fn();
+
+        const result = await subscribeServiceStatus(onStatus);
+        expect(mockListen).toHaveBeenCalledWith('harbor://service-status', expect.any(Function));
+
+        const handler = mockListen.mock.calls[0][1] as (event: { payload: { status: { running: boolean; lifecycle_state: string } } }) => void;
+        handler({ payload: { status: { running: true, lifecycle_state: 'running' } } });
+        expect(onStatus).toHaveBeenCalledWith({ running: true, lifecycle_state: 'running' });
+        expect(result).toBe(unlisten);
+    });
+
+    it('subscribeStartupStatus listens on startup status event', async () => {
+        const unlisten = vi.fn();
+        mockListen.mockResolvedValue(unlisten);
+        const onStatus = vi.fn();
+
+        const result = await subscribeStartupStatus(onStatus);
+        expect(mockListen).toHaveBeenCalledWith('harbor://startup-status', expect.any(Function));
+
+        const handler = mockListen.mock.calls[0][1] as (event: { payload: { enabled: boolean; phase: string } }) => void;
+        handler({ payload: { enabled: true, phase: 'reconciled' } });
+        expect(onStatus).toHaveBeenCalledWith({ enabled: true, phase: 'reconciled' });
+        expect(result).toBe(unlisten);
     });
 
     it('startService calls invoke("start_service")', async () => {

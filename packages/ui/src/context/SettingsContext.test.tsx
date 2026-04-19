@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { SettingsProvider, useSettingsContext } from './SettingsContext';
 import * as tauri from '../lib/tauri';
+import type { OrganizeNowResponse } from '../lib/tauri';
 
 vi.mock('../lib/tauri');
 
@@ -12,12 +13,15 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
 describe('SettingsContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(tauri.getServiceStatus).mockResolvedValue({ running: false, degraded: false, degraded_reason: null });
+        vi.mocked(tauri.getServiceStatus).mockResolvedValue({ running: false, lifecycle_state: 'stopped', degraded: false, degraded_reason: null });
         vi.mocked(tauri.getStartupEnabled).mockResolvedValue(false);
         vi.mocked(tauri.getDownloadDir).mockResolvedValue('C:\\Downloads');
         vi.mocked(tauri.startService).mockResolvedValue(undefined);
         vi.mocked(tauri.stopService).mockResolvedValue(undefined);
+        vi.mocked(tauri.retryServiceRestart).mockResolvedValue(undefined);
         vi.mocked(tauri.setStartupEnabled).mockResolvedValue(undefined);
+        vi.mocked(tauri.subscribeServiceStatus).mockResolvedValue(() => {});
+        vi.mocked(tauri.subscribeStartupStatus).mockResolvedValue(() => {});
         vi.mocked(tauri.triggerOrganizeNow).mockResolvedValue({
             status: 'success',
             message: 'Organize complete',
@@ -41,7 +45,7 @@ describe('SettingsContext', () => {
 
         await waitFor(() => expect(result.current.loading).toBe(false));
 
-        expect(result.current.serviceStatus).toEqual({ running: false, degraded: false, degraded_reason: null });
+        expect(result.current.serviceStatus).toEqual({ running: false, lifecycle_state: 'stopped', degraded: false, degraded_reason: null });
         expect(result.current.startupEnabled).toBe(false);
         expect(result.current.downloadDir).toBe('C:\\Downloads');
         expect(result.current.error).toBeNull();
@@ -63,8 +67,8 @@ describe('SettingsContext', () => {
 
     it('toggleService starts service when currently stopped', async () => {
         vi.mocked(tauri.getServiceStatus)
-            .mockResolvedValueOnce({ running: false })
-            .mockResolvedValue({ running: true, degraded: false, degraded_reason: null });
+            .mockResolvedValueOnce({ running: false, lifecycle_state: 'stopped', degraded: false, degraded_reason: null })
+            .mockResolvedValue({ running: true, lifecycle_state: 'running', degraded: false, degraded_reason: null });
 
         const { result } = renderHook(() => useSettingsContext(), { wrapper });
         await waitFor(() => expect(result.current.loading).toBe(false));
@@ -77,14 +81,21 @@ describe('SettingsContext', () => {
 
     it('toggleService stops service when currently running', async () => {
         vi.mocked(tauri.getServiceStatus)
-            .mockResolvedValueOnce({ running: true })
-            .mockResolvedValue({ running: false, degraded: false, degraded_reason: null });
+            .mockResolvedValueOnce({ running: true, lifecycle_state: 'running', degraded: false, degraded_reason: null })
+            .mockResolvedValue({ running: false, lifecycle_state: 'stopped', degraded: false, degraded_reason: null });
 
         const { result } = renderHook(() => useSettingsContext(), { wrapper });
         await waitFor(() => expect(result.current.loading).toBe(false));
 
         await act(async () => { await result.current.toggleService(); });
         expect(tauri.stopService).toHaveBeenCalled();
+    });
+
+    it('retryService calls retry_service_restart and refreshes status', async () => {
+        const { result } = renderHook(() => useSettingsContext(), { wrapper });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        await act(async () => { await result.current.retryService(); });
+        expect(tauri.retryServiceRestart).toHaveBeenCalled();
     });
 
     it('toggleService sets error transiently and fetches status on failure', async () => {
@@ -127,9 +138,10 @@ describe('SettingsContext', () => {
         const { result } = renderHook(() => useSettingsContext(), { wrapper });
         await waitFor(() => expect(result.current.loading).toBe(false));
 
-        let response: Awaited<ReturnType<typeof tauri.triggerOrganizeNow>> | null = null;
+        let response: OrganizeNowResponse | null = null;
         await act(async () => { response = await result.current.organizeNow(); });
-        expect(response?.moved_count).toBe(3);
+        expect(response).not.toBeNull();
+        expect(response!.moved_count).toBe(3);
         expect(result.current.organizing).toBe(false);
     });
 

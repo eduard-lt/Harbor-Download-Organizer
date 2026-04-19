@@ -17,6 +17,7 @@ const mockContextValue = {
     organizing: false,
     error: null,
     toggleService: vi.fn(),
+    retryService: vi.fn(),
     toggleStartup: vi.fn(),
     organizeNow: vi.fn(),
     reload: vi.fn(),

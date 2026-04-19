@@ -129,8 +129,9 @@ pub fn map_legacy_organize_error(message: &str) -> AppError {
             return AppError::Conflict {
                 resource: destination_path.clone(),
                 message: "A destination file already exists".to_string(),
-                remediation_hint: "Rename the source file, or remove the existing destination file and retry."
-                    .to_string(),
+                remediation_hint:
+                    "Rename the source file, or remove the existing destination file and retry."
+                        .to_string(),
                 legacy_error: message.to_string(),
             };
         }
@@ -140,8 +141,9 @@ pub fn map_legacy_organize_error(message: &str) -> AppError {
             source_path: Some(source_path),
             destination_path: Some(destination_path),
             reason,
-            remediation_hint: "Close any app locking the file and verify write permissions for the destination."
-                .to_string(),
+            remediation_hint:
+                "Close any app locking the file and verify write permissions for the destination."
+                    .to_string(),
             legacy_error: message.to_string(),
         };
     }
@@ -165,7 +167,8 @@ pub fn map_legacy_organize_error(message: &str) -> AppError {
 
     AppError::Internal {
         message: "Unexpected organization error".to_string(),
-        remediation_hint: "Retry the operation. If this persists, inspect local Harbor logs.".to_string(),
+        remediation_hint: "Retry the operation. If this persists, inspect local Harbor logs."
+            .to_string(),
         legacy_error: message.to_string(),
     }
 }

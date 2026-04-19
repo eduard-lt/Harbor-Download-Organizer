@@ -74,6 +74,16 @@ Harbor is a **Tauri v2** application (React + Rust).
 3. **Dev:** `poe dev`
 4. **Build:** `poe build`
 
+### ✅ Tests & Coverage
+
+- **Backend tests:** `poe test`
+- **Frontend tests:** `poe test-ui`
+- **All tests:** `poe test-all`
+- **Backend coverage (non-blocking report):** `poe coverage`
+- **Frontend coverage:** `poe coverage-ui`
+
+Coverage policy for this milestone is documented in `docs/testing/coverage-policy.md` (70% target on high-risk paths, warning-only; `poe coverage` warns if below target but remains non-blocking).
+
 ---
 
 ## 📝 License

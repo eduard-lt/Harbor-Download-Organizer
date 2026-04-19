@@ -1,6 +1,6 @@
 [project]
 name = "harbor"
-version = "1.0.4"
+version = "1.0.5"
 description = "Harbor specific tasks"
 
 # ============================================================================
@@ -44,8 +44,15 @@ help = "Run both backend and frontend tests"
 sequence = ["test", "test-ui"]
 
 [tool.poe.tasks.coverage]
-help = "Run tests with coverage and open HTML report"
-cmd = "cargo llvm-cov --open --workspace --exclude harbor-tauri-app --ignore-filename-regex main\\.rs"
+help = "Run backend coverage report with non-blocking 70% warning"
+shell = """
+cargo llvm-cov --workspace --ignore-filename-regex main\\.rs --summary-only --fail-under-lines 70
+if ($LastExitCode -ne 0) {
+    Write-Warning "Backend coverage is below the 70% target (non-blocking in this phase)."
+    exit 0
+}
+"""
+interpreter = "powershell"
 
 [tool.poe.tasks.coverage-ui]
 help = "Run frontend coverage and open report"
@@ -77,15 +84,15 @@ help = "Show current version"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 show"
 
 [tool.poe.tasks.bump-patch]
-help = "Bump patch version (1.0.4 -> 1.0.5)"
+help = "Bump patch version (1.0.5 -> 1.0.6)"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-patch"
 
 [tool.poe.tasks.bump-minor]
-help = "Bump minor version (1.0.4 -> 1.1.0)"
+help = "Bump minor version (1.0.5 -> 1.1.0)"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-minor"
 
 [tool.poe.tasks.bump-major]
-help = "Bump major version (1.0.4 -> 2.0.0)"
+help = "Bump major version (1.0.5 -> 2.0.0)"
 cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-major"
 
 [tool.poe.tasks.git-release]

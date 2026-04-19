@@ -294,7 +294,11 @@ pub async fn impl_update_rule(
                         .map(|e| e.trim_start_matches('.').to_string())
                         .filter(|e| !e.is_empty())
                         .collect();
-                    if normalized.is_empty() { None } else { Some(normalized) }
+                    if normalized.is_empty() {
+                        None
+                    } else {
+                        Some(normalized)
+                    }
                 }
             };
         }

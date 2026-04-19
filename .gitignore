@@ -1,4 +1,5 @@
 plan.md
+.planning/
 target
 dist
 **/*.rs.bk
@@ -117,3 +118,5 @@ harbor_state.json
 # Temporary
 clippy_*.txt
 clippy_*.log
+copilot-instructions.md
+copilot.md

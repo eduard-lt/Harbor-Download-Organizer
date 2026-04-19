@@ -62,5 +62,8 @@ fn filesystem_mapping_preserves_legacy_field_and_sanitizes_paths() {
 
     assert_eq!(dto.legacy_error, "Failed to move file");
     assert_eq!(dto.details.source_path.as_deref(), Some(r"sub\file.txt"));
-    assert_eq!(dto.details.destination_path.as_deref(), Some(r"Docs\file.txt"));
+    assert_eq!(
+        dto.details.destination_path.as_deref(),
+        Some(r"Docs\file.txt")
+    );
 }

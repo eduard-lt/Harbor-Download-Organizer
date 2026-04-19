@@ -1,15 +1,17 @@
-use crate::state::{AppState, ServiceLifecycleState};
 use crate::commands::error_contract::{map_legacy_organize_error, AppError, AppErrorDto};
+use crate::state::{AppState, ServiceLifecycleState};
 use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling, OrganizeResult};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_autostart::ManagerExt;
 
 #[cfg(windows)]
 use winreg::enums::*;
@@ -35,9 +37,22 @@ fn save_config_to_disk(state: &AppState) -> Result<(), String> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceStatus {
     pub running: bool,
+    pub lifecycle_state: String,
     pub uptime_seconds: Option<u64>,
+    pub stop_join_pending: bool,
     pub degraded: bool,
     pub degraded_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceStatusEvent {
+    pub status: ServiceStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StartupStatusEvent {
+    pub enabled: bool,
+    pub phase: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -98,7 +113,10 @@ pub fn map_tray_organize_outcome(response: &OrganizeNowResponse) -> TrayOrganize
         _ => "error".to_string(),
     };
 
-    let primary_code = response.failure_groups.first().map(|group| group.code.clone());
+    let primary_code = response
+        .failure_groups
+        .first()
+        .map(|group| group.code.clone());
     let remediation_summary = remediation_summary(&response.failure_groups);
     let mut message = response.message.clone();
 
@@ -178,9 +196,28 @@ fn rotate_log_if_needed(log_path: &PathBuf) {
 
 #[tauri::command]
 pub async fn get_service_status(state: State<'_, AppState>) -> Result<ServiceStatus, String> {
+    build_service_status(&state)
+}
+
+fn lifecycle_state_name(lifecycle: &ServiceLifecycleState) -> String {
+    match lifecycle {
+        ServiceLifecycleState::Stopped => "stopped".to_string(),
+        ServiceLifecycleState::Running => "running".to_string(),
+        ServiceLifecycleState::Restarting => "restarting".to_string(),
+        ServiceLifecycleState::Degraded => "degraded".to_string(),
+    }
+}
+
+fn build_service_status(state: &AppState) -> Result<ServiceStatus, String> {
     let flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
     let running = flag_guard.is_some();
     drop(flag_guard); // Release lock early
+
+    let lifecycle_state = state
+        .service_lifecycle
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
 
     let uptime_seconds = if running {
         let start_time = state.service_start_time.lock().map_err(|e| e.to_string())?;
@@ -194,10 +231,16 @@ pub async fn get_service_status(state: State<'_, AppState>) -> Result<ServiceSta
         .lock()
         .map_err(|e| e.to_string())?
         .clone();
+    let stop_join_pending = *state
+        .watcher_join_pending
+        .lock()
+        .map_err(|e| e.to_string())?;
 
     Ok(ServiceStatus {
         running,
+        lifecycle_state: lifecycle_state_name(&lifecycle_state),
         uptime_seconds,
+        stop_join_pending,
         degraded: degraded_reason.is_some(),
         degraded_reason,
     })
@@ -213,6 +256,53 @@ fn set_degraded_reason(state: &AppState, reason: Option<String>) -> Result<(), S
     let mut guard = state.degraded_reason.lock().map_err(|e| e.to_string())?;
     *guard = reason;
     Ok(())
+}
+
+fn emit_service_status_event(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    let payload = ServiceStatusEvent {
+        status: build_service_status(state)?,
+    };
+    app.emit("harbor://service-status", payload)
+        .map_err(|e| format!("Failed to emit service status event: {e}"))
+}
+
+pub fn emit_lifecycle_status_for_app(app: &AppHandle, state: &AppState) -> Result<(), String> {
+    emit_service_status_event(app, state)
+}
+
+fn emit_startup_status_event(app: &AppHandle, enabled: bool, phase: &str) -> Result<(), String> {
+    let payload = StartupStatusEvent {
+        enabled,
+        phase: phase.to_string(),
+    };
+    app.emit("harbor://startup-status", payload)
+        .map_err(|e| format!("Failed to emit startup status event: {e}"))
+}
+
+fn wait_for_watcher_join(
+    handle: thread::JoinHandle<()>,
+    timeout: Duration,
+    join_pending: Arc<std::sync::Mutex<bool>>,
+) -> Result<(), &'static str> {
+    if let Ok(mut pending) = join_pending.lock() {
+        *pending = true;
+    }
+
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let join_result = handle.join();
+        if let Ok(mut pending) = join_pending.lock() {
+            *pending = false;
+        }
+        let _ = tx.send(join_result);
+    });
+
+    match rx.recv_timeout(timeout) {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(_)) => Err("join_failed"),
+        Err(mpsc::RecvTimeoutError::Timeout) => Err("join_timeout"),
+        Err(mpsc::RecvTimeoutError::Disconnected) => Err("join_failed"),
+    }
 }
 
 pub fn internal_start_service(state: &AppState) -> Result<(), String> {
@@ -247,6 +337,12 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
     let mut time_guard = state.service_start_time.lock().map_err(|e| e.to_string())?;
     *time_guard = Some(std::time::Instant::now());
 
+    let mut pending = state
+        .watcher_join_pending
+        .lock()
+        .map_err(|e| e.to_string())?;
+    *pending = false;
+
     set_degraded_reason(state, None)?;
     set_lifecycle_state(state, ServiceLifecycleState::Running)?;
 
@@ -254,6 +350,8 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
 }
 
 pub fn internal_stop_service(state: &AppState) -> Result<(), String> {
+    const STOP_JOIN_TIMEOUT: Duration = Duration::from_secs(3);
+
     let mut flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
 
     if let Some(flag) = flag_guard.take() {
@@ -266,9 +364,39 @@ pub fn internal_stop_service(state: &AppState) -> Result<(), String> {
     drop(guard);
 
     if let Some(handle) = handle {
-        handle
-            .join()
-            .map_err(|_| "Failed to join watcher thread during shutdown".to_string())?;
+        match wait_for_watcher_join(
+            handle,
+            STOP_JOIN_TIMEOUT,
+            state.watcher_join_pending.clone(),
+        ) {
+            Ok(()) => {}
+            Err("join_timeout") => {
+                mark_service_degraded(
+                    state,
+                    "Service stop timed out after 3 seconds. Retry service restart to recover.",
+                )?;
+                return Err(
+                    "Service stop timed out after 3 seconds. Retry service restart to recover."
+                        .to_string(),
+                );
+            }
+            Err(_) => {
+                mark_service_degraded(
+                    state,
+                    "Service watcher join failed during shutdown. Retry service restart to recover.",
+                )?;
+                return Err(
+                    "Failed to join watcher thread during shutdown. Retry service restart to recover."
+                        .to_string(),
+                );
+            }
+        }
+    } else {
+        let mut pending = state
+            .watcher_join_pending
+            .lock()
+            .map_err(|e| e.to_string())?;
+        *pending = false;
     }
 
     let mut time_guard = state.service_start_time.lock().map_err(|e| e.to_string())?;
@@ -284,27 +412,32 @@ fn mark_service_degraded(state: &AppState, reason: impl Into<String>) -> Result<
     set_lifecycle_state(state, ServiceLifecycleState::Degraded)
 }
 
-pub fn restart_service_if_running(state: &AppState) -> Result<(), String> {
+fn restart_service_if_running_internal(
+    state: &AppState,
+    skip_debounce: bool,
+) -> Result<bool, String> {
     let flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
     let is_running = flag_guard.is_some();
     drop(flag_guard);
 
     if !is_running {
-        return Ok(());
+        return Ok(false);
     }
 
-    let now = std::time::Instant::now();
-    {
-        let mut last_restart = state
-            .last_restart_request
-            .lock()
-            .map_err(|e| e.to_string())?;
-        if let Some(previous) = *last_restart {
-            if now.duration_since(previous) < RESTART_DEBOUNCE_WINDOW {
-                return Ok(());
+    if !skip_debounce {
+        let now = std::time::Instant::now();
+        {
+            let mut last_restart = state
+                .last_restart_request
+                .lock()
+                .map_err(|e| e.to_string())?;
+            if let Some(previous) = *last_restart {
+                if now.duration_since(previous) < RESTART_DEBOUNCE_WINDOW {
+                    return Ok(false);
+                }
             }
+            *last_restart = Some(now);
         }
-        *last_restart = Some(now);
     }
 
     {
@@ -313,7 +446,7 @@ pub fn restart_service_if_running(state: &AppState) -> Result<(), String> {
             .lock()
             .map_err(|e| e.to_string())?;
         if *restart_guard {
-            return Ok(());
+            return Ok(false);
         }
         *restart_guard = true;
     }
@@ -341,10 +474,54 @@ pub fn restart_service_if_running(state: &AppState) -> Result<(), String> {
         return Err(error);
     }
 
+    Ok(true)
+}
+
+pub fn restart_service_if_running(state: &AppState) -> Result<(), String> {
+    let _ = restart_service_if_running_internal(state, false)?;
+    Ok(())
+}
+
+fn reload_config_impl(
+    state: &AppState,
+    new_config: harbor_core::downloads::DownloadsConfig,
+) -> Result<bool, String> {
+    {
+        let mut config = state.config.write().map_err(|e| e.to_string())?;
+        *config = new_config;
+    }
+
+    restart_service_if_running_internal(state, true)
+}
+
+#[cfg(test)]
+fn reload_config_from_disk_for_tests(state: &AppState) -> Result<bool, String> {
+    let new_config = load_downloads_config(&state.config_path)
+        .map_err(|e| format!("Failed to reload config: {}", e))?;
+    reload_config_impl(state, new_config)
+}
+
+#[tauri::command]
+pub async fn reload_config(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
+    let new_config = load_downloads_config(&state.config_path)
+        .map_err(|e| format!("Failed to reload config: {}", e))?;
+    let _ = reload_config_impl(&state, new_config)?;
+    let _ = emit_service_status_event(&app, &state);
     Ok(())
 }
 
 pub fn impl_retry_service_restart(state: &AppState) -> Result<(), String> {
+    if *state
+        .watcher_join_pending
+        .lock()
+        .map_err(|e| e.to_string())?
+    {
+        return Err(
+            "Previous stop is still finalizing in background. Retry service restart shortly."
+                .to_string(),
+        );
+    }
+
     set_lifecycle_state(state, ServiceLifecycleState::Restarting)?;
     let restart_result = restart_service_if_running(state);
 
@@ -377,21 +554,55 @@ pub fn persist_service_state(state: &AppState, enabled: bool) -> Result<(), Stri
     save_config_to_disk(state)
 }
 
-#[tauri::command]
-pub async fn start_service(state: State<'_, AppState>) -> Result<(), String> {
-    persist_service_state(&state, true)?;
-    internal_start_service(&state)
+pub fn impl_start_service_with_guards(state: &AppState) -> Result<(), String> {
+    if *state
+        .watcher_join_pending
+        .lock()
+        .map_err(|e| e.to_string())?
+    {
+        return Err(
+            "Previous stop is still finalizing in background. Retry service restart shortly."
+                .to_string(),
+        );
+    }
+
+    if state
+        .degraded_reason
+        .lock()
+        .map_err(|e| e.to_string())?
+        .is_some()
+    {
+        return Err(
+            "Service is degraded. Run retry_service_restart before starting again.".to_string(),
+        );
+    }
+
+    persist_service_state(state, true)?;
+    internal_start_service(state)
 }
 
 #[tauri::command]
-pub async fn stop_service(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn start_service(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
+    impl_start_service_with_guards(&state)?;
+    emit_service_status_event(&app, &state)
+}
+
+#[tauri::command]
+pub async fn stop_service(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     persist_service_state(&state, false)?;
-    internal_stop_service(&state)
+    let stop_result = internal_stop_service(&state);
+    let _ = emit_service_status_event(&app, &state);
+    stop_result
 }
 
 #[tauri::command]
-pub async fn retry_service_restart(state: State<'_, AppState>) -> Result<(), String> {
-    impl_retry_service_restart(&state)
+pub async fn retry_service_restart(
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    let retry_result = impl_retry_service_restart(&state);
+    let _ = emit_service_status_event(&app, &state);
+    retry_result
 }
 
 #[tauri::command]
@@ -408,8 +619,8 @@ pub async fn impl_trigger_organize_now(state: &AppState) -> OrganizeNowResponse 
             return organize_now_failure_response(
                 AppError::Internal {
                     message: "Failed to read app state configuration".to_string(),
-                    remediation_hint:
-                        "Retry the operation. If this persists, restart Harbor.".to_string(),
+                    remediation_hint: "Retry the operation. If this persists, restart Harbor."
+                        .to_string(),
                     legacy_error: e.to_string(),
                 },
                 Path::new(""),
@@ -438,10 +649,7 @@ pub async fn impl_trigger_organize_now(state: &AppState) -> OrganizeNowResponse 
         Err(e) => {
             let legacy = format!("Organize failed: {}", e);
             eprintln!("[Harbor] {legacy}");
-            return organize_now_failure_response(
-                map_legacy_organize_error(&legacy),
-                download_dir,
-            );
+            return organize_now_failure_response(map_legacy_organize_error(&legacy), download_dir);
         }
     };
 
@@ -499,7 +707,10 @@ fn response_message(moved_count: usize, failure_count: usize) -> String {
     }
 }
 
-fn map_organize_summary_to_response(summary: harbor_core::downloads::OrganizeSummary, download_dir: &Path) -> OrganizeNowResponse {
+fn map_organize_summary_to_response(
+    summary: harbor_core::downloads::OrganizeSummary,
+    download_dir: &Path,
+) -> OrganizeNowResponse {
     let structured_failures: Vec<AppErrorDto> = summary
         .errors
         .iter()
@@ -535,71 +746,135 @@ fn organize_now_failure_response(error: AppError, download_dir: &Path) -> Organi
     }
 }
 
-#[tauri::command]
-pub async fn get_startup_enabled() -> Result<bool, String> {
-    #[cfg(windows)]
-    {
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let run_key = hkcu
-            .open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run")
-            .map_err(|e| format!("Failed to open registry key: {}", e))?;
+#[cfg(windows)]
+fn cleanup_legacy_startup_registry_entry() -> Result<(), String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let run_key = hkcu
+        .open_subkey_with_flags(
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+            KEY_ALL_ACCESS,
+        )
+        .map_err(|e| format!("Failed to open registry key: {e}"))?;
 
-        match run_key.get_value::<String, _>("Harbor") {
-            Ok(_) => Ok(true),
-            Err(_) => Ok(false),
-        }
-    }
-
-    #[cfg(not(windows))]
-    {
-        Ok(false)
+    match run_key.delete_value("Harbor") {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(format!("Failed to remove legacy startup entry: {e}")),
     }
 }
 
-#[tauri::command]
-pub async fn set_startup_enabled(enabled: bool) -> Result<(), String> {
-    #[cfg(windows)]
-    {
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let (run_key, _) = hkcu
-            .create_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run")
-            .map_err(|e| format!("Failed to open registry key: {}", e))?;
+#[cfg(not(windows))]
+fn cleanup_legacy_startup_registry_entry() -> Result<(), String> {
+    Ok(())
+}
 
+trait StartupAuthority {
+    fn enable(&self) -> Result<(), String>;
+    fn disable(&self) -> Result<(), String>;
+    fn is_enabled(&self) -> Result<bool, String>;
+}
+
+struct AppStartupAuthority<'a> {
+    app: &'a AppHandle,
+}
+
+impl<'a> AppStartupAuthority<'a> {
+    fn new(app: &'a AppHandle) -> Self {
+        Self { app }
+    }
+}
+
+impl StartupAuthority for AppStartupAuthority<'_> {
+    fn enable(&self) -> Result<(), String> {
+        self.app
+            .autolaunch()
+            .enable()
+            .map_err(|e| format!("Failed to update startup setting: {e}"))
+    }
+
+    fn disable(&self) -> Result<(), String> {
+        self.app
+            .autolaunch()
+            .disable()
+            .map_err(|e| format!("Failed to update startup setting: {e}"))
+    }
+
+    fn is_enabled(&self) -> Result<bool, String> {
+        self.app
+            .autolaunch()
+            .is_enabled()
+            .map_err(|e| format!("Failed to read startup state: {e}"))
+    }
+}
+
+fn apply_startup_enabled(
+    authority: &impl StartupAuthority,
+    enabled: bool,
+    emit: &mut impl FnMut(bool, &str) -> Result<(), String>,
+    cleanup: &impl Fn() -> Result<(), String>,
+) -> Result<(), String> {
+    emit(enabled, "intent")?;
+
+    let apply_result = if enabled {
+        authority.enable()
+    } else {
+        authority.disable()
+    };
+
+    if let Err(error) = apply_result {
         if enabled {
-            // Get the path to the tray executable
-            let exe_path = std::env::current_exe()
-                .map_err(|e| format!("Failed to get executable path: {}", e))?;
-
-            // Wrap the path in double-quotes so Windows correctly handles paths
-            // that contain spaces (e.g. C:\Users\John Doe\AppData\...).
-            let quoted = format!("\"{}\"", exe_path.to_string_lossy());
-
-            run_key
-                .set_value("Harbor", &quoted.as_str())
-                .map_err(|e| format!("Failed to set registry value: {}", e))?;
-        } else {
-            // Remove the startup entry
-            let _ = run_key.delete_value("Harbor");
+            let _ = authority.disable();
         }
-
-        Ok(())
+        let _ = cleanup();
+        let _ = emit(false, "reconciled");
+        return Err(format!(
+            "Failed to update startup setting: {error}. Startup remains disabled. Retry from Settings."
+        ));
     }
 
-    #[cfg(not(windows))]
-    {
-        Err("Startup configuration not supported on this platform".to_string())
+    let authoritative = authority
+        .is_enabled()
+        .map_err(|e| format!("Failed to verify startup state: {e}"))?;
+
+    cleanup()?;
+    emit(authoritative, "reconciled")?;
+
+    if enabled && !authoritative {
+        return Err(
+            "Startup remains disabled after update attempt. Retry from Settings.".to_string(),
+        );
     }
-}
-
-#[tauri::command]
-pub async fn reload_config(state: State<'_, AppState>) -> Result<(), String> {
-    let new_config = load_downloads_config(&state.config_path)
-        .map_err(|e| format!("Failed to reload config: {}", e))?;
-
-    let mut config = state.config.write().map_err(|e| e.to_string())?;
-    *config = new_config;
 
     Ok(())
+}
+
+pub fn reconcile_startup_authority(app: &AppHandle) -> Result<(), String> {
+    let authority = AppStartupAuthority::new(app);
+    let _ = authority
+        .is_enabled()
+        .map_err(|e| format!("Failed to read autostart state: {e}"))?;
+    cleanup_legacy_startup_registry_entry()
+}
+
+#[tauri::command]
+pub async fn get_startup_enabled(app: AppHandle) -> Result<bool, String> {
+    let authority = AppStartupAuthority::new(&app);
+    let enabled = authority.is_enabled()?;
+
+    cleanup_legacy_startup_registry_entry()?;
+    Ok(enabled)
+}
+
+#[tauri::command]
+pub async fn set_startup_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let authority = AppStartupAuthority::new(&app);
+    let mut emit = |value: bool, phase: &str| emit_startup_status_event(&app, value, phase);
+    apply_startup_enabled(
+        &authority,
+        enabled,
+        &mut emit,
+        &cleanup_legacy_startup_registry_entry,
+    )
 }
 
 #[tauri::command]
@@ -655,7 +930,7 @@ pub async fn get_config_path(state: State<'_, AppState>) -> Result<String, Strin
 }
 
 #[tauri::command]
-pub async fn reset_to_defaults(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn reset_to_defaults(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     let config = harbor_core::downloads::default_config();
 
     {
@@ -666,8 +941,14 @@ pub async fn reset_to_defaults(state: State<'_, AppState>) -> Result<(), String>
     save_config_to_disk(&state)?;
 
     // Stop and start service to apply changes
-    let _ = internal_stop_service(&state);
-    let _ = internal_start_service(&state);
+    let stop_result = internal_stop_service(&state);
+    let _ = emit_service_status_event(&app, &state);
+    if let Err(error) = stop_result {
+        return Err(error);
+    }
+
+    internal_start_service(&state)?;
+    let _ = emit_service_status_event(&app, &state);
 
     Ok(())
 }
@@ -734,6 +1015,30 @@ mod tests {
     use super::*;
     use harbor_core::downloads::{DownloadsConfig, OrganizeSummary};
     use tempfile::tempdir;
+
+    fn test_config(service_enabled: bool, min_age_secs: u64) -> DownloadsConfig {
+        DownloadsConfig {
+            download_dir: "DL".to_string(),
+            rules: vec![],
+            min_age_secs: Some(min_age_secs),
+            tutorial_completed: Some(false),
+            service_enabled: Some(service_enabled),
+            check_updates: Some(true),
+            last_notified_version: None,
+        }
+    }
+
+    fn seed_running_state_with_fast_watcher(state: &AppState) {
+        let flag = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        *state.watcher_flag.lock().unwrap() = Some(flag.clone());
+        *state.watcher_handle.lock().unwrap() = Some(std::thread::spawn(move || {
+            while flag.load(Ordering::SeqCst) {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+        }));
+        *state.service_start_time.lock().unwrap() = Some(std::time::Instant::now());
+        *state.service_lifecycle.lock().unwrap() = ServiceLifecycleState::Running;
+    }
 
     #[test]
     fn test_append_to_log_creates_and_writes() {
@@ -899,13 +1204,14 @@ mod tests {
             }],
             errors: vec![format!(
                 "Failed to move '{}' to '{}': Access denied",
-                r"C:\Users\Alice\Downloads\locked.txt",
-                r"C:\Users\Alice\Downloads\Docs\locked.txt"
+                r"C:\Users\Alice\Downloads\locked.txt", r"C:\Users\Alice\Downloads\Docs\locked.txt"
             )],
         };
 
-        let response =
-            map_organize_summary_to_response(summary, std::path::Path::new(r"C:\Users\Alice\Downloads"));
+        let response = map_organize_summary_to_response(
+            summary,
+            std::path::Path::new(r"C:\Users\Alice\Downloads"),
+        );
 
         assert_eq!(response.status, "partial_failure");
         assert_eq!(response.moved_count, 1);
@@ -1000,7 +1306,9 @@ mod tests {
         let partial_outcome = map_tray_organize_outcome(&partial_response);
         assert_eq!(partial_outcome.severity, "warning");
         assert!(partial_outcome.message.contains("filesystem_error"));
-        assert!(partial_outcome.message.contains("Close apps using the file and retry."));
+        assert!(partial_outcome
+            .message
+            .contains("Close apps using the file and retry."));
 
         let failed_response = OrganizeNowResponse {
             status: "failed".to_string(),
@@ -1060,6 +1368,44 @@ mod tests {
     }
 
     #[test]
+    fn internal_stop_service_marks_degraded_when_join_times_out() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = DownloadsConfig {
+            download_dir: "DL".to_string(),
+            rules: vec![],
+            min_age_secs: Some(0),
+            tutorial_completed: Some(false),
+            service_enabled: Some(true),
+            check_updates: Some(true),
+            last_notified_version: None,
+        };
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+
+        *state.watcher_flag.lock().unwrap() = Some(std::sync::Arc::new(
+            std::sync::atomic::AtomicBool::new(true),
+        ));
+        *state.watcher_handle.lock().unwrap() = Some(std::thread::spawn(|| {
+            std::thread::sleep(Duration::from_secs(5));
+        }));
+        *state.service_start_time.lock().unwrap() = Some(std::time::Instant::now());
+
+        let result = internal_stop_service(&state);
+        assert!(result.is_err());
+        assert!(*state.watcher_join_pending.lock().unwrap());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Degraded
+        );
+        let degraded_reason = state.degraded_reason.lock().unwrap().clone().unwrap();
+        assert!(degraded_reason.contains("Retry service restart to recover"));
+
+        std::thread::sleep(Duration::from_millis(2300));
+        assert!(!*state.watcher_join_pending.lock().unwrap());
+    }
+
+    #[test]
     fn restart_service_if_running_marks_degraded_when_restart_fails() {
         let tmp = tempdir().unwrap();
         let cfg_path = tmp.path().join("config.yaml");
@@ -1097,15 +1443,7 @@ mod tests {
     fn retry_service_restart_recovers_from_degraded_state() {
         let tmp = tempdir().unwrap();
         let cfg_path = tmp.path().join("config.yaml");
-        let config = DownloadsConfig {
-            download_dir: "DL".to_string(),
-            rules: vec![],
-            min_age_secs: Some(0),
-            tutorial_completed: Some(false),
-            service_enabled: Some(true),
-            check_updates: Some(true),
-            last_notified_version: None,
-        };
+        let config = test_config(true, 0);
         std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
         let state = AppState::new(cfg_path, config);
 
@@ -1125,6 +1463,326 @@ mod tests {
         );
         assert!(state.watcher_flag.lock().unwrap().is_some());
 
+        let active_flag = {
+            let guard = state.watcher_flag.lock().unwrap();
+            guard.as_ref().cloned()
+        };
+        if let Some(flag) = active_flag {
+            flag.store(false, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn retry_service_restart_blocks_while_join_pending_and_keeps_degraded_state() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+
+        mark_service_degraded(&state, "stop still finalizing").unwrap();
+        *state.watcher_join_pending.lock().unwrap() = true;
+
+        let result = impl_retry_service_restart(&state);
+        assert!(result.is_err());
+        let message = result.err().unwrap();
+        assert!(message.contains("Previous stop is still finalizing"));
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Degraded
+        );
+        assert_eq!(
+            state.degraded_reason.lock().unwrap().as_deref(),
+            Some("stop still finalizing")
+        );
+        assert!(!*state.restart_in_progress.lock().unwrap());
+        assert!(state.watcher_flag.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn retry_service_restart_succeeds_after_join_pending_clears() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+
+        mark_service_degraded(&state, "stop still finalizing").unwrap();
+        *state.watcher_join_pending.lock().unwrap() = true;
+        let blocked = impl_retry_service_restart(&state);
+        assert!(blocked.is_err());
+
+        *state.watcher_join_pending.lock().unwrap() = false;
+        let recovered = impl_retry_service_restart(&state);
+        assert!(recovered.is_ok());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Running
+        );
+        assert!(state.degraded_reason.lock().unwrap().is_none());
+        assert!(!*state.watcher_join_pending.lock().unwrap());
+        assert!(state.watcher_flag.lock().unwrap().is_some());
+
+        let active_flag = {
+            let guard = state.watcher_flag.lock().unwrap();
+            guard.as_ref().cloned()
+        };
+        if let Some(flag) = active_flag {
+            flag.store(false, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn tray_start_blocks_while_join_pending() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+        *state.watcher_join_pending.lock().unwrap() = true;
+
+        let result = impl_start_service_with_guards(&state);
+        assert!(result.is_err());
+        assert!(result
+            .err()
+            .unwrap()
+            .contains("Previous stop is still finalizing"));
+        assert!(state.watcher_flag.lock().unwrap().is_none());
+        assert!(!*state.restart_in_progress.lock().unwrap());
+    }
+
+    #[test]
+    fn tray_start_blocks_while_degraded() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path, config);
+        mark_service_degraded(&state, "manual degraded").unwrap();
+
+        let result = impl_start_service_with_guards(&state);
+        assert!(result.is_err());
+        assert!(result.err().unwrap().contains("Service is degraded"));
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Degraded
+        );
+        assert_eq!(
+            state.degraded_reason.lock().unwrap().as_deref(),
+            Some("manual degraded")
+        );
+        assert!(state.watcher_flag.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn tray_start_succeeds_when_guards_clear() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let config = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&config).unwrap()).unwrap();
+        let state = AppState::new(cfg_path.clone(), config);
+        *state.watcher_join_pending.lock().unwrap() = false;
+
+        let result = impl_start_service_with_guards(&state);
+        assert!(result.is_ok());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Running
+        );
+        assert!(state.degraded_reason.lock().unwrap().is_none());
+        assert!(state.watcher_flag.lock().unwrap().is_some());
+
+        let persisted = std::fs::read_to_string(cfg_path).unwrap();
+        assert!(persisted.contains("service_enabled: true"));
+
+        let active_flag = {
+            let guard = state.watcher_flag.lock().unwrap();
+            guard.as_ref().cloned()
+        };
+        if let Some(flag) = active_flag {
+            flag.store(false, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn reload_config_restarts_when_service_is_running() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let initial = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&initial).unwrap()).unwrap();
+        let state = AppState::new(cfg_path.clone(), initial);
+
+        seed_running_state_with_fast_watcher(&state);
+        let old_started = state.service_start_time.lock().unwrap().unwrap();
+
+        let mut updated = test_config(true, 42);
+        updated.download_dir = "DL-updated".to_string();
+        std::fs::write(&cfg_path, serde_yaml::to_string(&updated).unwrap()).unwrap();
+
+        std::thread::sleep(Duration::from_millis(5));
+        let restarted = reload_config_from_disk_for_tests(&state).unwrap();
+
+        assert!(restarted);
+        assert!(state.watcher_flag.lock().unwrap().is_some());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Running
+        );
+        assert!(!*state.watcher_join_pending.lock().unwrap());
+        assert!(state.degraded_reason.lock().unwrap().is_none());
+        let new_started = state.service_start_time.lock().unwrap().unwrap();
+        assert!(new_started > old_started);
+        let cfg = state.config.read().unwrap().clone();
+        assert_eq!(cfg.min_age_secs, Some(42));
+        assert_eq!(cfg.download_dir, "DL-updated");
+
+        let active_flag = {
+            let guard = state.watcher_flag.lock().unwrap();
+            guard.as_ref().cloned()
+        };
+        if let Some(flag) = active_flag {
+            flag.store(false, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn reload_config_updates_state_without_starting_when_service_is_stopped() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let initial = test_config(false, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&initial).unwrap()).unwrap();
+        let state = AppState::new(cfg_path.clone(), initial);
+
+        let mut updated = test_config(false, 17);
+        updated.download_dir = "DL-cold".to_string();
+        std::fs::write(&cfg_path, serde_yaml::to_string(&updated).unwrap()).unwrap();
+
+        let restarted = reload_config_from_disk_for_tests(&state).unwrap();
+        assert!(!restarted);
+        assert!(state.watcher_flag.lock().unwrap().is_none());
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Stopped
+        );
+
+        let cfg = state.config.read().unwrap().clone();
+        assert_eq!(cfg.min_age_secs, Some(17));
+        assert_eq!(cfg.download_dir, "DL-cold");
+    }
+
+    #[test]
+    fn reload_config_bypasses_restart_debounce_to_reapply_active_runtime() {
+        let tmp = tempdir().unwrap();
+        let cfg_path = tmp.path().join("config.yaml");
+        let initial = test_config(true, 0);
+        std::fs::write(&cfg_path, serde_yaml::to_string(&initial).unwrap()).unwrap();
+        let state = AppState::new(cfg_path.clone(), initial);
+
+        seed_running_state_with_fast_watcher(&state);
+        *state.last_restart_request.lock().unwrap() = Some(std::time::Instant::now());
+
+        let mut updated = test_config(true, 99);
+        updated.download_dir = "DL-burst".to_string();
+        std::fs::write(&cfg_path, serde_yaml::to_string(&updated).unwrap()).unwrap();
+
+        let restarted = reload_config_from_disk_for_tests(&state).unwrap();
+        assert!(
+            restarted,
+            "reload should reapply active runtime even inside debounce window"
+        );
+        assert_eq!(
+            *state.service_lifecycle.lock().unwrap(),
+            ServiceLifecycleState::Running
+        );
+        assert!(!*state.watcher_join_pending.lock().unwrap());
+        let cfg = state.config.read().unwrap().clone();
+        assert_eq!(cfg.min_age_secs, Some(99));
+        assert_eq!(cfg.download_dir, "DL-burst");
+
         internal_stop_service(&state).unwrap();
+    }
+
+    struct FakeStartupAuthority {
+        enable_result: Result<(), String>,
+        disable_result: Result<(), String>,
+        is_enabled_result: Result<bool, String>,
+        disable_calls: std::sync::Mutex<usize>,
+    }
+
+    impl FakeStartupAuthority {
+        fn new(
+            enable_result: Result<(), String>,
+            disable_result: Result<(), String>,
+            is_enabled_result: Result<bool, String>,
+        ) -> Self {
+            Self {
+                enable_result,
+                disable_result,
+                is_enabled_result,
+                disable_calls: std::sync::Mutex::new(0),
+            }
+        }
+    }
+
+    impl StartupAuthority for FakeStartupAuthority {
+        fn enable(&self) -> Result<(), String> {
+            self.enable_result.clone()
+        }
+
+        fn disable(&self) -> Result<(), String> {
+            if let Ok(mut calls) = self.disable_calls.lock() {
+                *calls += 1;
+            }
+            self.disable_result.clone()
+        }
+
+        fn is_enabled(&self) -> Result<bool, String> {
+            self.is_enabled_result.clone()
+        }
+    }
+
+    #[test]
+    fn apply_startup_enabled_emits_intent_then_reconciled_on_success() {
+        let authority = FakeStartupAuthority::new(Ok(()), Ok(()), Ok(true));
+        let events = std::sync::Mutex::new(Vec::<(bool, String)>::new());
+        let mut emit = |enabled: bool, phase: &str| {
+            events.lock().unwrap().push((enabled, phase.to_string()));
+            Ok(())
+        };
+        let cleanup = || Ok(());
+
+        let result = apply_startup_enabled(&authority, true, &mut emit, &cleanup);
+        assert!(result.is_ok());
+        assert_eq!(
+            events.lock().unwrap().clone(),
+            vec![
+                (true, "intent".to_string()),
+                (true, "reconciled".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn apply_startup_enabled_falls_back_to_disabled_on_enable_failure() {
+        let authority =
+            FakeStartupAuthority::new(Err("enable failed".to_string()), Ok(()), Ok(false));
+        let events = std::sync::Mutex::new(Vec::<(bool, String)>::new());
+        let mut emit = |enabled: bool, phase: &str| {
+            events.lock().unwrap().push((enabled, phase.to_string()));
+            Ok(())
+        };
+        let cleanup = || Ok(());
+
+        let result = apply_startup_enabled(&authority, true, &mut emit, &cleanup);
+        assert!(result.is_err());
+        let calls = *authority.disable_calls.lock().unwrap();
+        assert_eq!(calls, 1);
+        assert_eq!(
+            events.lock().unwrap().clone(),
+            vec![
+                (true, "intent".to_string()),
+                (false, "reconciled".to_string())
+            ]
+        );
     }
 }

@@ -18,6 +18,7 @@ export function SettingsPage() {
     organizing,
     error,
     toggleService,
+    retryService,
     toggleStartup,
     organizeNow,
     reload,
@@ -65,6 +66,7 @@ export function SettingsPage() {
   };
 
   const serviceEnabled = serviceStatus.running;
+  const lifecycleState = serviceStatus.lifecycle_state ?? (serviceEnabled ? 'running' : 'stopped');
 
   return (
     <>
@@ -93,6 +95,9 @@ export function SettingsPage() {
                   <p className="text-slate-500 mt-1 max-w-md">
                     Manage the background process that monitors your folders and organizes files in real-time.
                   </p>
+                  <p className="text-xs text-slate-500 mt-2 uppercase tracking-tight font-semibold">
+                    Lifecycle: <span className="text-slate-800 dark:text-white font-mono ml-1">{lifecycleState}</span>
+                  </p>
                 </div>
                 <div className="flex items-center">
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -115,6 +120,20 @@ export function SettingsPage() {
                   Uptime: <span className="text-slate-800 dark:text-white font-mono ml-1">{serviceStatus.uptime_seconds ? `${Math.floor(serviceStatus.uptime_seconds / 60)}m` : 'N/A'}</span>
                 </span>
               </div>
+              {serviceStatus.degraded_reason && (
+                <div className="px-8 py-4 border-t border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">Degraded state</p>
+                    <p className="text-sm text-amber-900 dark:text-amber-100">{serviceStatus.degraded_reason}</p>
+                  </div>
+                  <button
+                    onClick={retryService}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold transition-colors"
+                  >
+                    Retry recovery
+                  </button>
+                </div>
+              )}
             </section>
 
             {/* Appearance */}

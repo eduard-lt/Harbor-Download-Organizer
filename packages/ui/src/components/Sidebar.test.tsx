@@ -16,7 +16,7 @@ const baseSettings = {
     serviceStatus: { running: false },
     startupEnabled: false, downloadDir: 'C:\\Downloads',
     loading: false, organizing: false, error: null,
-    toggleService: vi.fn(), toggleStartup: vi.fn(),
+    toggleService: vi.fn(), retryService: vi.fn(), toggleStartup: vi.fn(),
     organizeNow: vi.fn(), reload: vi.fn(), reset: vi.fn(), refresh: vi.fn(),
 };
 

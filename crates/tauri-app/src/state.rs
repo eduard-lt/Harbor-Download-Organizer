@@ -35,6 +35,8 @@ pub struct AppState {
     pub last_restart_request: Arc<Mutex<Option<Instant>>>,
     /// Guards transactional restart so only one restart sequence runs at a time.
     pub restart_in_progress: Arc<Mutex<bool>>,
+    /// True while a timed-out stop keeps a background join waiter owning shutdown completion.
+    pub watcher_join_pending: Arc<Mutex<bool>>,
 }
 
 impl AppState {
@@ -49,6 +51,7 @@ impl AppState {
             degraded_reason: Arc::new(Mutex::new(None)),
             last_restart_request: Arc::new(Mutex::new(None)),
             restart_in_progress: Arc::new(Mutex::new(false)),
+            watcher_join_pending: Arc::new(Mutex::new(false)),
         }
     }
 

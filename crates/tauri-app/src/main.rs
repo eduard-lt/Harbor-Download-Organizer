@@ -4,9 +4,9 @@ mod commands;
 mod state;
 
 use harbor_core::downloads::{default_config, load_downloads_config};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use state::AppState;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 #[derive(Debug, Clone, Serialize)]
@@ -18,6 +18,11 @@ struct TrayOrganizeOutcomeEvent {
     remediation_summary: Option<String>,
     moved_count: usize,
     total_failures: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ServiceStatusEnvelope {
+    status: commands::settings::ServiceStatus,
 }
 
 fn main() {
@@ -117,13 +122,8 @@ fn main() {
             use tauri::image::Image;
             use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder};
             use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
-            use tauri_plugin_autostart::ManagerExt;
-
-            // --- AutoStart Logic ---
-            let autostart_manager = app.autolaunch();
-            // Always update the autostart registration to ensure args (like --minimized) are correct
-            if let Err(e) = autostart_manager.enable() {
-                eprintln!("[Harbor] Warning: failed to enable autostart: {e}");
+            if let Err(e) = commands::settings::reconcile_startup_authority(app.handle()) {
+                eprintln!("[Harbor] Warning: failed to reconcile startup authority: {e}");
             }
 
             // --- Smart Visibility Logic ---
@@ -189,6 +189,22 @@ fn main() {
                 ])
                 .build()?;
 
+            let status_on_listener = status_on.clone();
+            let status_off_listener = status_off.clone();
+            app.listen("harbor://service-status", move |event| {
+                let parsed = serde_json::from_str::<ServiceStatusEnvelope>(event.payload());
+                match parsed {
+                    Ok(payload) => {
+                        let checked = payload.status.running;
+                        let _ = status_on_listener.set_checked(checked);
+                        let _ = status_off_listener.set_checked(!checked);
+                    }
+                    Err(e) => {
+                        eprintln!("[Harbor] Failed to parse service status event payload: {e}");
+                    }
+                }
+            });
+
             let _tray = TrayIconBuilder::with_id("tray")
                 .icon(tray_icon)
                 .menu(&menu)
@@ -212,16 +228,17 @@ fn main() {
                     }
                     "service_on" => {
                         let state: tauri::State<AppState> = app.state();
-                        let _ = commands::settings::persist_service_state(&state, true);
-                        let _ = commands::settings::internal_start_service(&state);
-                        let _ = status_on.set_checked(true);
-                        let _ = status_off.set_checked(false);
-                        // Force update UI if open? Not easy from here, UI polls status.
+                        let start_result = commands::settings::impl_start_service_with_guards(&state);
+                        let _ = commands::settings::emit_lifecycle_status_for_app(app, &state);
+                        if let Err(error) = start_result {
+                            eprintln!("[Harbor] Tray start blocked: {error}");
+                        }
                     }
                     "service_off" => {
                         let state: tauri::State<AppState> = app.state();
                         let _ = commands::settings::persist_service_state(&state, false);
                         let _ = commands::settings::internal_stop_service(&state);
+                        let _ = commands::settings::emit_lifecycle_status_for_app(app, &state);
                         let _ = status_on.set_checked(false);
                         let _ = status_off.set_checked(true);
                     }
