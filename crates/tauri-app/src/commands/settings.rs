@@ -62,6 +62,64 @@ pub struct OrganizeNowResponse {
     pub failure_groups: Vec<OrganizeFailureGroupDto>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct TrayOrganizeOutcome {
+    pub status: String,
+    pub severity: String,
+    pub message: String,
+    pub remediation_summary: Option<String>,
+    pub primary_code: Option<String>,
+}
+
+fn remediation_summary(groups: &[OrganizeFailureGroupDto]) -> Option<String> {
+    let mut hints: Vec<String> = Vec::new();
+    for group in groups {
+        for failure in &group.failures {
+            if let Some(hint) = &failure.details.remediation_hint {
+                if !hint.trim().is_empty() && !hints.iter().any(|existing| existing == hint) {
+                    hints.push(hint.clone());
+                }
+            }
+        }
+    }
+
+    if hints.is_empty() {
+        None
+    } else {
+        Some(hints.join(" "))
+    }
+}
+
+pub fn map_tray_organize_outcome(response: &OrganizeNowResponse) -> TrayOrganizeOutcome {
+    let status = response.status.clone();
+    let severity = match status.as_str() {
+        "success" => "info".to_string(),
+        "partial_failure" => "warning".to_string(),
+        _ => "error".to_string(),
+    };
+
+    let primary_code = response.failure_groups.first().map(|group| group.code.clone());
+    let remediation_summary = remediation_summary(&response.failure_groups);
+    let mut message = response.message.clone();
+
+    if status != "success" {
+        if let Some(code) = &primary_code {
+            message = format!("{message} [{code}]");
+        }
+        if let Some(summary) = &remediation_summary {
+            message = format!("{message} {summary}");
+        }
+    }
+
+    TrayOrganizeOutcome {
+        status,
+        severity,
+        message,
+        remediation_summary,
+        primary_code,
+    }
+}
+
 fn append_to_log(log_path: &PathBuf, actions: &[OrganizeResult]) {
     if actions.is_empty() {
         return;
