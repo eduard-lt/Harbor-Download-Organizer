@@ -1,7 +1,4 @@
-use crate::commands::settings::{
-    internal_start_service, internal_stop_service,
-    restart_service_if_running as restart_monitoring_if_running,
-};
+use crate::commands::settings::restart_service_if_running as restart_monitoring_if_running;
 use crate::state::AppState;
 use harbor_core::downloads::DownloadsConfig;
 use harbor_core::types::Rule;
@@ -10,17 +7,12 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::State;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum NullableField<T> {
+    #[default]
     Missing,
     Null,
     Value(T),
-}
-
-impl<T> Default for NullableField<T> {
-    fn default() -> Self {
-        Self::Missing
-    }
 }
 
 impl<T> NullableField<T> {
@@ -436,6 +428,7 @@ pub async fn get_download_dir(state: State<'_, AppState>) -> Result<String, Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::settings::{internal_start_service, internal_stop_service};
     use serde_json::json;
 
     #[test]
@@ -666,7 +659,7 @@ mod tests {
         let (state, _tmp) = create_test_state();
 
         internal_start_service(&state).unwrap();
-        restart_service_if_running(&state).unwrap();
+        restart_monitoring_if_running(&state).unwrap();
         let after_first = state
             .service_start_time
             .lock()
@@ -675,7 +668,7 @@ mod tests {
             .copied()
             .unwrap();
 
-        restart_service_if_running(&state).unwrap();
+        restart_monitoring_if_running(&state).unwrap();
         let after_second = state
             .service_start_time
             .lock()

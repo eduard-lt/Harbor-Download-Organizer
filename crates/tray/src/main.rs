@@ -125,10 +125,8 @@ fn main() -> Result<()> {
     let handler = move |evt, _evt_data, handle| {
         if let Some(ui) = ui_weak.upgrade() {
             match evt {
-                nwg::Event::OnContextMenu => {
-                    if handle == ui.tray {
-                        show_menu(&ui);
-                    }
+                nwg::Event::OnContextMenu if handle == ui.tray => {
+                    show_menu(&ui);
                 }
                 nwg::Event::OnMenuItemSelected => {
                     if handle == ui.item_start {

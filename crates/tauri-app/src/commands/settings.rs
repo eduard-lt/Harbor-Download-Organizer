@@ -943,9 +943,7 @@ pub async fn reset_to_defaults(state: State<'_, AppState>, app: AppHandle) -> Re
     // Stop and start service to apply changes
     let stop_result = internal_stop_service(&state);
     let _ = emit_service_status_event(&app, &state);
-    if let Err(error) = stop_result {
-        return Err(error);
-    }
+    stop_result?;
 
     internal_start_service(&state)?;
     let _ = emit_service_status_event(&app, &state);
