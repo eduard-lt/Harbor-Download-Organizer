@@ -4,9 +4,21 @@ mod commands;
 mod state;
 
 use harbor_core::downloads::{default_config, load_downloads_config};
-
+use serde::Serialize;
 use state::AppState;
 use tauri::{Emitter, Manager};
+use tauri_plugin_notification::NotificationExt;
+
+#[derive(Debug, Clone, Serialize)]
+struct TrayOrganizeOutcomeEvent {
+    status: String,
+    severity: String,
+    code: Option<String>,
+    message: String,
+    remediation_summary: Option<String>,
+    moved_count: usize,
+    total_failures: usize,
+}
 
 fn main() {
     let harbor_dir = harbor_core::downloads::harbor_app_dir();
@@ -217,7 +229,99 @@ fn main() {
                         let app_handle = app.clone();
                         tauri::async_runtime::spawn(async move {
                             let state: tauri::State<AppState> = app_handle.state();
-                            let _ = commands::trigger_organize_now(state).await;
+                            match commands::trigger_organize_now(state).await {
+                                Ok(response) => {
+                                    let tray_outcome =
+                                        commands::settings::map_tray_organize_outcome(&response);
+                                    let event_payload = TrayOrganizeOutcomeEvent {
+                                        status: tray_outcome.status.clone(),
+                                        severity: tray_outcome.severity.clone(),
+                                        code: tray_outcome.primary_code.clone(),
+                                        message: tray_outcome.message.clone(),
+                                        remediation_summary: tray_outcome.remediation_summary.clone(),
+                                        moved_count: response.moved_count,
+                                        total_failures: response.total_failures,
+                                    };
+
+                                    if let Err(e) = app_handle
+                                        .emit("harbor://tray-organize-outcome", &event_payload)
+                                    {
+                                        eprintln!(
+                                            "[Harbor] Failed to emit tray organize outcome event: {e}"
+                                        );
+                                    }
+
+                                    let title = match tray_outcome.severity.as_str() {
+                                        "info" => "Harbor organize complete",
+                                        "warning" => "Harbor organize finished with issues",
+                                        _ => "Harbor organize failed",
+                                    };
+                                    if let Err(e) = app_handle
+                                        .notification()
+                                        .builder()
+                                        .title(title)
+                                        .body(tray_outcome.message.clone())
+                                        .show()
+                                    {
+                                        eprintln!(
+                                            "[Harbor] Failed to show tray organize notification: {e}"
+                                        );
+                                    }
+
+                                    if tray_outcome.severity == "info" {
+                                        eprintln!("[Harbor] Tray organize succeeded.");
+                                    } else {
+                                        eprintln!(
+                                            "[Harbor] Tray organize {} (code={:?}): {}",
+                                            tray_outcome.status,
+                                            tray_outcome.primary_code,
+                                            tray_outcome.message
+                                        );
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "[Harbor] Tray organize invocation failed before response mapping: {e}"
+                                    );
+                                    let event_payload = TrayOrganizeOutcomeEvent {
+                                        status: "failed".to_string(),
+                                        severity: "error".to_string(),
+                                        code: Some("invocation_error".to_string()),
+                                        message: "Organize request failed to execute.".to_string(),
+                                        remediation_summary: Some(
+                                            "Retry from tray. If this persists, reopen Harbor."
+                                                .to_string(),
+                                        ),
+                                        moved_count: 0,
+                                        total_failures: 1,
+                                    };
+                                    if let Err(emit_error) = app_handle
+                                        .emit("harbor://tray-organize-outcome", &event_payload)
+                                    {
+                                        eprintln!(
+                                            "[Harbor] Failed to emit tray organize invocation failure event: {emit_error}"
+                                        );
+                                    }
+                                    if let Err(notification_error) = app_handle
+                                        .notification()
+                                        .builder()
+                                        .title("Harbor organize failed")
+                                        .body(format!(
+                                            "{} {}",
+                                            event_payload.message,
+                                            event_payload
+                                                .remediation_summary
+                                                .as_deref()
+                                                .unwrap_or_default()
+                                        ))
+                                        .show()
+                                    {
+                                        eprintln!(
+                                            "[Harbor] Failed to show tray organize invocation failure notification: {notification_error}"
+                                        );
+                                    }
+                                }
+                            }
                         });
                     }
                     "open_downloads" => {
