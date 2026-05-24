@@ -73,30 +73,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | TBD | Pending |
-| PLAT-02 | TBD | Pending |
-| TRAY-01 | TBD | Pending |
-| TRAY-02 | TBD | Pending |
-| TRAY-03 | TBD | Pending |
-| TRAY-04 | TBD | Pending |
-| TRAY-05 | TBD | Pending |
-| TRAY-06 | TBD | Pending |
-| TRAY-07 | TBD | Pending |
-| RULE-01 | TBD | Pending |
-| RULE-02 | TBD | Pending |
-| MON-01 | TBD | Pending |
-| MON-02 | TBD | Pending |
-| MON-03 | TBD | Pending |
-| MON-04 | TBD | Pending |
-| MON-05 | TBD | Pending |
-| AUTO-01 | TBD | Pending |
-| AUTO-02 | TBD | Pending |
-| PERM-01 | TBD | Pending |
+| PLAT-01 | Phase 1 | Pending |
+| PLAT-02 | Phase 1 | Pending |
+| TRAY-01 | Phase 3 | Pending |
+| TRAY-02 | Phase 3 | Pending |
+| TRAY-03 | Phase 3 | Pending |
+| TRAY-04 | Phase 2 | Pending |
+| TRAY-05 | Phase 2 | Pending |
+| TRAY-06 | Phase 2 | Pending |
+| TRAY-07 | Phase 3 | Pending |
+| RULE-01 | Phase 2 | Pending |
+| RULE-02 | Phase 2 | Pending |
+| MON-01 | Phase 3 | Pending |
+| MON-02 | Phase 3 | Pending |
+| MON-03 | Phase 3 | Pending |
+| MON-04 | Phase 3 | Pending |
+| MON-05 | Phase 3 | Pending |
+| AUTO-01 | Phase 4 | Pending |
+| AUTO-02 | Phase 4 | Pending |
+| PERM-01 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-24*  
