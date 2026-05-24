@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2.0
 milestone_name: macos-release
 status: planning
-last_updated: "2026-05-24T23:20:00.000Z"
-last_activity: 2026-05-24
+last_updated: "2026-05-24T21:13:47.407Z"
+last_activity: 2026-05-24 — Roadmap created for v1.2.0
 progress:
   total_phases: 4
   completed_phases: 0
@@ -34,10 +34,13 @@ Progress: [░░░░░░░░░░] 0%
 ## Accumulated Context
 
 ### Decisions
+
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
+
 - macOS dev builds only (no signing/notarization) for v1.2.0
 - Minimum macOS version 26.5+
 
 ### Blockers/Concerns
+
 None yet
