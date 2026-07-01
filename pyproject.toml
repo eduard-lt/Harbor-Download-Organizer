@@ -15,13 +15,17 @@ cmd = "npm run tauri:build --prefix packages/ui"
 help = "Build debug binaries"
 cmd = "npm run tauri:build --prefix packages/ui -- --debug"
 
+[tool.poe.tasks.unquarantine]
+help = "Remove macOS quarantine attribute from built .app bundle"
+cmd = "xattr -d com.apple.quarantine crates/tauri-app/target/release/bundle/macos/Harbor.app || true"
+
 [tool.poe.tasks.clean]
 help = "Remove build artifacts"
 cmd = "cargo clean"
 
 [tool.poe.tasks.clean-startup]
 help = "Remove ghost startup entries (e.g. from debug builds)"
-cmd = "powershell -ExecutionPolicy Bypass -File tools/cleanup.ps1"
+cmd = "uv run python tools/cleanup_startup.py"
 
 # ============================================================================
 # DEVELOPMENT TASKS
@@ -45,19 +49,11 @@ sequence = ["test", "test-ui"]
 
 [tool.poe.tasks.coverage]
 help = "Run backend coverage report with non-blocking 70% warning"
-shell = """
-cargo llvm-cov --workspace --ignore-filename-regex main\\.rs --summary-only --fail-under-lines 70
-if ($LastExitCode -ne 0) {
-    Write-Warning "Backend coverage is below the 70% target (non-blocking in this phase)."
-    exit 0
-}
-"""
-interpreter = "powershell"
+cmd = "uv run python tools/coverage.py"
 
 [tool.poe.tasks.coverage-ui]
 help = "Run frontend coverage and open report"
-shell = "npm run coverage --prefix packages/ui; if ($LastExitCode -eq 0) { start packages/ui/coverage/index.html }"
-interpreter = "powershell"
+cmd = "uv run python tools/coverage_ui.py"
 
 [tool.poe.tasks.install-coverage-tools]
 help = "Install cargo-llvm-cov"
@@ -81,23 +77,23 @@ sequence = ["build"]
 
 [tool.poe.tasks.version]
 help = "Show current version"
-cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 show"
+cmd = "uv run python tools/version.py show"
 
 [tool.poe.tasks.bump-patch]
 help = "Bump patch version (1.0.5 -> 1.0.6)"
-cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-patch"
+cmd = "uv run python tools/version.py bump patch"
 
 [tool.poe.tasks.bump-minor]
 help = "Bump minor version (1.0.5 -> 1.1.0)"
-cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-minor"
+cmd = "uv run python tools/version.py bump minor"
 
 [tool.poe.tasks.bump-major]
 help = "Bump major version (1.0.5 -> 2.0.0)"
-cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 bump-major"
+cmd = "uv run python tools/version.py bump major"
 
 [tool.poe.tasks.git-release]
 help = "Create git tag and push for current version"
-cmd = "powershell -ExecutionPolicy Bypass -File tools/version.ps1 git-release"
+cmd = "uv run python tools/version.py git-release"
 
 # ============================================================================
 # DEPENDENCY MANAGEMENT
@@ -130,15 +126,7 @@ echo "Development tools and dependencies installed successfully!"
 
 [tool.poe.tasks.size]
 help = "Show binary sizes"
-shell = """
-if (Test-Path target/release/harbor-cli.exe) {
-    Write-Host "harbor-cli.exe: $((Get-Item target/release/harbor-cli.exe).Length / 1MB) MB"
-}
-if (Test-Path target/release/harbor-tray.exe) {
-    Write-Host "harbor-tray.exe: $((Get-Item target/release/harbor-tray.exe).Length / 1MB) MB"
-}
-"""
-interpreter = "powershell"
+cmd = "uv run python tools/size.py"
 
 [tool.poe.tasks.list]
 help = "List all available tasks"
