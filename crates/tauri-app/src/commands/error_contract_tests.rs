@@ -50,20 +50,25 @@ fn app_error_mapper_covers_validation_filesystem_and_conflict_classes() {
 
 #[test]
 fn filesystem_mapping_preserves_legacy_field_and_sanitizes_paths() {
+    let sep = std::path::MAIN_SEPARATOR;
+    let base = format!("C:{0}Users{0}Alice{0}Downloads", sep);
     let dto: AppErrorDto = AppError::Filesystem {
         operation: "move_file".to_string(),
-        source_path: Some(r"C:\Users\Alice\Downloads\sub\file.txt".to_string()),
-        destination_path: Some(r"C:\Users\Alice\Downloads\Docs\file.txt".to_string()),
+        source_path: Some(format!("{base}{sep}sub{sep}file.txt")),
+        destination_path: Some(format!("{base}{sep}Docs{sep}file.txt")),
         reason: "Permission denied".to_string(),
         remediation_hint: "Verify write permissions to the destination".to_string(),
         legacy_error: "Failed to move file".to_string(),
     }
-    .to_dto(Some(std::path::Path::new(r"C:\Users\Alice\Downloads")));
+    .to_dto(Some(std::path::Path::new(&base)));
 
     assert_eq!(dto.legacy_error, "Failed to move file");
-    assert_eq!(dto.details.source_path.as_deref(), Some(r"sub\file.txt"));
+    assert_eq!(
+        dto.details.source_path.as_deref(),
+        Some(&*format!("sub{sep}file.txt"))
+    );
     assert_eq!(
         dto.details.destination_path.as_deref(),
-        Some(r"Docs\file.txt")
+        Some(&*format!("Docs{sep}file.txt"))
     );
 }
