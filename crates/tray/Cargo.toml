@@ -4,12 +4,14 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+native-windows-gui = "1.0.13"
+windows = { version = "0.58", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
+
 [dependencies]
 anyhow.workspace = true
-native-windows-gui = "1.0.13"
 harbor-core = { path = "../core" }
 serde_yaml.workspace = true
-windows = { version = "0.58", features = ["Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
 chrono.workspace = true
 
 [dev-dependencies]

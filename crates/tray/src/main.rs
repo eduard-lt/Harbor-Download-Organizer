@@ -1,14 +1,22 @@
+#[cfg(windows)]
 use anyhow::Result;
+#[cfg(windows)]
 use harbor_core::downloads::{harbor_app_dir, harbor_log_path};
+#[cfg(windows)]
 use native_windows_gui as nwg;
+#[cfg(windows)]
 use std::path::PathBuf;
+#[cfg(windows)]
 use std::sync::Arc;
 
+#[cfg(windows)]
 mod logic;
+#[cfg(windows)]
 use logic::{
     load_initial_config, open_config, open_folder, windows::utils::SingleInstance, TrayLogic,
 };
 
+#[cfg(windows)]
 #[derive(Default)]
 struct TrayState {
     window: nwg::Window,
@@ -23,12 +31,14 @@ struct TrayState {
     item_exit: nwg::MenuItem,
 }
 
+#[cfg(windows)]
 fn show_menu(ui: &TrayState) {
     let (x, y) = nwg::GlobalCursor::position();
     ui.tray_menu.popup(x, y);
 }
 
-fn main() -> Result<()> {
+#[cfg(windows)]
+fn tray_main() -> Result<()> {
     // Ensure only one instance of Harbor is running
     let _instance = SingleInstance::new("Harbor-Tray-Instance")?;
 
@@ -174,4 +184,19 @@ fn main() -> Result<()> {
 
     nwg::dispatch_thread_events();
     Ok(())
+}
+
+fn main() {
+    #[cfg(windows)]
+    {
+        if let Err(e) = tray_main() {
+            eprintln!("harbor-tray error: {e}");
+            std::process::exit(1);
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        eprintln!("harbor-tray is Windows-only. Use cargo run -p harbor-tauri-app instead.");
+    }
 }
