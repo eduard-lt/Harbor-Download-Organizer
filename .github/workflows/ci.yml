@@ -278,11 +278,66 @@ jobs:
         run: cargo audit
 
   # ============================================================================
+  # macOS Check (Step 8)
+  # ============================================================================
+  macos-check:
+    name: macOS Check
+    runs-on: macos-latest
+    needs: [frontend-build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: macos-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            macos-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: macos-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            macos-cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: macos-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            macos-target-
+
+      - name: Check workspace compilation
+        run: cargo check --workspace
+
+      - name: Run tests
+        run: cargo test --workspace
+
+  # ============================================================================
   # Check All Jobs Passed
   # ============================================================================
   ci-success:
     name: CI Success
-    needs: [format, frontend-build, clippy, frontend-test, test, build, audit]
+    needs: [format, frontend-build, clippy, frontend-test, test, build, audit, macos-check]
     runs-on: windows-latest
     if: always()
     steps:
@@ -296,6 +351,7 @@ jobs:
           if ("${{ needs.test.result }}" -ne "success") { $failed += "test" }
           if ("${{ needs.build.result }}" -ne "success") { $failed += "build" }
           if ("${{ needs.audit.result }}" -ne "success") { $failed += "audit" }
+          if ("${{ needs.macos-check.result }}" -ne "success") { $failed += "macos-check" }
           
           if ($failed.Count -gt 0) {
             Write-Host "❌ Failed jobs: $($failed -join ', ')"
