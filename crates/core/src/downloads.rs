@@ -4,20 +4,19 @@ use anyhow::{Context, Result};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-/// Returns the Harbor application data directory: `%LOCALAPPDATA%\Harbor`
+/// Returns the Harbor application data directory (cross-platform).
+/// - macOS: `$HOME/Library/Application Support/Harbor`
+/// - Windows: `%LOCALAPPDATA%\Harbor`
 pub fn harbor_app_dir() -> PathBuf {
-    std::env::var("LOCALAPPDATA")
-        .map(|p| PathBuf::from(p).join("Harbor"))
-        .unwrap_or(PathBuf::from("C:\\Harbor"))
+    crate::platform::app_data_dir()
 }
 
-/// Returns the path to the recent moves log file: `%LOCALAPPDATA%\Harbor\recent_moves.log`
+/// Returns the path to the recent moves log file:
+/// `<app_data_dir>/recent_moves.log`
 pub fn harbor_log_path() -> PathBuf {
     harbor_app_dir().join("recent_moves.log")
 }
@@ -88,22 +87,22 @@ pub struct OrganizeSummary {
 /// }
 /// ```
 pub fn default_config() -> DownloadsConfig {
-    let user = std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Public".to_string());
-    let dl = format!("{}\\Downloads", user);
-    let pictures = format!("{}\\Downloads\\Images", user);
-    let videos = format!("{}\\Downloads\\Videos", user);
-    let music = format!("{}\\Downloads\\Music", user);
-    let docs = format!("{}\\Downloads\\Documents", user);
-    let archives = format!("{}\\Downloads\\Archives", user);
-    let installers = format!("{}\\Downloads\\Installers", user);
-    let torrents = format!("{}\\Downloads\\Torrents", user);
-    let isos = format!("{}\\Downloads\\ISOs", user);
-    let dev = format!("{}\\Downloads\\Dev", user);
-    let subtitles = format!("{}\\Downloads\\Subtitles", user);
-    let webpages = format!("{}\\Downloads\\Webpages", user);
+    let dl = crate::platform::downloads_dir();
+    let dl_str = dl.to_string_lossy().to_string();
+    let pictures = dl.join("Images");
+    let videos = dl.join("Videos");
+    let music = dl.join("Music");
+    let docs = dl.join("Documents");
+    let archives = dl.join("Archives");
+    let installers = dl.join("Installers");
+    let torrents = dl.join("Torrents");
+    let isos = dl.join("ISOs");
+    let dev = dl.join("Dev");
+    let subtitles = dl.join("Subtitles");
+    let webpages = dl.join("Webpages");
 
     DownloadsConfig {
-        download_dir: dl,
+        download_dir: dl_str,
         min_age_secs: Some(5),
         tutorial_completed: Some(false),
         service_enabled: Some(true),
@@ -124,7 +123,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: pictures,
+                target_dir: pictures.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -140,7 +139,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: videos,
+                target_dir: videos.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -156,7 +155,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: music,
+                target_dir: music.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -172,7 +171,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: archives,
+                target_dir: archives.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -190,7 +189,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: docs.clone(),
+                target_dir: docs.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -206,7 +205,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: installers,
+                target_dir: installers.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -217,7 +216,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: isos,
+                target_dir: isos.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -228,7 +227,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: torrents,
+                target_dir: torrents.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -244,7 +243,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: dev,
+                target_dir: dev.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -255,7 +254,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: webpages,
+                target_dir: webpages.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -266,7 +265,7 @@ pub fn default_config() -> DownloadsConfig {
                 pattern: None,
                 min_size_bytes: None,
                 max_size_bytes: None,
-                target_dir: subtitles,
+                target_dir: subtitles.to_string_lossy().to_string(),
                 create_symlink: false,
                 enabled: true,
             },
@@ -526,32 +525,88 @@ where
     Ok(())
 }
 
+/// Expands environment variables in a string.
+///
+/// Supports:
+/// - Windows style: `%VAR%`
+/// - POSIX style: `$VAR`, `${VAR}`
+/// - Tilde expansion: `~/` → `$HOME/`
 fn expand_env(input: &str) -> String {
     let mut result = String::with_capacity(input.len());
-    let mut chars = input.char_indices().peekable();
-    while let Some((i, ch)) = chars.next() {
+    let chars: Vec<char> = input.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        let ch = chars[i];
+
+        // Windows-style %VAR%
         if ch == '%' {
-            // Find the closing '%'
             if let Some(end) = input[i + 1..].find('%') {
                 let var_name = &input[i + 1..i + 1 + end];
                 if !var_name.is_empty() {
                     let value = std::env::var(var_name).unwrap_or_default();
                     result.push_str(&value);
-                    // Advance chars past the closing '%'
-                    let closing_pos = i + 1 + end;
-                    while let Some(&(j, _)) = chars.peek() {
-                        if j <= closing_pos {
-                            chars.next();
-                        } else {
-                            break;
-                        }
+                    i = i + 1 + end + 1; // skip past closing '%'
+                    continue;
+                }
+            }
+            result.push(ch);
+            i += 1;
+            continue;
+        }
+
+        // Tilde expansion: ~/ or ~ at end
+        if ch == '~' {
+            let next_is_slash = i + 1 < len && chars[i + 1] == '/';
+            let is_end = i + 1 == len;
+            if next_is_slash || is_end {
+                let home = std::env::var("HOME").unwrap_or_default();
+                result.push_str(&home);
+                i += 1; // skip the '~'
+                continue;
+            }
+        }
+
+        // POSIX-style $VAR or ${VAR}
+        if ch == '$' && i + 1 < len {
+            let next = chars[i + 1];
+            // ${VAR}
+            if next == '{' {
+                if let Some(close) = input[i + 2..].find('}') {
+                    let var_name = &input[i + 2..i + 2 + close];
+                    if !var_name.is_empty() {
+                        let value = std::env::var(var_name).unwrap_or_default();
+                        result.push_str(&value);
+                        i = i + 2 + close + 1; // skip past closing '}'
+                        continue;
                     }
+                }
+                result.push(ch);
+                i += 1;
+                continue;
+            }
+            // $VAR — consume while next char is alphanumeric or underscore
+            if next.is_ascii_alphabetic() || next == '_' {
+                let start = i + 1;
+                let mut end = start;
+                while end < len && (chars[end].is_ascii_alphanumeric() || chars[end] == '_') {
+                    end += 1;
+                }
+                let var_name: String = chars[start..end].iter().collect();
+                if !var_name.is_empty() {
+                    let value = std::env::var(&var_name).unwrap_or_default();
+                    result.push_str(&value);
+                    i = end;
                     continue;
                 }
             }
         }
+
         result.push(ch);
+        i += 1;
     }
+
     result
 }
 
@@ -616,12 +671,42 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_expand_env() {
+    fn test_expand_env_windows() {
         std::env::set_var("TEST_VAR", "world");
         assert_eq!(expand_env("Hello %TEST_VAR%"), "Hello world");
         assert_eq!(expand_env("%TEST_VAR%"), "world");
         assert_eq!(expand_env("No vars"), "No vars");
         assert_eq!(expand_env("Unknown %MISSING_VAR%"), "Unknown ");
+    }
+
+    #[test]
+    fn test_expand_env_posix_dollar() {
+        std::env::set_var("MY_PATH", "/usr/local/bin");
+        assert_eq!(expand_env("path: $MY_PATH"), "path: /usr/local/bin");
+        assert_eq!(expand_env("$MY_PATH/tools"), "/usr/local/bin/tools");
+        assert_eq!(expand_env("$UNKNOWN_VAR"), "");
+    }
+
+    #[test]
+    fn test_expand_env_posix_brace() {
+        std::env::set_var("MY_PATH", "/usr/local/bin");
+        assert_eq!(expand_env("path: ${MY_PATH}"), "path: /usr/local/bin");
+        assert_eq!(expand_env("${MY_PATH}/tools"), "/usr/local/bin/tools");
+        assert_eq!(expand_env("${UNKNOWN}"), "");
+    }
+
+    #[test]
+    fn test_expand_env_tilde() {
+        let home = std::env::var("HOME").unwrap_or_default();
+        assert_eq!(expand_env("~/Documents"), format!("{home}/Documents"));
+        assert_eq!(expand_env("~"), home);
+    }
+
+    #[test]
+    fn test_expand_env_mixed() {
+        std::env::set_var("TEST_VAR", "world");
+        std::env::set_var("MY_PATH", "/usr/local/bin");
+        assert_eq!(expand_env("%TEST_VAR% $MY_PATH"), "world /usr/local/bin");
     }
 
     #[test]

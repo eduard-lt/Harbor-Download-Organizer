@@ -1,4 +1,5 @@
 pub mod downloads;
+pub mod platform;
 pub mod types;
 
 #[cfg(feature = "orchestrator")]
