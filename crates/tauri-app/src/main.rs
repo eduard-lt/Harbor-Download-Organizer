@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 mod commands;
 mod state;
@@ -139,7 +139,10 @@ fn main() {
                 }
             }
 
-            // Load _h icon
+            // Load tray icon — platform-specific format
+            #[cfg(target_os = "macos")]
+            let icon_bytes = include_bytes!("../../../assets/icon_h_template.png");
+            #[cfg(target_os = "windows")]
             let icon_bytes = include_bytes!("../../../assets/icon_h.ico");
             let tray_icon = Image::from_bytes(icon_bytes).expect("Failed to load tray icon");
 
@@ -209,6 +212,7 @@ fn main() {
                 .icon(tray_icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
+                .icon_as_template(true)
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,

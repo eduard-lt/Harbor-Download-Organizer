@@ -889,7 +889,15 @@ pub async fn open_config_file(state: State<'_, AppState>) -> Result<(), String> 
             .map_err(|e| format!("Failed to open config file: {}", e))?;
     }
 
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("Failed to open config file: {}", e))?;
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
     {
         std::process::Command::new("xdg-open")
             .arg(path)
@@ -913,7 +921,15 @@ pub async fn open_downloads_folder(state: State<'_, AppState>) -> Result<(), Str
             .map_err(|e| format!("Failed to open downloads folder: {}", e))?;
     }
 
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("Failed to open downloads folder: {}", e))?;
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
     {
         std::process::Command::new("xdg-open")
             .arg(path)
@@ -1193,23 +1209,21 @@ mod tests {
 
     #[test]
     fn trigger_organize_now_maps_summary_to_structured_response() {
+        let sep = std::path::MAIN_SEPARATOR;
+        let base = format!("C:{0}Users{0}Alice{0}Downloads", sep);
         let summary = OrganizeSummary {
             moved: vec![OrganizeResult {
-                source: PathBuf::from(r"C:\Users\Alice\Downloads\ok.txt"),
-                destination: PathBuf::from(r"C:\Users\Alice\Downloads\Docs\ok.txt"),
+                source: PathBuf::from(format!("{base}{sep}ok.txt")),
+                destination: PathBuf::from(format!("{base}{sep}Docs{sep}ok.txt")),
                 rule_name: "Docs".to_string(),
                 symlink_info: None,
             }],
             errors: vec![format!(
-                "Failed to move '{}' to '{}': Access denied",
-                r"C:\Users\Alice\Downloads\locked.txt", r"C:\Users\Alice\Downloads\Docs\locked.txt"
+                "Failed to move '{base}{sep}locked.txt' to '{base}{sep}Docs{sep}locked.txt': Access denied"
             )],
         };
 
-        let response = map_organize_summary_to_response(
-            summary,
-            std::path::Path::new(r"C:\Users\Alice\Downloads"),
-        );
+        let response = map_organize_summary_to_response(summary, std::path::Path::new(&base));
 
         assert_eq!(response.status, "partial_failure");
         assert_eq!(response.moved_count, 1);
