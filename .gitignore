@@ -119,3 +119,5 @@ clippy_*.txt
 clippy_*.log
 copilot-instructions.md
 copilot.md
+claude.md
+agents.md
