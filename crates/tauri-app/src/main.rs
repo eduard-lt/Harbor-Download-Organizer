@@ -7,6 +7,7 @@ use harbor_core::downloads::{default_config, load_downloads_config};
 use serde::{Deserialize, Serialize};
 use state::AppState;
 use tauri::{Emitter, Listener, Manager};
+use tauri::menu::ContextMenu;
 use tauri_plugin_notification::NotificationExt;
 
 #[derive(Debug, Clone, Serialize)]
@@ -141,7 +142,7 @@ fn main() {
 
             // Load tray icon — platform-specific format
             #[cfg(target_os = "macos")]
-            let icon_bytes = include_bytes!("../../../assets/icon_h_template.png");
+            let icon_bytes = include_bytes!("../../../assets/harbor_h.png");
             #[cfg(target_os = "windows")]
             let icon_bytes = include_bytes!("../../../assets/icon_h.ico");
             let tray_icon = Image::from_bytes(icon_bytes).expect("Failed to load tray icon");
@@ -208,22 +209,32 @@ fn main() {
                 }
             });
 
+            let menu_for_tray = menu.clone();
             let _tray = TrayIconBuilder::with_id("tray")
                 .icon(tray_icon)
-                .menu(&menu)
                 .show_menu_on_left_click(false)
                 .icon_as_template(true)
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                .on_tray_icon_event(move |tray, event| {
+                    let app = tray.app_handle();
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            ..
+                        } => {
+                            if let Some(webview) = app.get_webview_window("main") {
+                                let _ = menu_for_tray.popup(webview.as_ref().window().clone());
+                            }
                         }
+                        TrayIconEvent::Click {
+                            button: MouseButton::Right,
+                            ..
+                        } => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        _ => {}
                     }
                 })
                 .on_menu_event(move |app, event| match event.id.as_ref() {
