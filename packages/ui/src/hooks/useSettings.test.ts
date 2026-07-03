@@ -10,7 +10,7 @@ vi.mock('../context/SettingsContext', () => ({
 import { useSettingsContext } from '../context/SettingsContext';
 
 const mockContextValue = {
-    serviceStatus: { running: false },
+    serviceStatus: { running: false, pid: 12345 },
     startupEnabled: false,
     downloadDir: 'C:\\Downloads',
     loading: false,
@@ -33,7 +33,7 @@ describe('useSettings', () => {
     });
 
     it('proxies serviceStatus from context', () => {
-        vi.mocked(useSettingsContext).mockReturnValue({ ...mockContextValue, serviceStatus: { running: true } });
+        vi.mocked(useSettingsContext).mockReturnValue({ ...mockContextValue, serviceStatus: { running: true, pid: 12345 } });
         const { result } = renderHook(() => useSettings());
         expect(result.current.serviceStatus.running).toBe(true);
     });

@@ -13,7 +13,7 @@ import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { open } from '@tauri-apps/plugin-shell';
 
 const baseSettings = {
-    serviceStatus: { running: false },
+    serviceStatus: { running: false, pid: 12345 },
     startupEnabled: false, downloadDir: 'C:\\Downloads',
     loading: false, organizing: false, error: null,
     toggleService: vi.fn(), retryService: vi.fn(), toggleStartup: vi.fn(),
@@ -68,7 +68,7 @@ describe('Sidebar', () => {
     });
 
     it('shows Active when service is running', () => {
-        vi.mocked(useSettings).mockReturnValue({ ...baseSettings, serviceStatus: { running: true } });
+        vi.mocked(useSettings).mockReturnValue({ ...baseSettings, serviceStatus: { running: true, pid: 12345 } });
         renderSidebar();
         expect(screen.getByText('Active')).toBeInTheDocument();
     });

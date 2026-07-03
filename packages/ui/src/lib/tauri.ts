@@ -47,6 +47,7 @@ export interface ServiceStatus {
     running: boolean;
     lifecycle_state?: 'stopped' | 'running' | 'restarting' | 'degraded' | string;
     uptime_seconds?: number;
+    pid: number;
     stop_join_pending?: boolean;
     degraded?: boolean;
     degraded_reason?: string | null;

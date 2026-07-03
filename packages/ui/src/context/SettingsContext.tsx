@@ -37,6 +37,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
         running: false,
         lifecycle_state: 'stopped',
+        pid: 0,
         degraded: false,
         degraded_reason: null,
     });

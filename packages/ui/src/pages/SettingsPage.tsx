@@ -114,7 +114,7 @@ export function SettingsPage() {
               </div>
               <div className="px-8 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-xs text-slate-500 uppercase tracking-tight font-semibold">
-                  Process ID: <span className="text-slate-800 dark:text-white font-mono ml-1">Native</span>
+                  Process ID: <span className="text-slate-800 dark:text-white font-mono ml-1">{serviceStatus.pid}</span>
                 </span>
                 <span className="text-xs text-slate-500 uppercase tracking-tight font-semibold">
                   Uptime: <span className="text-slate-800 dark:text-white font-mono ml-1">{serviceStatus.uptime_seconds ? `${Math.floor(serviceStatus.uptime_seconds / 60)}m` : 'N/A'}</span>

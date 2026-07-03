@@ -39,7 +39,7 @@ const PRESET_SIZES = [
 describe('SettingsPage', () => {
     const mockTheme = { theme: 'system' as const, setTheme: vi.fn(), isDark: false };
     const mockSettings = {
-        serviceStatus: { running: false, lifecycle_state: 'stopped', degraded: false, degraded_reason: null },
+        serviceStatus: { running: false, lifecycle_state: 'stopped', pid: 12345, degraded: false, degraded_reason: null },
         startupEnabled: false,
         downloadDir: 'C:\\Downloads',
         loading: false,
@@ -118,7 +118,7 @@ describe('SettingsPage', () => {
 
     it('shows Service is Running when service is running', () => {
         vi.mocked(useSettings).mockReturnValue({
-            ...mockSettings, serviceStatus: { running: true, lifecycle_state: 'running', degraded: false, degraded_reason: null },
+            ...mockSettings, serviceStatus: { running: true, lifecycle_state: 'running', pid: 12345, degraded: false, degraded_reason: null },
         });
         render(<SettingsPage />);
         expect(screen.getByText('Service is Running')).toBeInTheDocument();
@@ -258,7 +258,7 @@ describe('SettingsPage', () => {
     it('shows uptime when uptime_seconds is present', () => {
         vi.mocked(useSettings).mockReturnValue({
             ...mockSettings,
-            serviceStatus: { running: true, lifecycle_state: 'running', degraded: false, degraded_reason: null, uptime_seconds: 120 },
+            serviceStatus: { running: true, lifecycle_state: 'running', pid: 12345, degraded: false, degraded_reason: null, uptime_seconds: 120 },
         });
         render(<SettingsPage />);
         expect(screen.getByText('2m')).toBeInTheDocument();
@@ -270,6 +270,7 @@ describe('SettingsPage', () => {
             serviceStatus: {
                 running: false,
                 lifecycle_state: 'degraded',
+                pid: 12345,
                 degraded: true,
                 degraded_reason: 'Service stop timed out after 3 seconds. Retry service restart to recover.',
             },
