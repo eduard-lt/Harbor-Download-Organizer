@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import type { Rule } from '../lib/tauri';
 import { open } from '@tauri-apps/plugin-dialog';
 
+const isMac = navigator.platform.toLowerCase().includes('mac');
+const destinationPlaceholder = isMac
+  ? '~/Downloads/Images'
+  : 'C:\\Users\\Name\\Pictures';
+const destinationHint = isMac
+  ? 'Absolute path to move files to. Supports $HOME, ~/ and ${VAR}.'
+  : 'Absolute path to move files to. Supports %USERPROFILE%.';
+
 export interface RuleFormData {
     name: string;
     extensions: string[];
@@ -198,7 +206,7 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                                 value={destination}
                                 onChange={(e) => setDestination(e.target.value)}
                                 className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
-                                placeholder="C:\Users\Name\Pictures"
+                                placeholder={destinationPlaceholder}
                                 required
                             />
                             <button
@@ -211,7 +219,7 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                             </button>
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
-                            Absolute path to move files to. Supports %USERPROFILE%.
+                            {destinationHint}
                         </p>
                     </div>
 
@@ -291,6 +299,7 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                         </div>
                     </div>
 
+                    {!isMac && (
                     <div className="flex items-center gap-3 pt-2">
                         <input
                             type="checkbox"
@@ -306,6 +315,7 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                             Create hidden symlink in original location?
                         </label>
                     </div>
+                    )}
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                         <button
