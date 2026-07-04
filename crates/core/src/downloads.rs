@@ -401,9 +401,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
         .map(|(i, r)| (i, CompiledRule::new(r)))
         .collect();
     let total = compiled_rules.len();
-    compiled_rules.sort_by_key(|(i, cr)| {
-        std::cmp::Reverse(rule_priority(*i, total, cr.rule))
-    });
+    compiled_rules.sort_by_key(|(i, cr)| std::cmp::Reverse(rule_priority(*i, total, cr.rule)));
 
     for entry in fs::read_dir(&base).with_context(|| format!("list {}", base.display()))? {
         let entry = entry?;

@@ -6,8 +6,8 @@ mod state;
 use harbor_core::downloads::{default_config, load_downloads_config};
 use serde::{Deserialize, Serialize};
 use state::AppState;
-use tauri::{Emitter, Listener, Manager};
 use tauri::menu::ContextMenu;
+use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 #[derive(Debug, Clone, Serialize)]

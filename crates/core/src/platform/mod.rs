@@ -41,13 +41,19 @@ mod tests {
     #[test]
     fn app_data_dir_is_absolute() {
         let dir = app_data_dir();
-        assert!(dir.is_absolute(), "app_data_dir should be absolute: {dir:?}");
+        assert!(
+            dir.is_absolute(),
+            "app_data_dir should be absolute: {dir:?}"
+        );
     }
 
     #[test]
     fn downloads_dir_is_absolute() {
         let dir = downloads_dir();
-        assert!(dir.is_absolute(), "downloads_dir should be absolute: {dir:?}");
+        assert!(
+            dir.is_absolute(),
+            "downloads_dir should be absolute: {dir:?}"
+        );
     }
 
     #[test]

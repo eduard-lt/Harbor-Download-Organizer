@@ -271,13 +271,17 @@ mod tests {
         assert_eq!(dto.icon_color, "blue");
 
         // New format without symlink info
-        let line2 = format!("[2024-01-15 10:30:00] C:{sep}src{sep}img.png -> C:{sep}dst{sep}img.png (Images) ");
+        let line2 = format!(
+            "[2024-01-15 10:30:00] C:{sep}src{sep}img.png -> C:{sep}dst{sep}img.png (Images) "
+        );
         let dto2 = parse_log_line(&line2, 2).unwrap();
         assert_eq!(dto2.timestamp, "2024-01-15 10:30:00");
         assert_eq!(dto2.symlink_info, None);
 
         // Legacy format (no timestamp) is still parsed correctly.
-        let line3 = format!("C:{sep}Source{sep}file.txt -> C:{sep}Dest{sep}file.txt (Docs) Symlink created");
+        let line3 = format!(
+            "C:{sep}Source{sep}file.txt -> C:{sep}Dest{sep}file.txt (Docs) Symlink created"
+        );
         let dto3 = parse_log_line(&line3, 3).unwrap();
         assert_eq!(dto3.timestamp, "");
         assert_eq!(dto3.source_path, format!("C:{sep}Source{sep}file.txt"));
