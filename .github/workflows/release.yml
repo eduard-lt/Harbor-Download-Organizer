@@ -57,10 +57,10 @@ jobs:
         run: cargo test --all --all-features --verbose
 
   # ============================================================================
-  # Build and Release - Only after quality checks pass
+  # Build Windows - Only after quality checks pass
   # ============================================================================
   build-windows:
-    name: Build & Release
+    name: Build Windows (MSI)
     runs-on: windows-latest
     needs: [quality-check]
     steps:
@@ -101,10 +101,90 @@ jobs:
             New-Item -ItemType Directory -Force -Path dist
             Copy-Item target\release\bundle\msi\*.msi dist\
       
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: dist/
+          retention-days: 1
+
+  # ============================================================================
+  # Build macOS - Only after quality checks pass
+  # ============================================================================
+  build-macos:
+    name: Build macOS (DMG)
+    runs-on: macos-latest
+    needs: [quality-check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: packages/ui/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('packages/ui/package-lock.json') }}
+
+      - name: Install Frontend Dependencies
+        working-directory: packages/ui
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: packages/ui
+        run: npm run build
+
+      - name: Build Tauri App (DMG)
+        working-directory: packages/ui
+        run: npm run tauri:build
+
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir -p dist
+          cp target/release/bundle/dmg/*.dmg dist/
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/
+          retention-days: 1
+
+  # ============================================================================
+  # GitHub Release - Combine artifacts from both platforms
+  # ============================================================================
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msi
+          path: dist/
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/
+
+      - name: List artifacts
+        run: ls -la dist/
+
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             dist/*.msi
+            dist/*.dmg
           fail_on_unmatched_files: true
