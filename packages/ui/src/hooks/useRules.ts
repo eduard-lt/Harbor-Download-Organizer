@@ -26,43 +26,27 @@ export function useRules() {
     }, [fetchRules]);
 
     const addRule = async (rule: Omit<Rule, 'id' | 'icon' | 'icon_color'>) => {
-        try {
-            const newRule = await createRule(rule);
-            setRules((prev) => [...prev, newRule]);
-            return newRule;
-        } catch (err) {
-            throw err;
-        }
+        const newRule = await createRule(rule);
+        setRules((prev) => [...prev, newRule]);
+        return newRule;
     };
 
     const editRule = async (rule: UpdateRuleRequest) => {
-        try {
-            const updated = await updateRule(rule);
-            setRules((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-            return updated;
-        } catch (err) {
-            throw err;
-        }
+        const updated = await updateRule(rule);
+        setRules((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        return updated;
     };
 
     const removeRule = async (id: string) => {
-        try {
-            await deleteRule(id);
-            setRules((prev) => prev.filter((r) => r.id !== id));
-        } catch (err) {
-            throw err;
-        }
+        await deleteRule(id);
+        setRules((prev) => prev.filter((r) => r.id !== id));
     };
 
     const toggle = async (id: string, enabled: boolean) => {
-        try {
-            await toggleRule(id, enabled);
-            setRules((prev) =>
-                prev.map((r) => (r.id === id ? { ...r, enabled } : r))
-            );
-        } catch (err) {
-            throw err;
-        }
+        await toggleRule(id, enabled);
+        setRules((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, enabled } : r))
+        );
     };
 
     const reorder = async (newOrderIds: string[]) => {

@@ -41,9 +41,6 @@ const statusDotClasses: Record<string, string> = {
 export function ActivityTable({
   logs,
   failureGroups = [],
-  totalResults: _totalResults = 0,
-  currentPage: _currentPage = 1,
-  totalPages: _totalPages = 1,
 }: ActivityTableProps) {
   return (
     <div className="space-y-4">

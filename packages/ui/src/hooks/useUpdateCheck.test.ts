@@ -34,7 +34,7 @@ describe('useUpdateCheck', () => {
 
         vi.mocked(notifications.isPermissionGranted).mockResolvedValue(true);
         vi.mocked(notifications.requestPermission).mockResolvedValue('granted');
-        vi.mocked(notifications.sendNotification).mockReturnValue(undefined as any);
+        vi.mocked(notifications.sendNotification).mockReturnValue(undefined);
     });
 
     afterEach(() => {
@@ -62,10 +62,10 @@ describe('useUpdateCheck', () => {
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.1',
         };
 
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: true,
             json: async () => mockRelease,
-        });
+        } as Response);
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
@@ -90,10 +90,10 @@ describe('useUpdateCheck', () => {
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.0',
         };
 
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: true,
             json: async () => mockRelease,
-        });
+        } as Response);
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 
@@ -114,10 +114,10 @@ describe('useUpdateCheck', () => {
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.1',
         };
 
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: true,
             json: async () => mockRelease,
-        });
+        } as Response);
 
         // Set last notified to the version we're about to "find"
         vi.mocked(tauri.getLastNotifiedVersion).mockResolvedValue('1.2.1');
