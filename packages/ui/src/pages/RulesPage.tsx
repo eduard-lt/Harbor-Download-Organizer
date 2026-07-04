@@ -99,9 +99,6 @@ export function RulesPage() {
     r.extensions.some(e => e.includes(searchTerm.toLowerCase()))
   );
 
-  // Threshold: only extensions longer than this get a fixed-width box
-  const EXT_THRESHOLD = 6;
-
   return (
     <>
       <Header
@@ -193,8 +190,8 @@ export function RulesPage() {
                           {rule.extensions.map((ext) => (
                             <span
                               key={ext}
-                              className={`px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-mono text-xs border border-slate-200 dark:border-slate-700 ${ext.length > EXT_THRESHOLD ? 'inline-block text-center w-[var(--ext-badge-width)]' : ''}`}
-                              style={ext.length > EXT_THRESHOLD ? { '--ext-badge-width': `${ext.length}ch` } as React.CSSProperties : undefined}
+                              className={`px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-mono text-xs border border-slate-200 dark:border-slate-700 inline-block text-center`}
+                              style={{ minWidth: '3rem', width: `${Math.max(5, ext.length) + 1}ch`, overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}
                             >
                               {ext}
                             </span>
