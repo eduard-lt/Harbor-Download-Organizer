@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::thread;
+
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::time::{Duration, SystemTime};
 
 /// Returns the Harbor application data directory (cross-platform).
