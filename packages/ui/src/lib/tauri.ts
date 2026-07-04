@@ -13,6 +13,8 @@ export interface Rule {
     destination: string;
     create_symlink: boolean;
     enabled: boolean;
+    has_pattern?: boolean;
+    has_size_constraint?: boolean;
     icon: string;
     icon_color: string;
 }

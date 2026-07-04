@@ -23,12 +23,14 @@ const iconColorClassesLight: Record<string, string> = {
 import { getTutorialCompleted, setTutorialCompleted } from '../lib/tauri';
 
 export function RulesPage() {
-  const { rules, loading, error, addRule, editRule, removeRule, toggleRule } = useRules();
+  const { rules, loading, error, addRule, editRule, removeRule, toggleRule, reorderRules } = useRules();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const checkTutorial = async () => {
@@ -91,6 +93,71 @@ export function RulesPage() {
       await setTutorialCompleted(true);
     } catch (e) {
       console.error("Failed to set tutorial status:", e);
+    }
+  };
+
+  // --- Drag & Drop handlers ---
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    setDragIndex(null);
+    setDragOverIndex(null);
+
+    if (dragIndex === null || dragIndex === dropIndex) return;
+
+    const reordered = [...rules];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+
+    try {
+      await reorderRules(reordered.map(r => r.id));
+    } catch (err) {
+      console.error('Failed to reorder rules:', err);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // --- Move up/down handlers ---
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    const reordered = [...rules];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    try {
+      await reorderRules(reordered.map(r => r.id));
+    } catch (err) {
+      console.error('Failed to reorder rules:', err);
+    }
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === rules.length - 1) return;
+    const reordered = [...rules];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    try {
+      await reorderRules(reordered.map(r => r.id));
+    } catch (err) {
+      console.error('Failed to reorder rules:', err);
     }
   };
 
@@ -160,20 +227,60 @@ export function RulesPage() {
               <table className="w-full text-left">
                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800">
                   <tr>
+                    <th className="px-3 py-4 w-[5%] text-center">#</th>
                     <th className="px-6 py-4 w-[15%]">Rule Name</th>
-                    <th className="px-6 py-4 w-[30%]">Extensions</th>
+                    <th className="px-6 py-4 w-[25%]">Extensions</th>
                     <th className="px-6 py-4 w-[35%]">Destination</th>
                     <th className="px-6 py-4 w-[10%] text-center">Status</th>
                     <th className="px-6 py-4 w-[10%] text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                  {filteredRules.map((rule) => (
+                  {filteredRules.map((rule) => {
+                    const actualIndex = rules.findIndex(r => r.id === rule.id);
+                    const isDragging = dragIndex === actualIndex;
+                    const isDragOver = dragOverIndex === actualIndex;
+
+                    return (
                     <tr
                       key={rule.id}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group ${!rule.enabled ? 'opacity-50' : ''
-                        }`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, actualIndex)}
+                      onDragOver={(e) => handleDragOver(e, actualIndex)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, actualIndex)}
+                      onDragEnd={handleDragEnd}
+                      className={`transition-colors group ${!rule.enabled ? 'opacity-50' : ''
+                        } ${isDragging ? 'opacity-30 bg-slate-100 dark:bg-slate-800' : ''
+                        } ${isDragOver ? 'border-t-2 border-primary' : ''
+                        } hover:bg-slate-50 dark:hover:bg-slate-800/30`}
                     >
+                      <td className="px-3 py-5 text-center align-middle">
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            onClick={() => handleMoveUp(actualIndex)}
+                            disabled={actualIndex === 0}
+                            className="p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors cursor-pointer"
+                            title="Move up"
+                          >
+                            <span className="material-icons-round text-sm">arrow_drop_up</span>
+                          </button>
+                          <span
+                            className="material-icons-round text-slate-400 dark:text-slate-500 cursor-grab active:cursor-grabbing hover:text-slate-600 dark:hover:text-slate-300 text-lg select-none"
+                            title="Drag to reorder"
+                          >
+                            drag_indicator
+                          </span>
+                          <button
+                            onClick={() => handleMoveDown(actualIndex)}
+                            disabled={actualIndex === rules.length - 1}
+                            className="p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors cursor-pointer"
+                            title="Move down"
+                          >
+                            <span className="material-icons-round text-sm">arrow_drop_down</span>
+                          </button>
+                        </div>
+                      </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <div
@@ -182,7 +289,23 @@ export function RulesPage() {
                           >
                             <span className="material-icons-round">{rule.icon}</span>
                           </div>
-                          <span className="font-bold dark:text-white">{rule.name}</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold dark:text-white">{rule.name}</span>
+                            {(rule.has_pattern || rule.has_size_constraint) && (
+                              <div className="flex gap-1 mt-0.5">
+                                {rule.has_pattern && (
+                                  <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold leading-none">
+                                    regex
+                                  </span>
+                                )}
+                                {rule.has_size_constraint && (
+                                  <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded text-[10px] font-semibold leading-none">
+                                    size
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -244,10 +367,11 @@ export function RulesPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                   {filteredRules.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                         No rules found.
                       </td>
                     </tr>

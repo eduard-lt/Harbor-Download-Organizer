@@ -372,13 +372,38 @@ fn unique_target(target: &Path) -> PathBuf {
 ///
 /// Returns a list of actions taken, where each action is a tuple:
 /// `(original_path, new_path, rule_name, symlink_info)`.
+/// Computes a priority score for a rule based on its position and modifiers.
+/// - Base score = `total - index` (top rule = highest base, bottom = 1)
+/// - Each modifier (+1 for regex pattern, +1 for size constraints) adds `total` points,
+///   guaranteeing that a single modifier pushes a bottom rule above all non-modified rules.
+fn rule_priority(index: usize, total: usize, rule: &Rule) -> usize {
+    let base = total.saturating_sub(index);
+    let mut modifiers: usize = 0;
+    if rule.pattern.is_some() {
+        modifiers += 1;
+    }
+    if rule.min_size_bytes.is_some() || rule.max_size_bytes.is_some() {
+        modifiers += 1;
+    }
+    base + modifiers * total
+}
+
 pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
     let base = PathBuf::from(&cfg.download_dir);
     let min_age = Duration::from_secs(cfg.min_age_secs.unwrap_or(5));
     let mut summary = OrganizeSummary::default();
 
-    // Pre-compile each rule's regex pattern once for this pass.
-    let compiled_rules: Vec<CompiledRule<'_>> = cfg.rules.iter().map(CompiledRule::new).collect();
+    // Pre-compile each rule's regex pattern once for this pass, then sort by priority.
+    let mut compiled_rules: Vec<(usize, CompiledRule<'_>)> = cfg
+        .rules
+        .iter()
+        .enumerate()
+        .map(|(i, r)| (i, CompiledRule::new(r)))
+        .collect();
+    let total = compiled_rules.len();
+    compiled_rules.sort_by_key(|(i, cr)| {
+        std::cmp::Reverse(rule_priority(*i, total, cr.rule))
+    });
 
     for entry in fs::read_dir(&base).with_context(|| format!("list {}", base.display()))? {
         let entry = entry?;
@@ -427,7 +452,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
             }
         }
         let mut applied: Option<(&Rule, PathBuf)> = None;
-        for compiled in &compiled_rules {
+        for (_, compiled) in &compiled_rules {
             // Skip disabled rules
             if !compiled.rule.enabled {
                 continue;
@@ -981,5 +1006,124 @@ rules:
         assert_eq!(cfg.service_enabled, Some(true));
         assert!(!cfg.rules.is_empty());
         assert!(cfg.rules.iter().any(|r| r.name == "Images"));
+    }
+
+    #[test]
+    fn test_rule_priority_scoring() {
+        let total = 5;
+
+        // Top rule (index 0), no modifiers → base = 5
+        let rule_no_mod = Rule {
+            id: "a".into(),
+            name: "a".into(),
+            extensions: Some(vec!["txt".into()]),
+            pattern: None,
+            min_size_bytes: None,
+            max_size_bytes: None,
+            target_dir: "t".into(),
+            create_symlink: false,
+            enabled: true,
+        };
+        assert_eq!(rule_priority(0, total, &rule_no_mod), 5);
+
+        // Bottom rule (index 4), no modifiers → base = 1
+        assert_eq!(rule_priority(4, total, &rule_no_mod), 1);
+
+        // Bottom rule (index 4), with regex → 1 + 5 = 6
+        let rule_regex = Rule {
+            id: "b".into(),
+            name: "b".into(),
+            extensions: Some(vec!["txt".into()]),
+            pattern: Some("test".into()),
+            min_size_bytes: None,
+            max_size_bytes: None,
+            target_dir: "t".into(),
+            create_symlink: false,
+            enabled: true,
+        };
+        assert_eq!(rule_priority(4, total, &rule_regex), 6);
+
+        // Bottom rule (index 4), with regex + size → 1 + 10 = 11
+        let rule_both = Rule {
+            id: "c".into(),
+            name: "c".into(),
+            extensions: Some(vec!["txt".into()]),
+            pattern: Some("test".into()),
+            min_size_bytes: Some(1024),
+            max_size_bytes: None,
+            target_dir: "t".into(),
+            create_symlink: false,
+            enabled: true,
+        };
+        assert_eq!(rule_priority(4, total, &rule_both), 11);
+    }
+
+    #[test]
+    fn test_organize_regex_rule_wins_over_extension_only() {
+        let root = TempDir::new().unwrap();
+        let dl = root.path().join("Downloads");
+        let images = root.path().join("Images");
+        let social = root.path().join("SocialMedia");
+        fs::create_dir(&dl).unwrap();
+
+        // Create broll.jpg
+        let broll_path = dl.join("broll.jpg");
+        {
+            let mut f = fs::File::create(&broll_path).unwrap();
+            f.write_all(b"broll data").unwrap();
+        }
+
+        // Create wallpaper.png
+        let wp_path = dl.join("wallpaper.png");
+        {
+            let mut f = fs::File::create(&wp_path).unwrap();
+            f.write_all(b"wallpaper data").unwrap();
+        }
+
+        let cfg = DownloadsConfig {
+            download_dir: dl.to_str().unwrap().into(),
+            min_age_secs: Some(0),
+            tutorial_completed: None,
+            service_enabled: None,
+            check_updates: None,
+            last_notified_version: None,
+            rules: vec![
+                // Rule 1 (top): Images — no regex, matches jpg/png
+                Rule {
+                    id: "images-rule".into(),
+                    name: "Images".into(),
+                    extensions: Some(vec!["jpg".into(), "png".into()]),
+                    pattern: None,
+                    min_size_bytes: None,
+                    max_size_bytes: None,
+                    target_dir: images.to_str().unwrap().into(),
+                    create_symlink: false,
+                    enabled: true,
+                },
+                // Rule 2 (bottom): Broll — regex pattern for "broll"
+                Rule {
+                    id: "broll-rule".into(),
+                    name: "Broll".into(),
+                    extensions: Some(vec!["jpg".into(), "png".into()]),
+                    pattern: Some("broll".into()),
+                    min_size_bytes: None,
+                    max_size_bytes: None,
+                    target_dir: social.to_str().unwrap().into(),
+                    create_symlink: false,
+                    enabled: true,
+                },
+            ],
+        };
+
+        let summary = organize_once(&cfg).unwrap();
+        assert_eq!(summary.moved.len(), 2);
+
+        // broll.jpg → should go to SocialMedia (regex rule wins despite being position 2)
+        assert!(!broll_path.exists());
+        assert!(social.join("broll.jpg").exists());
+
+        // wallpaper.png → should go to Images (regex rule checked first but doesn't match)
+        assert!(!wp_path.exists());
+        assert!(images.join("wallpaper.png").exists());
     }
 }

@@ -89,6 +89,10 @@ pub struct RuleDto {
     pub create_symlink: bool,
     /// Whether the rule is enabled
     pub enabled: bool,
+    /// Whether this rule has a regex pattern (gives priority boost)
+    pub has_pattern: bool,
+    /// Whether this rule has size constraints (gives priority boost)
+    pub has_size_constraint: bool,
     /// Icon name (derived from first extension)
     pub icon: String,
     /// Icon color
@@ -121,6 +125,8 @@ impl From<&Rule> for RuleDto {
             destination: rule.target_dir.clone(),
             create_symlink: rule.create_symlink,
             enabled: rule.enabled,
+            has_pattern: rule.pattern.is_some(),
+            has_size_constraint: rule.min_size_bytes.is_some() || rule.max_size_bytes.is_some(),
             icon,
             icon_color,
         }
