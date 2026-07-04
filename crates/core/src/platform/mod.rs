@@ -11,26 +11,26 @@ use std::path::PathBuf;
 
 /// Returns the Harbor application data directory (config, logs, state).
 pub fn app_data_dir() -> PathBuf {
-    platform::app_data_dir()
+    os::app_data_dir()
 }
 
 /// Returns the user's Downloads directory.
 pub fn downloads_dir() -> PathBuf {
-    platform::downloads_dir()
+    os::downloads_dir()
 }
 
 /// Returns the user's home directory.
 pub fn home_dir() -> PathBuf {
-    platform::home_dir()
+    os::home_dir()
 }
 
 // Platform-specific module selected at compile time.
 #[cfg(target_os = "macos")]
-mod platform {
+mod os {
     pub use super::macos::*;
 }
 #[cfg(target_os = "windows")]
-mod platform {
+mod os {
     pub use super::windows::*;
 }
 
