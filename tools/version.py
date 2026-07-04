@@ -24,11 +24,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 FILES = [
     # (relative_path, regex_pattern, replacement_template)
-    # Replacement uses \1 for prefix and \3 for suffix in most cases
-    ("Cargo.toml", r'(version\s*=\s*")[^"]+(")', r'\1{version}\2'),
-    ("crates/tauri-app/tauri.conf.json", r'("version"\s*:\s*")[^"]+(")', r'\1{version}\2'),
-    ("packages/ui/package.json", r'("version"\s*:\s*")[^"]+(")', r'\1{version}\2'),
-    ("pyproject.toml", r'(version\s*=\s*")[^"]+(")', r'\1{version}\2'),
+    # Replacement uses \g<1> for prefix and \g<2> for suffix to avoid
+    # ambiguity when the version string starts with digits (e.g. \12 → group 12).
+    # Cargo.toml / pyproject.toml use multiline anchor ^ to only match the
+    # top-level version field, not dependency versions like `serde = { version = ... }`.
+    ("Cargo.toml", r'(?m)^(version\s*=\s*")[^"]+(")', r'\g<1>{version}\g<2>'),
+    ("crates/tauri-app/tauri.conf.json", r'("version"\s*:\s*")[^"]+(")', r'\g<1>{version}\g<2>'),
+    ("packages/ui/package.json", r'("version"\s*:\s*")[^"]+(")', r'\g<1>{version}\g<2>'),
+    ("pyproject.toml", r'(?m)^(version\s*=\s*")[^"]+(")', r'\g<1>{version}\g<2>'),
 ]
 
 INFOPAGE_REL = "packages/ui/src/pages/InfoPage.tsx"
