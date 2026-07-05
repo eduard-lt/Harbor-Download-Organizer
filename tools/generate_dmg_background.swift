@@ -3,13 +3,30 @@ import AppKit
 import Foundation
 
 // ── DMG Background Generator for Harbor ──
-// Light-themed drag-to-Applications background with first-launch instructions.
+// Works in both local and headless CI (uses offscreen bitmap, not screen-locked NSImage).
 
 let width = 660
 let height = 480
 
-let image = NSImage(size: NSSize(width: width, height: height))
-image.lockFocus()
+guard let imageRep = NSBitmapImageRep(
+    bitmapDataPlanes: nil,
+    pixelsWide: width,
+    pixelsHigh: height,
+    bitsPerSample: 8,
+    samplesPerPixel: 4,
+    hasAlpha: true,
+    isPlanar: false,
+    colorSpaceName: .deviceRGB,
+    bytesPerRow: 0,
+    bitsPerPixel: 0
+) else {
+    print("ERROR: Failed to create bitmap")
+    exit(1)
+}
+imageRep.size = NSSize(width: width, height: height)
+
+NSGraphicsContext.saveGraphicsState()
+NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: imageRep)
 
 // ── Solid white background ──
 NSColor.white.setFill()
@@ -45,15 +62,14 @@ let arrowAttrs: [NSAttributedString.Key: Any] = [
 
 // ── Separator line ──
 let lineY = 110
-let lineColor = NSColor(white: 0.85, alpha: 1.0)
-lineColor.setStroke()
+NSColor(white: 0.85, alpha: 1.0).setStroke()
 let linePath = NSBezierPath()
 linePath.move(to: NSPoint(x: 40, y: lineY))
 linePath.line(to: NSPoint(x: width - 40, y: lineY))
 linePath.lineWidth = 1
 linePath.stroke()
 
-// ── Important note section ──
+// ── Important note ──
 let noteStyle = NSMutableParagraphStyle()
 noteStyle.alignment = .center
 
@@ -86,23 +102,28 @@ let extraAttrs: [NSAttributedString.Key: Any] = [
     .foregroundColor: NSColor(white: 0.5, alpha: 1.0),
     .paragraphStyle: noteStyle,
 ]
-("After the first launch, the app opens normally.  No Apple Developer account needed — just an extra click the first time.")
+("After the first launch, the app opens normally.")
     .draw(in: NSRect(x: 20, y: lineY - 78, width: width - 40, height: 16), withAttributes: extraAttrs)
 
-image.unlockFocus()
+let scriptAttrs: [NSAttributedString.Key: Any] = [
+    .font: NSFont.systemFont(ofSize: 9),
+    .foregroundColor: NSColor(white: 0.6, alpha: 1.0),
+    .paragraphStyle: noteStyle,
+]
+("Tip: An auto-install script is inside Harbor.app → Right-click → Show Package Contents → Contents → Resources → assets")
+    .draw(in: NSRect(x: 20, y: lineY - 95, width: width - 40, height: 14), withAttributes: scriptAttrs)
+
+NSGraphicsContext.restoreGraphicsState()
 
 // ── Save as PNG ──
-guard let tiff = image.tiffRepresentation,
-      let bitmap = NSBitmapImageRep(data: tiff),
-      let png = bitmap.representation(using: .png, properties: [:]) else {
+guard let png = imageRep.representation(using: .png, properties: [:]) else {
     print("ERROR: Failed to encode PNG")
     exit(1)
 }
 
 let path = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]
-    : "target/release/bundle/macos/dmg_background.png"
+    : "crates/tauri-app/dmg_background.png"
 
-let url = URL(fileURLWithPath: path)
-try png.write(to: url)
+try png.write(to: URL(fileURLWithPath: path))
 print("✅ DMG background saved to \(path)")

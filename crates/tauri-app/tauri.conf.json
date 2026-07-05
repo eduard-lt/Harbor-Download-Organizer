@@ -47,6 +47,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "assets/Install Harbor.command"
+    ],
     "macOS": {
       "minimumSystemVersion": "26.5",
       "dmg": {
