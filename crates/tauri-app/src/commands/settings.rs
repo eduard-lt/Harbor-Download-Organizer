@@ -1409,7 +1409,11 @@ mod tests {
 
         // Stop should succeed — the thread is cooperative (500ms sleep chunks).
         let result = internal_stop_service(&state);
-        assert!(result.is_ok(), "Expected stop to succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Expected stop to succeed: {:?}",
+            result.err()
+        );
         // Should be in Stopped state, not Degraded.
         assert_eq!(
             *state.service_lifecycle.lock().unwrap(),
