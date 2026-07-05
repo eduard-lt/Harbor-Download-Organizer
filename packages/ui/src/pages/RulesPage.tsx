@@ -229,8 +229,8 @@ export function RulesPage() {
                   <tr>
                     <th className="px-3 py-4 w-[5%] text-center">#</th>
                     <th className="px-6 py-4 w-[15%]">Rule Name</th>
-                    <th className="px-6 py-4 w-[25%]">Extensions</th>
-                    <th className="px-6 py-4 w-[35%]">Destination</th>
+                    <th className="px-6 py-4 w-[30%]">Extensions</th>
+                    <th className="px-6 py-4 w-[30%]">Destination</th>
                     <th className="px-6 py-4 w-[10%] text-center">Status</th>
                     <th className="px-6 py-4 w-[10%] text-center">Actions</th>
                   </tr>
@@ -314,7 +314,7 @@ export function RulesPage() {
                             <span
                               key={ext}
                               className={`px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-mono text-xs border border-slate-200 dark:border-slate-700 inline-block text-center`}
-                              style={{ minWidth: '3rem', width: `${Math.max(5, ext.length) + 1}ch`, overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}
+                              style={{ minWidth: '3rem', width: `${Math.max(5, ext.length) + 1}ch` } as React.CSSProperties}
                             >
                               {ext}
                             </span>
