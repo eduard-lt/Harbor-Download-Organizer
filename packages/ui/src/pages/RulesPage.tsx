@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Header } from '../components/Header';
 import { StatCard } from '../components/StatCard';
 import { useRules } from '../hooks/useRules';
@@ -29,8 +29,15 @@ export function RulesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
+  const dragStateRef = useRef<{
+    startIndex: number;
+    targetIndex: number | null;
+    pointerId: number;
+  } | null>(null);
 
   useEffect(() => {
     const checkTutorial = async () => {
@@ -96,46 +103,62 @@ export function RulesPage() {
     }
   };
 
-  // --- Drag & Drop handlers ---
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDragIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', String(index));
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  // --- Drag & Drop handlers (pointer-based, more reliable than HTML5 DnD on <tr>) ---
+  const handleDragPointerDown = (e: React.PointerEvent, index: number) => {
+    // Only primary button
+    if (e.button !== 0) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverIndex !== index) {
-      setDragOverIndex(index);
-    }
-  };
 
-  const handleDragLeave = () => {
-    setDragOverIndex(null);
-  };
+    const pointerId = e.pointerId;
+    dragStateRef.current = { startIndex: index, targetIndex: null, pointerId };
+    setDraggingIndex(index);
 
-  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    setDragIndex(null);
-    setDragOverIndex(null);
+    const handlePointerMove = (ev: PointerEvent) => {
+      ev.preventDefault();
 
-    if (dragIndex === null || dragIndex === dropIndex) return;
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      if (!el) return;
 
-    const reordered = [...rules];
-    const [moved] = reordered.splice(dragIndex, 1);
-    reordered.splice(dropIndex, 0, moved);
+      const tr = el.closest('tr');
+      if (!tr || !tr.closest('tbody')) return;
 
-    try {
-      await reorderRules(reordered.map(r => r.id));
-    } catch (err) {
-      console.error('Failed to reorder rules:', err);
-    }
-  };
+      const rows = Array.from(tr.closest('tbody')!.querySelectorAll('tr'));
+      const rowIndex = rows.indexOf(tr as HTMLTableRowElement);
 
-  const handleDragEnd = () => {
-    setDragIndex(null);
-    setDragOverIndex(null);
+      if (rowIndex >= 0 && dragStateRef.current) {
+        dragStateRef.current.targetIndex = rowIndex;
+        setHoveredIndex(rowIndex);
+      }
+    };
+
+    const handlePointerUp = async () => {
+      const state = dragStateRef.current;
+      if (!state) return;
+
+      const { startIndex, targetIndex } = state;
+
+      if (targetIndex !== null && startIndex !== targetIndex) {
+        const reordered = [...rulesRef.current];
+        const [moved] = reordered.splice(startIndex, 1);
+        reordered.splice(targetIndex, 0, moved);
+
+        try {
+          await reorderRules(reordered.map(r => r.id));
+        } catch (err) {
+          console.error('Failed to reorder rules:', err);
+        }
+      }
+
+      setDraggingIndex(null);
+      setHoveredIndex(null);
+      dragStateRef.current = null;
+
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    document.addEventListener('pointermove', handlePointerMove, { passive: false });
+    document.addEventListener('pointerup', handlePointerUp);
   };
 
   // --- Move up/down handlers ---
@@ -238,18 +261,12 @@ export function RulesPage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                   {filteredRules.map((rule) => {
                     const actualIndex = rules.findIndex(r => r.id === rule.id);
-                    const isDragging = dragIndex === actualIndex;
-                    const isDragOver = dragOverIndex === actualIndex;
+                    const isDragging = draggingIndex === actualIndex;
+                    const isDragOver = hoveredIndex === actualIndex;
 
                     return (
                     <tr
                       key={rule.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, actualIndex)}
-                      onDragOver={(e) => handleDragOver(e, actualIndex)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, actualIndex)}
-                      onDragEnd={handleDragEnd}
                       className={`transition-colors group ${!rule.enabled ? 'opacity-50' : ''
                         } ${isDragging ? 'opacity-30 bg-slate-100 dark:bg-slate-800' : ''
                         } ${isDragOver ? 'border-t-2 border-primary' : ''
@@ -266,7 +283,8 @@ export function RulesPage() {
                             <span className="material-icons-round text-sm">arrow_drop_up</span>
                           </button>
                           <span
-                            className="material-icons-round text-slate-400 dark:text-slate-500 cursor-grab active:cursor-grabbing hover:text-slate-600 dark:hover:text-slate-300 text-lg select-none"
+                            onPointerDown={(e) => handleDragPointerDown(e, actualIndex)}
+                            className="material-icons-round text-slate-400 dark:text-slate-500 cursor-grab active:cursor-grabbing hover:text-slate-600 dark:hover:text-slate-300 text-lg select-none touch-none"
                             title="Drag to reorder"
                           >
                             drag_indicator
