@@ -151,6 +151,8 @@ jobs:
     name: Build macOS (DMG)
     runs-on: macos-latest
     needs: [format, clippy, test-frontend, test-rust]
+    env:
+      TAURI_BUNDLER_DMG_IGNORE_CI: 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
