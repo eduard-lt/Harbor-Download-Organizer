@@ -55,6 +55,9 @@ jobs:
     name: Clippy
     runs-on: windows-latest
     needs: [frontend]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -89,6 +92,9 @@ jobs:
     name: Rust Tests
     runs-on: windows-latest
     needs: [frontend]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -106,6 +112,9 @@ jobs:
     name: Build Windows (MSI)
     runs-on: windows-latest
     needs: [format, clippy, test-frontend, test-rust]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -153,6 +162,8 @@ jobs:
     needs: [format, clippy, test-frontend, test-rust]
     env:
       TAURI_BUNDLER_DMG_IGNORE_CI: 'true'
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable

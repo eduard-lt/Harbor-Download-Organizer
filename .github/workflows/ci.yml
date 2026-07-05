@@ -56,6 +56,9 @@ jobs:
     name: Clippy
     runs-on: windows-latest
     needs: [frontend-build]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -90,6 +93,9 @@ jobs:
     name: Rust Tests
     runs-on: windows-latest
     needs: [frontend-build]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -107,6 +113,9 @@ jobs:
     name: Release Build (Windows)
     runs-on: windows-latest
     needs: [clippy, frontend-test, test]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -147,6 +156,9 @@ jobs:
     name: macOS Check
     runs-on: macos-latest
     needs: [frontend-build]
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
