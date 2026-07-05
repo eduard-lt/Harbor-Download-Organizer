@@ -1,7 +1,7 @@
 <div align="center">
 
-# ⚓ Harbor
-**The Modern Download Organizer & File Manager**
+# Harbor
+**Download Organizer & File Manager**
 
 <img src="assets/harbor_h.png" alt="Harbor Logo" width="200">
 
@@ -9,12 +9,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://github.com/eduard-lt/Harbor-Download-Organizer/releases)
+[![macOS](https://img.shields.io/badge/platform-macOS-black.svg)](https://github.com/eduard-lt/Harbor-Download-Organizer/releases)
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 
 ---
 
-### Stop digging through your Downloads folder.
-**Harbor** is a lightweight Windows utility that monitors your downloads in real-time and moves files to categorized folders based on your own custom rules.
+**Harbor** monitors your downloads folder and moves files to categorized destinations based on custom rules. Works on Windows (native MSI) and macOS (DMG).
 
 <img src="assets/UI/rules_mangement.png" alt="Harbor Rules Management UI" width="850" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
@@ -22,83 +22,103 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- **🔄 Auto-Organization** - Automatically sorts downloads by file type (images, videos, documents, etc.)
-- **🎛️ Simple Tray Interface** - Start/Stop watching, organize now, or access recent activity
-- **⚡ No Admin Required** - Installs and runs with user permissions only
-- **🔗 Smart Symlinks** - Optionally leave hidden shortcuts so your browser doesn't "lose" files
-- **📝 Activity Log** - Track what was moved and when in `recent_moves.log`
-- **⚙️ Customizable Rules** - Edit via the UI or directly in the YAML config
-- **🚀 Auto-Start** - Launches automatically on Windows startup
-- **💾 Safe Moves** - Avoids partial downloads (`.crdownload`, `.part`, `.tmp`)
-- **🔄 Conflict Handling** - Automatically renames files if destination already exists
-
----
-
-## 📦 Quick Start
-
-1. **Download:** Get the latest `.msi` from [Releases](https://github.com/eduard-lt/Harbor-Download-Organizer/releases).
-2. **Launch:** Open Harbor from your System Tray.
-3. **Organize:** Use the 11 built-in rules or create your own in the **Rules Management** dashboard.
-4. **Relax:** Turn on **Active Monitoring** and let Harbor handle the rest.
+- **Auto-Organization** — Sorts downloads by file type (images, videos, documents, etc.)
+- **System Tray Interface** — Start/stop monitoring, organize now, or view recent activity
+- **No Admin Required** — Installs and runs with user permissions only
+- **Smart Symlinks** — Optionally leave hidden shortcuts so browsers don't "lose" tracked files
+- **Activity Log** — Track what was moved and when in `recent_moves.log`
+- **Customizable Rules** — Edit rules via the UI or directly in the YAML config
+- **Auto-Start** — Launches automatically on system startup
+- **Safe Moves** — Skips partial downloads (`.crdownload`, `.part`, `.tmp`)
+- **Conflict Handling** — Automatically renames files if the destination path already exists
 
 ---
 
-## 🗺️ Roadmap
+## Quick Start
 
-We are constantly working to make Harbor better. Here is what's on the horizon:
-- [ ] 🐧 **Linux Support** - Bringing native organization to Linux desktops
-- [ ] 🍎 **macOS Support** - Optimization for Apple Silicon and Intel Macs
-- [ ] 📂 **Multi-Folder Monitoring** - Watch more than just your Downloads folder
-- [ ] 🔔 **Custom Notifications** - Get alerts when files are moved or rules are triggered
+### Windows
+
+1. Download the latest `.msi` from [Releases](https://github.com/eduard-lt/Harbor-Download-Organizer/releases).
+2. Run the installer and launch Harbor from the system tray.
+3. Configure rules in the **Rules Management** dashboard.
+4. Enable **Active Monitoring** and let Harbor handle the rest.
+
+### macOS
+
+1. Download the latest `.dmg` from [Releases](https://github.com/eduard-lt/Harbor-Download-Organizer/releases).
+2. Drag **Harbor.app** to the **Applications** folder.
+3. Run the following command in Terminal to bypass Gatekeeper (I do not have an Apple Developer license to sign the app):
+
+   ```bash
+   xattr -cr /Applications/Harbor.app
+   ```
+4. Launch Harbor from Applications.
+
+> [!NOTE]
+> I do not have an Apple Developer license, so the macOS build is ad-hoc signed. The `xattr` command removes quarantine attributes placed by Gatekeeper. You only need to run it once after first install. See [Apple Developer ID](https://developer.apple.com/support/developer-id/) for more context.
 
 ---
 
-## 🤝 Contributing & Support
+## Roadmap
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create.
+- [x] macOS Support (ad-hoc signed DMG)
+- [ ] Linux Support
+- [ ] Multi-Folder Monitoring
+- [ ] Custom Notifications
+
+---
+
+## Contributing
 
 - **Found a bug?** [Open an issue](https://github.com/eduard-lt/Harbor-Download-Organizer/issues)
 - **Have an idea?** [Submit a feature request](https://github.com/eduard-lt/Harbor-Download-Organizer/issues)
-- **Want to help?** PRs are always welcome! Check the [Building](#-building-from-source) section to get started.
+- **Want to help?** PRs are welcome. See [Building from Source](#building-from-source) below.
 
 ---
 
-## 🛠️ Building from Source
+## Building from Source
 
 Harbor is a **Tauri v2** application (React + Rust).
 
-1. **Install:** Node.js 20+, Rust (Stable), WiX Toolset v3, Python 3.10+ and [Poe the Poet](https://poethepoet.natn.io/installation.html)
-2. **UI Setup:** `cd packages/ui && npm install`
-3. **Dev:** `poe dev`
-4. **Build:** `poe build`
+**Prerequisites:** Node.js 20+, Rust (stable), WiX Toolset v3 (Windows only), Python 3.10+, and [Poe the Poet](https://poethepoet.natn.io/installation.html).
 
-### ✅ Tests & Coverage
+```bash
+# Install UI dependencies
+cd packages/ui && npm install
 
-- **Backend tests:** `poe test`
-- **Frontend tests:** `poe test-ui`
-- **All tests:** `poe test-all`
-- **Backend coverage (non-blocking report):** `poe coverage`
-- **Frontend coverage:** `poe coverage-ui`
+# Development mode
+poe dev
 
-Coverage policy for this milestone is documented in `docs/testing/coverage-policy.md` (70% target on high-risk paths, warning-only; `poe coverage` warns if below target but remains non-blocking).
+# Build distributable
+poe build
+```
+
+### Tests & Coverage
+
+| Command | What it does |
+|---|---|
+| `poe test` | Backend (Rust) tests |
+| `poe test-ui` | Frontend (React) tests |
+| `poe test-all` | All tests |
+| `poe coverage` | Backend coverage report (non-blocking) |
+| `poe coverage-ui` | Frontend coverage report |
+
+Coverage targets are documented in `docs/testing/coverage-policy.md` (70% on high-risk paths, warning-only).
 
 ---
 
-## 📝 License
+## License
 
-Harbor is released under the **MIT License**. This means you are free to use it commercially, modify it, and distribute it—just keep the original copyright notice.
+MIT. See [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-### Support the Project
-If Harbor has made your life easier, please consider giving us a ⭐!
+If Harbor is useful to you, consider starring the repository.
 
 [![Buy Me A Coffee](https://shields.io/badge/kofi-Buy_a_coffee-ff5f5f?logo=ko-fi&style=for-the-badge)](https://ko-fi.com/eduardolteanu)
-
-Made with ❤️ by [Eduard Olteanu](https://github.com/eduard-lt)
 
 </div>

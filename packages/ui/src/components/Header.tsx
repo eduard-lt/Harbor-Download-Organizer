@@ -12,7 +12,7 @@ export function Header({ title, subtitle, children }: HeaderProps) {
       <div className="flex-shrink-0">
         <h1 className="text-2xl font-bold">{title}</h1>
         {subtitle && (
-          <p className="text-xs text-slate-500 font-medium">{subtitle}</p>
+          <p className="text-xs text-slate-500 font-medium mt-1">{subtitle}</p>
         )}
       </div>
       {children && <div className="flex items-center gap-4">{children}</div>}
