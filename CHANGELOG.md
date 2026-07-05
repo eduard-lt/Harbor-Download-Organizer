@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [TODO list](docs/TODO.md) with planned features, polish items, and infrastructure improvements.
+- Consolidated [window management docs](docs/WINDOW_MANAGEMENT.md) (replaces verbose DPI_SCALING.md and WINDOW_SIZE_EXAMPLES.md).
+
 ### Fixed
 - Navigation events now use correct routes in main application logic.
 - `reset_to_defaults` leaves the service stopped for user review; tutorial display logic improved.
 - Styling adjustments for rule extensions in RulesPage.
+
+### Changed
+- [Poe tasks reference](docs/POE_TASKS.md) rewritten to match actual available commands.
+- README contributing section now links to TODO list and supporting docs.
 
 ## [2.0.2] - 2026-07-05
 
