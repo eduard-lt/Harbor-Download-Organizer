@@ -47,8 +47,26 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "assets/Install Harbor.command"
+    ],
     "macOS": {
-      "minimumSystemVersion": "26.5"
+      "minimumSystemVersion": "26.5",
+      "dmg": {
+        "background": "dmg_background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        }
+      }
     },
     "windows": {
       "webviewInstallMode": {
