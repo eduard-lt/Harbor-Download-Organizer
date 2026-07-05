@@ -145,6 +145,18 @@ jobs:
         working-directory: packages/ui
         run: npm run tauri:build
 
+      - name: Ad-hoc sign and unquarantine app
+        run: |
+          APP="target/release/bundle/macos/Harbor.app"
+          if [ -d "$APP" ]; then
+            codesign --force --deep --sign - "$APP"
+            xattr -cr "$APP"
+            echo "App ad-hoc signed and unquarantined"
+          else
+            echo "App bundle not found at $APP"
+            ls -R target/release/bundle/ || true
+          fi
+
       - name: Prepare Release Artifacts
         run: |
           mkdir -p dist
