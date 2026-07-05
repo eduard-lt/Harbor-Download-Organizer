@@ -947,7 +947,10 @@ pub async fn get_config_path(state: State<'_, AppState>) -> Result<String, Strin
 
 #[tauri::command]
 pub async fn reset_to_defaults(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
-    let config = harbor_core::downloads::default_config();
+    let mut config = harbor_core::downloads::default_config();
+    // Leave the service stopped after reset so the user can review
+    // the fresh default rules before re-enabling.
+    config.service_enabled = Some(false);
 
     {
         let mut state_config = state.config.write().map_err(|e| e.to_string())?;
@@ -956,12 +959,7 @@ pub async fn reset_to_defaults(state: State<'_, AppState>, app: AppHandle) -> Re
 
     save_config_to_disk(&state)?;
 
-    // Stop and start service to apply changes
-    let stop_result = internal_stop_service(&state);
-    let _ = emit_service_status_event(&app, &state);
-    stop_result?;
-
-    internal_start_service(&state)?;
+    let _ = internal_stop_service(&state);
     let _ = emit_service_status_event(&app, &state);
 
     Ok(())

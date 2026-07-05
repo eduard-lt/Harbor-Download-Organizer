@@ -40,19 +40,32 @@ export function RulesPage() {
   } | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     const checkTutorial = async () => {
       try {
         const completed = await getTutorialCompleted();
+        if (cancelled) return;
         if (!completed) {
-          // Small delay to ensure smooth entry animation
-          const timer = setTimeout(() => setShowTutorial(true), 500);
-          return () => clearTimeout(timer);
+          timer = setTimeout(() => setShowTutorial(true), 600);
         }
       } catch (e) {
-        console.error("Failed to check tutorial status:", e);
+        // If the backend isn't ready yet, default to showing the tutorial
+        // rather than silently skipping it.
+        console.error("Failed to check tutorial status, showing tutorial:", e);
+        if (!cancelled) {
+          timer = setTimeout(() => setShowTutorial(true), 800);
+        }
       }
     };
+
     checkTutorial();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   const handleCreate = async (ruleData: RuleFormData) => {

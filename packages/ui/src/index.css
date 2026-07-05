@@ -19,8 +19,14 @@
 }
 
 @layer base {
+  html {
+    overscroll-behavior: none;
+    background-color: #0f172a; /* match dark theme — prevents white flash on macOS overscroll */
+  }
+
   body {
     font-family: var(--font-family-display);
+    overscroll-behavior: none;
   }
 
   button {
