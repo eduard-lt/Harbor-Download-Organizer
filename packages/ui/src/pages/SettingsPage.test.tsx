@@ -272,7 +272,7 @@ describe('SettingsPage', () => {
                 lifecycle_state: 'degraded',
                 pid: 12345,
                 degraded: true,
-                degraded_reason: 'Service stop timed out after 3 seconds. Retry service restart to recover.',
+                degraded_reason: 'Config validation failed. Check your rules for errors.',
             },
         });
         render(<SettingsPage />);

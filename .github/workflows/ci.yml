@@ -32,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-      - uses: actions/cache@v4
+          node-version: '22'
+      - uses: actions/cache@v6
         with:
           path: packages/ui/node_modules
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
@@ -43,7 +43,7 @@ jobs:
         working-directory: packages/ui
       - run: npm run build
         working-directory: packages/ui
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -61,8 +61,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/download-artifact@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -74,10 +74,10 @@ jobs:
     needs: [frontend-build]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-      - uses: actions/cache@v4
+          node-version: '22'
+      - uses: actions/cache@v6
         with:
           path: packages/ui/node_modules
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
@@ -93,8 +93,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/download-artifact@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -110,8 +110,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/download-artifact@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -150,8 +150,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/download-artifact@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist

@@ -63,7 +63,8 @@ export function useActivity(pageSize = 20) {
 
     useEffect(() => {
         refresh();
-    }, []); // Initial load
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Initial load only
 
     return {
         logs,

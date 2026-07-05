@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-      - uses: actions/cache@v4
+          node-version: '22'
+      - uses: actions/cache@v6
         with:
           path: packages/ui/node_modules
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
@@ -32,7 +32,7 @@ jobs:
         working-directory: packages/ui
       - run: npm run build
         working-directory: packages/ui
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -60,8 +60,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/download-artifact@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -73,10 +73,10 @@ jobs:
     needs: [frontend]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-      - uses: actions/cache@v4
+          node-version: '22'
+      - uses: actions/cache@v6
         with:
           path: packages/ui/node_modules
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
@@ -92,8 +92,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/download-artifact@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -109,15 +109,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/setup-node@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-      - uses: actions/cache@v4
+          node-version: '22'
+      - uses: actions/cache@v6
         with:
           path: packages/ui/node_modules
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -138,7 +138,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist
           Copy-Item target\release\bundle\msi\*.msi dist\
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-msi
           path: dist/
@@ -156,15 +156,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - uses: actions/setup-node@v4
+      - uses: mozilla-actions/sccache-action@v0.0.10
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-      - uses: actions/cache@v4
+          node-version: '22'
+      - uses: actions/cache@v6
         with:
           path: packages/ui/node_modules
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: packages/ui/dist
@@ -194,7 +194,7 @@ jobs:
           mkdir -p dist
           cp target/release/bundle/dmg/*.dmg dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-dmg
           path: dist/
@@ -209,16 +209,16 @@ jobs:
     needs: [build-windows, build-macos]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: windows-msi
           path: dist/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: macos-dmg
           path: dist/
       - run: ls -la dist/
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.msi

@@ -533,7 +533,7 @@ where
     use std::sync::atomic::Ordering;
     loop {
         if !should_continue.load(Ordering::Relaxed) {
-            break;
+            return Ok(());
         }
         match organize_once(cfg) {
             Ok(summary) => {
@@ -546,9 +546,19 @@ where
             }
             Err(e) => eprintln!("organize error: {}", e),
         }
-        thread::sleep(Duration::from_secs(interval_secs));
+        // Sleep in small chunks so we can respond to stop signals quickly
+        // instead of being stuck in one long sleep that blocks thread join.
+        let chunk = Duration::from_millis(500);
+        let mut remaining = Duration::from_secs(interval_secs);
+        while remaining > Duration::ZERO {
+            if !should_continue.load(Ordering::Relaxed) {
+                return Ok(());
+            }
+            let sleep_time = chunk.min(remaining);
+            thread::sleep(sleep_time);
+            remaining = remaining.saturating_sub(sleep_time);
+        }
     }
-    Ok(())
 }
 
 /// Expands environment variables in a string.
