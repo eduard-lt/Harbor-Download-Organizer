@@ -187,6 +187,47 @@ jobs:
             echo "App ad-hoc signed and unquarantined"
           fi
 
+      - name: Inject install script into DMG
+        run: |
+          DMG=$(ls target/release/bundle/dmg/Harbor_*.dmg | head -1)
+          SCRIPT="crates/tauri-app/assets/Install Harbor.command"
+          chmod +x "$SCRIPT"
+
+          echo "Converting DMG to read-write..."
+          hdiutil convert "$DMG" -format UDRW -o /tmp/harbor_rw.dmg
+
+          echo "Mounting..."
+          hdiutil attach /tmp/harbor_rw.dmg -readwrite -noverify -noautoopen -mountpoint /tmp/harbor_mnt
+
+          echo "Copying install script..."
+          cp "$SCRIPT" "/tmp/harbor_mnt/"
+          ls -la /tmp/harbor_mnt/
+
+          echo "Setting script icon position..."
+          osascript -e '
+          tell application "Finder"
+            tell disk "Harbor"
+              open
+              set current view of container window to icon view
+              set toolbar visible of container window to false
+              set statusbar visible of container window to false
+              set position of item "Install Harbor.command" to {180, 380}
+              update without registering applications
+              delay 1
+              close
+            end tell
+          end tell
+          ' || echo "(script positioning skipped — Finder may not be available)"
+
+          echo "Unmounting..."
+          hdiutil detach /tmp/harbor_mnt -force
+
+          echo "Converting back to compressed..."
+          rm -f "$DMG"
+          hdiutil convert /tmp/harbor_rw.dmg -format UDZO -imagekey zlib-level=9 -o "$DMG"
+          rm /tmp/harbor_rw.dmg
+          echo "✅ Install script injected into DMG"
+
       - name: Prepare artifacts
         run: |
           mkdir -p dist
