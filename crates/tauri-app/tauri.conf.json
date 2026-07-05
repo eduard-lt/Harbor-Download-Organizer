@@ -47,16 +47,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "assets/Install Harbor.command"
-    ],
     "macOS": {
       "minimumSystemVersion": "26.5",
       "dmg": {
         "background": "dmg_background.png",
         "windowSize": {
           "width": 660,
-          "height": 400
+          "height": 480
         },
         "appPosition": {
           "x": 180,

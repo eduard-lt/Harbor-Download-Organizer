@@ -141,11 +141,9 @@ jobs:
         working-directory: packages/ui
         run: npm run build
 
-      - name: Generate DMG background and prepare assets
+      - name: Generate DMG background
         run: |
-          chmod +x tools/generate_dmg_background.swift
           swift tools/generate_dmg_background.swift crates/tauri-app/dmg_background.png
-          chmod +x crates/tauri-app/assets/Install\ Harbor.command
 
       - name: Build Tauri App (DMG)
         working-directory: packages/ui
