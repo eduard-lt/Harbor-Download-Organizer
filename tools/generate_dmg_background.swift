@@ -113,12 +113,17 @@ if let png = encodePNG(from: image) {
     exit(0)
 }
 
-// Fallback: offscreen bitmap for headless CI
-print("⚠️  Screen-backed render failed, trying offscreen bitmap...")
+// Fallback: high-resolution offscreen bitmap for headless CI
+// Render at 2x pixel density to match Retina screen-backed sharpness
+print("⚠️  Screen-backed render failed, trying high-res offscreen bitmap...")
+let scale = 2
+let hiResW = width * scale
+let hiResH = height * scale
+
 guard let imageRep = NSBitmapImageRep(
     bitmapDataPlanes: nil,
-    pixelsWide: width,
-    pixelsHigh: height,
+    pixelsWide: hiResW,
+    pixelsHigh: hiResH,
     bitsPerSample: 8,
     samplesPerPixel: 4,
     hasAlpha: true,
@@ -132,6 +137,7 @@ guard let imageRep = NSBitmapImageRep(
 }
 imageRep.size = NSSize(width: width, height: height)
 
+// Render text and graphics at 2x pixel density
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: imageRep)
 render(into: NSGraphicsContext.current)
@@ -139,7 +145,7 @@ NSGraphicsContext.restoreGraphicsState()
 
 if let png = encodePNG(from: imageRep) {
     try png.write(to: URL(fileURLWithPath: path))
-    print("✅ DMG background saved to \(path) (offscreen bitmap)")
+    print("✅ DMG background saved to \(path) (high-res offscreen bitmap)")
 } else {
     print("ERROR: Failed to encode PNG")
     exit(1)
