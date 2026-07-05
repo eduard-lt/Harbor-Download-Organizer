@@ -64,9 +64,14 @@
 ## Roadmap
 
 - [x] macOS Support (ad-hoc signed DMG)
+- [x] Accurate changelog and task documentation
+- [ ] macOS code signing (remove `xattr` workaround)
 - [ ] Linux Support
 - [ ] Multi-Folder Monitoring
 - [ ] Custom Notifications
+- [ ] Dry-run mode
+
+See the full [TODO list](docs/TODO.md) for more details.
 
 ---
 
@@ -74,6 +79,7 @@
 
 - **Found a bug?** [Open an issue](https://github.com/eduard-lt/Harbor-Download-Organizer/issues)
 - **Have an idea?** [Submit a feature request](https://github.com/eduard-lt/Harbor-Download-Organizer/issues)
+- **Want something to work on?** Check the [TODO list](docs/TODO.md) for open items.
 - **Want to help?** PRs are welcome. See [Building from Source](#building-from-source) below.
 
 ---
@@ -105,7 +111,10 @@ poe build
 | `poe coverage` | Backend coverage report (non-blocking) |
 | `poe coverage-ui` | Frontend coverage report |
 
-Coverage targets are documented in `docs/testing/coverage-policy.md` (70% on high-risk paths, warning-only).
+Coverage targets and developer tasks are documented in:
+- [Coverage policy](docs/testing/coverage-policy.md) — 70% threshold on high-risk paths
+- [Poe tasks reference](docs/POE_TASKS.md) — all automation commands
+- [TODO](docs/TODO.md) — planned features and improvements
 
 ---
 

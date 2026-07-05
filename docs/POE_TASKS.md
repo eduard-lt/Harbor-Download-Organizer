@@ -1,115 +1,67 @@
 # Poe Tasks Reference
 
-Harbor uses [Poe the Poet](https://github.com/nat-n/poethepoet) for task automation. This document provides a quick reference for all available tasks.
+Harbor uses [Poe the Poet](https://github.com/nat-n/poethepoet) for task automation.
 
-## 📋 Quick Reference
-
-View all available tasks:
-```powershell
-poe list
-# or just
-poe
+```bash
+poe           # List all available tasks
 ```
 
-## 🏗️ Build & Release Tasks
+## Build & Release
 
-| Command | Description |
-|---------|-------------|
-| `poe build` | Build release binaries & Installer (via Tauri) |
-| `poe build-debug` | Build debug binaries (via Tauri) |
+| Task | Description |
+|------|-------------|
+| `poe build` | Build release binaries + installer (via Tauri) |
+| `poe build-debug` | Build debug binaries |
 | `poe clean` | Remove build artifacts |
+| `poe clean-startup` | Remove ghost startup entries (e.g. from debug builds) |
+| `poe unquarantine` | Remove macOS quarantine attribute from built .app bundle |
 
-**Examples:**
-```powershell
-# Build optimized release binaries + MSI Installer
-poe build
+## Development
 
-# Build debug binaries (faster compilation)
-poe build-debug
+| Task | Description |
+|------|-------------|
+| `poe dev` | Start development server with hot reload |
 
-# Clean all build artifacts
-poe clean
-```
+## Testing
 
----
-
-## 🔧 Development Tasks
-
-| Command | Description |
-|---------|-------------|
-| `poe dev` | Start Development Server (Hot Reload) |
-| `poe update-local` | Copy built binaries to local install location |
-
-**Examples:**
-```powershell
-# Start React + Tauri Dev Server
-poe dev
-
-# Copy manually built binaries for local testing
-poe update-local
-```
-
----
-
-## ✨ Code Quality Tasks (Backend)
-
-| Command | Description |
-|---------|-------------|
-| `poe fmt` | Format code with rustfmt |
-| `poe clippy` | Run clippy linter |
-| `poe check` | Run all checks (fmt, clippy, test) |
-
-**Examples:**
-```powershell
-# Run ALL quality checks before committing
-poe check
-```
-
----
-
-## 🧪 Testing Tasks (Backend)
-
-| Command | Description |
-|---------|-------------|
+| Task | Description |
+|------|-------------|
 | `poe test` | Run all Rust tests |
-| `poe test-unit` | Run unit tests only |
-| `poe test-watch` | Watch and run tests automatically |
+| `poe test-ui` | Run all frontend tests |
+| `poe test-all` | Run both backend and frontend tests |
+| `poe coverage` | Backend coverage report (70% warning threshold) |
+| `poe coverage-ui` | Frontend coverage report |
+| `poe install-coverage-tools` | Install `cargo-llvm-cov` |
 
----
+## Linting
 
-## 🏷️ Version Management Tasks
+| Task | Description |
+|------|-------------|
+| `poe lint` | Run Clippy (Rust lints) |
+| `poe lint-ui` | Run ESLint (frontend) |
+| `poe lint-all` | Run both Clippy and ESLint |
 
-| Command | Description |
-|---------|-------------|
+## Version Management
+
+| Task | Description |
+|------|-------------|
 | `poe version` | Show current version |
-| `poe bump-patch` | Bump patch (0.6.0 → 0.6.1) |
-| `poe bump-minor` | Bump minor (0.6.0 → 0.7.0) |
-| `poe bump-major` | Bump major (0.6.0 → 1.0.0) |
+| `poe bump-patch` | Bump patch (e.g. 2.0.2 → 2.0.3) |
+| `poe bump-minor` | Bump minor (e.g. 2.0.2 → 2.1.0) |
+| `poe bump-major` | Bump major (e.g. 2.0.2 → 3.0.0) |
+| `poe git-release` | Create git tag and push for current version |
 
-**Examples:**
-```powershell
-# Check current version
-poe version
+## Dependencies
 
-# New feature release
-poe bump-minor
-```
-
----
-
-## 📦 Dependency Management Tasks
-
-| Command | Description |
-|---------|-------------|
+| Task | Description |
+|------|-------------|
 | `poe deps-update` | Update Rust dependencies |
+| `poe deps-outdated` | Check for outdated dependencies |
 | `poe deps-tree` | Show dependency tree |
 
----
+## Utilities
 
-## 🛠️ Utility Tasks
-
-| Command | Description |
-|---------|-------------|
-| `poe install-dev-tools` | Install dev tools (cargo-watch, etc.) |
+| Task | Description |
+|------|-------------|
 | `poe size` | Show binary sizes |
-
+| `poe install-dev-tools` | Install `cargo-watch`, `cargo-outdated`, npm deps |
