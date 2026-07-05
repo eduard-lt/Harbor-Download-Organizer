@@ -83,16 +83,8 @@ func render(into ctx: NSGraphicsContext?) {
         .foregroundColor: NSColor(white: 0.5, alpha: 1.0),
         .paragraphStyle: noteStyle,
     ]
-    ("After the first launch, the app opens normally.")
+    ("After the first launch, Harbor opens normally — no extra steps needed.")
         .draw(in: NSRect(x: 20, y: lineY - 78, width: width - 40, height: 16), withAttributes: extraAttrs)
-
-    let scriptAttrs: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: 9),
-        .foregroundColor: NSColor(white: 0.6, alpha: 1.0),
-        .paragraphStyle: noteStyle,
-    ]
-    ("Tip: An auto-install script is inside Harbor.app → Show Package Contents → Resources → assets")
-        .draw(in: NSRect(x: 20, y: lineY - 95, width: width - 40, height: 14), withAttributes: scriptAttrs)
 }
 
 func encodePNG(from image: NSImage) -> Data? {
