@@ -367,16 +367,14 @@ fn main() {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
-                            let _ = window.eval("window.location.href = '/rules'"); // Simple way to nav? Or use an event.
-                                                                                    // Better: emit event to frontend router.
-                            let _ = window.emit("navigate", "/rules");
+                            let _ = window.emit("navigate", "/");
                         }
                     }
                     "open_activity" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
-                            let _ = window.emit("navigate", "/");
+                            let _ = window.emit("navigate", "/activity");
                         }
                     }
                     "open_settings" => {
