@@ -3,8 +3,9 @@ import AppKit
 import Foundation
 
 // ── DMG Background Generator for Harbor ──
-// Tries lockFocus() first (sharpest), falls back to offscreen bitmap (CI-safe).
-// The DMG window is 660×480 — the image must match exactly.
+// Always uses 2× offscreen bitmap for consistent sharp output everywhere
+// (lockFocus depends on display DPI — non-Retina CI runners produce blurry 1× images).
+// The DMG window is 660×480 points; output is 1320×960 pixels @2×.
 
 let width = 660
 let height = 480
@@ -50,7 +51,7 @@ func render(into ctx: NSGraphicsContext?) {
     linePath.lineWidth = 1
     linePath.stroke()
 
-    // ── Important note ──
+    // ── First-time launch instructions ──
     let noteStyle = NSMutableParagraphStyle()
     noteStyle.alignment = .center
 
@@ -62,35 +63,24 @@ func render(into ctx: NSGraphicsContext?) {
     ("⚠️  First-time launch — important!")
         .draw(in: NSRect(x: 0, y: lineY - 22, width: width, height: 18), withAttributes: noteTitleAttrs)
 
-    let noteAttrs: [NSAttributedString.Key: Any] = [
+    let stepAttrs: [NSAttributedString.Key: Any] = [
         .font: NSFont.systemFont(ofSize: 11),
         .foregroundColor: NSColor(white: 0.35, alpha: 1.0),
         .paragraphStyle: noteStyle,
     ]
-    ("macOS blocks apps from unidentified developers.")
-        .draw(in: NSRect(x: 20, y: lineY - 42, width: width - 40, height: 16), withAttributes: noteAttrs)
+    ("1. Drag Harbor into the Applications folder")
+        .draw(in: NSRect(x: 20, y: lineY - 42, width: width - 40, height: 16), withAttributes: stepAttrs)
 
-    let instrAttrs: [NSAttributedString.Key: Any] = [
-        .font: NSFont.boldSystemFont(ofSize: 11),
+    ("2. Open Terminal and run:")
+        .draw(in: NSRect(x: 20, y: lineY - 60, width: width - 40, height: 16), withAttributes: stepAttrs)
+
+    let cmdAttrs: [NSAttributedString.Key: Any] = [
+        .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold),
         .foregroundColor: NSColor(white: 0.2, alpha: 1.0),
         .paragraphStyle: noteStyle,
     ]
-    ("Right-click Harbor → Open, then click Open again.")
-        .draw(in: NSRect(x: 20, y: lineY - 60, width: width - 40, height: 16), withAttributes: instrAttrs)
-
-    let extraAttrs: [NSAttributedString.Key: Any] = [
-        .font: NSFont.systemFont(ofSize: 10),
-        .foregroundColor: NSColor(white: 0.5, alpha: 1.0),
-        .paragraphStyle: noteStyle,
-    ]
-    ("After the first launch, Harbor opens normally — no extra steps needed.")
-        .draw(in: NSRect(x: 20, y: lineY - 78, width: width - 40, height: 16), withAttributes: extraAttrs)
-}
-
-func encodePNG(from image: NSImage) -> Data? {
-    guard let tiff = image.tiffRepresentation,
-          let bitmap = NSBitmapImageRep(data: tiff) else { return nil }
-    return bitmap.representation(using: .png, properties: [:])
+    ("   xattr -cr /Applications/Harbor.app")
+        .draw(in: NSRect(x: 20, y: lineY - 78, width: width - 40, height: 16), withAttributes: cmdAttrs)
 }
 
 func encodePNG(from imageRep: NSBitmapImageRep) -> Data? {
@@ -101,29 +91,15 @@ let path = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]
     : "crates/tauri-app/dmg_background.png"
 
-// Try screen-backed NSImage first (sharpest, works locally)
-let image = NSImage(size: NSSize(width: width, height: height))
-image.lockFocus()
-render(into: NSGraphicsContext.current)
-image.unlockFocus()
-
-if let png = encodePNG(from: image) {
-    try png.write(to: URL(fileURLWithPath: path))
-    print("✅ DMG background saved to \(path) (screen-backed)")
-    exit(0)
-}
-
-// Fallback: high-resolution offscreen bitmap for headless CI
-// Render at 2x pixel density to match Retina screen-backed sharpness
-print("⚠️  Screen-backed render failed, trying high-res offscreen bitmap...")
+// 2× offscreen bitmap — consistent sharp output regardless of display DPI
 let scale = 2
-let hiResW = width * scale
-let hiResH = height * scale
+let pixelW = width * scale
+let pixelH = height * scale
 
 guard let imageRep = NSBitmapImageRep(
     bitmapDataPlanes: nil,
-    pixelsWide: hiResW,
-    pixelsHigh: hiResH,
+    pixelsWide: pixelW,
+    pixelsHigh: pixelH,
     bitsPerSample: 8,
     samplesPerPixel: 4,
     hasAlpha: true,
@@ -137,7 +113,6 @@ guard let imageRep = NSBitmapImageRep(
 }
 imageRep.size = NSSize(width: width, height: height)
 
-// Render text and graphics at 2x pixel density
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: imageRep)
 render(into: NSGraphicsContext.current)
@@ -145,7 +120,7 @@ NSGraphicsContext.restoreGraphicsState()
 
 if let png = encodePNG(from: imageRep) {
     try png.write(to: URL(fileURLWithPath: path))
-    print("✅ DMG background saved to \(path) (high-res offscreen bitmap)")
+    print("✅ DMG background saved to \(path) (\(pixelW)×\(pixelH))")
 } else {
     print("ERROR: Failed to encode PNG")
     exit(1)
