@@ -8,173 +8,198 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
 jobs:
   # ============================================================================
-  # Quality Gates - Run tests before releasing
+  # Build frontend once — shared by all downstream jobs
   # ============================================================================
-  quality-check:
-    name: Pre-Release Quality Check
-    runs-on: windows-latest
+  frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Cache node modules
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: packages/ui/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('packages/ui/package-lock.json') }}
-
-      - name: Install Frontend Dependencies
+          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
+      - run: npm install
         working-directory: packages/ui
-        run: npm install
-
-      - name: Build Frontend
+      - run: npm run build
         working-directory: packages/ui
-        run: npm run build
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Run frontend tests
-        working-directory: packages/ui
-        run: npm run test -- --run
-
-      - name: Run Rust tests
-        run: cargo test --all --all-features --verbose
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+          retention-days: 1
 
   # ============================================================================
-  # Build Windows - Only after quality checks pass
+  # Quality checks run in parallel (all need frontend dist)
+  # ============================================================================
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/cache@v4
+        with:
+          path: packages/ui/node_modules
+          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
+      - run: npm install
+        working-directory: packages/ui
+      - run: npm run test -- --run
+        working-directory: packages/ui
+
+  test-rust:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+      - run: cargo test --all --all-features --verbose
+
+  # ============================================================================
+  # Build Windows
   # ============================================================================
   build-windows:
     name: Build Windows (MSI)
     runs-on: windows-latest
-    needs: [quality-check]
+    needs: [format, clippy, test-frontend, test-rust]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/cache@v4
+        with:
+          path: packages/ui/node_modules
+          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+
       - name: Install cargo-wix
         run: cargo install cargo-wix
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: packages/ui/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('packages/ui/package-lock.json') }}
-
-      - name: Install Frontend Dependencies
+      - name: Install frontend deps
         working-directory: packages/ui
         run: npm install
-
-      - name: Build Frontend
-        working-directory: packages/ui
-        run: npm run build
 
       - name: Build Tauri App (MSI)
         working-directory: packages/ui
         run: npm run tauri:build
 
-      - name: Prepare Release Artifacts
+      - name: Prepare artifacts
         run: |
-            New-Item -ItemType Directory -Force -Path dist
-            Copy-Item target\release\bundle\msi\*.msi dist\
-      
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item target\release\bundle\msi\*.msi dist\
+
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-msi
           path: dist/
           retention-days: 1
 
   # ============================================================================
-  # Build macOS - Only after quality checks pass
+  # Build macOS
   # ============================================================================
   build-macos:
     name: Build macOS (DMG)
     runs-on: macos-latest
-    needs: [quality-check]
+    needs: [format, clippy, test-frontend, test-rust]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Cache node modules
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: packages/ui/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('packages/ui/package-lock.json') }}
+          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
 
-      - name: Install Frontend Dependencies
+      - name: Install frontend deps
         working-directory: packages/ui
         run: npm install
 
-      - name: Build Frontend
-        working-directory: packages/ui
-        run: npm run build
-
       - name: Generate DMG background
-        run: |
-          swift tools/generate_dmg_background.swift crates/tauri-app/dmg_background.png
+        run: swift tools/generate_dmg_background.swift crates/tauri-app/dmg_background.png
 
       - name: Build Tauri App (DMG)
         working-directory: packages/ui
         run: npm run tauri:build
 
-      - name: Ad-hoc sign and unquarantine app
+      - name: Ad-hoc sign and unquarantine
         run: |
           APP="target/release/bundle/macos/Harbor.app"
           if [ -d "$APP" ]; then
             codesign --force --deep --sign - "$APP"
             xattr -cr "$APP"
             echo "App ad-hoc signed and unquarantined"
-          else
-            echo "App bundle not found at $APP"
-            ls -R target/release/bundle/ || true
           fi
 
-      - name: Prepare Release Artifacts
+      - name: Prepare artifacts
         run: |
           mkdir -p dist
           cp target/release/bundle/dmg/*.dmg dist/
 
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
           path: dist/
           retention-days: 1
 
   # ============================================================================
-  # GitHub Release - Combine artifacts from both platforms
+  # GitHub Release
   # ============================================================================
   release:
     name: GitHub Release
@@ -182,23 +207,16 @@ jobs:
     needs: [build-windows, build-macos]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: windows-msi
           path: dist/
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: macos-dmg
           path: dist/
-
-      - name: List artifacts
-        run: ls -la dist/
-
-      - name: Release
-        uses: softprops/action-gh-release@v2
+      - run: ls -la dist/
+      - uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.msi
