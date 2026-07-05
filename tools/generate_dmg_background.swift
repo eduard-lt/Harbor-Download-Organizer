@@ -4,9 +4,11 @@ import Foundation
 
 // ── DMG Background Generator for Harbor ──
 // Works in both local and headless CI (uses offscreen bitmap, not screen-locked NSImage).
+// Renders at 2x for Retina displays — macOS scales the background to fit the DMG window.
 
-let width = 660
-let height = 480
+let scale = 2
+let width = 660 * scale
+let height = 480 * scale
 
 guard let imageRep = NSBitmapImageRep(
     bitmapDataPlanes: nil,
