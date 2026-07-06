@@ -150,7 +150,77 @@ jobs:
       - run: cargo audit
 
   # ============================================================================
-  # macOS compilation check
+  # Fuzz Regression
+  # ============================================================================
+  fuzz:
+    name: Fuzz Regression
+    runs-on: ubuntu-latest
+    needs: [clippy, frontend-test, test]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-fuzz
+      - name: Fuzz config parser
+        run: cargo fuzz run config_yaml -- -max_total_time=15 -rss_limit_mb=256
+        working-directory: crates/core/fuzz
+      - name: Fuzz rule deserialization
+        run: cargo fuzz run rule_yaml -- -max_total_time=15 -rss_limit_mb=256
+        working-directory: crates/core/fuzz
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: fuzz-artifacts
+          path: crates/core/fuzz/artifacts/
+          retention-days: 7
+
+  # ============================================================================
+  # E2E Tests (Playwright)
+  # ============================================================================
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [frontend-build]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: actions/cache@v6
+        with:
+          path: packages/ui/node_modules
+          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
+      - run: npm install
+        working-directory: packages/ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: packages/ui
+      - run: npm run e2e
+        working-directory: packages/ui
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: packages/ui/playwright-report/
+          retention-days: 7
+
+  # ============================================================================
+  # Coverage Gate
+  # ============================================================================
+  coverage:
+    name: Coverage (≥70%)
+    runs-on: ubuntu-latest
+    needs: [frontend-build]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+      - run: cargo install cargo-llvm-cov
+      - run: python tools/coverage.py --blocking
+
+  # ============================================================================
+  # macOS — compilation, tests, and coverage
   # ============================================================================
   macos-check:
     name: macOS Check
@@ -169,13 +239,20 @@ jobs:
           path: packages/ui/dist
       - run: cargo check --workspace
       - run: cargo test --workspace
+      - name: Install coverage tools
+        run: cargo install cargo-llvm-cov
+      - name: macOS coverage (informative)
+        # Reports coverage for macOS-specific code paths that the
+        # ubuntu coverage job cannot measure (e.g. platform/macos.rs).
+        # Non-blocking — informational only for now.
+        run: cargo llvm-cov --workspace --summary-only
 
   # ============================================================================
   # Final gate
   # ============================================================================
   ci-success:
     name: CI Success
-    needs: [format, frontend-build, clippy, frontend-test, test, build, audit, macos-check]
+    needs: [format, frontend-build, clippy, frontend-test, test, build, audit, fuzz, e2e, coverage, macos-check]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -189,6 +266,9 @@ jobs:
           [ "${{ needs.test.result }}" != "success" ] && FAILED="$FAILED test"
           [ "${{ needs.build.result }}" != "success" ] && FAILED="$FAILED build"
           [ "${{ needs.audit.result }}" != "success" ] && FAILED="$FAILED audit"
+          [ "${{ needs.fuzz.result }}" != "success" ] && FAILED="$FAILED fuzz"
+          [ "${{ needs.e2e.result }}" != "success" ] && FAILED="$FAILED e2e"
+          [ "${{ needs.coverage.result }}" != "success" ] && FAILED="$FAILED coverage"
           [ "${{ needs.macos-check.result }}" != "success" ] && FAILED="$FAILED macos-check"
           if [ -n "$FAILED" ]; then
             echo "❌ Failed jobs:$FAILED"

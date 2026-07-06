@@ -121,3 +121,11 @@ copilot-instructions.md
 copilot.md
 claude.md
 agents.md
+
+# Playwright
+playwright-report/
+test-results/
+
+# Fuzzing
+crates/core/fuzz/artifacts/
+crates/core/fuzz/corpus/
