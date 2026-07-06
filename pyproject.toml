@@ -44,13 +44,26 @@ cmd = "cargo test"
 help = "Run frontend unit tests"
 cmd = "npm run test --prefix packages/ui -- --run"
 
+[tool.poe.tasks.test-e2e]
+help = "Run E2E tests (Playwright)"
+cmd = "npm run e2e --prefix packages/ui"
+
+[tool.poe.tasks.test-e2e-ui]
+help = "Run E2E tests with Playwright UI"
+cmd = "npm run e2e:ui --prefix packages/ui"
+
+[tool.poe.tasks.install-e2e-tools]
+help = "Install Playwright browsers"
+cmd = "npx --prefix packages/ui playwright install chromium"
+
 [tool.poe.tasks.test-all]
 help = "Run both backend and frontend tests"
 sequence = ["test", "test-ui"]
 
 [tool.poe.tasks.coverage]
-help = "Run backend coverage report with non-blocking 70% warning"
+help = "Run backend coverage report (add --blocking for CI)"
 cmd = "uv run python tools/coverage.py"
+args = [{ name = "blocking", help = "Exit non-zero if coverage below threshold" }]
 
 [tool.poe.tasks.coverage-ui]
 help = "Run frontend coverage and open report"
@@ -59,6 +72,39 @@ cmd = "uv run python tools/coverage_ui.py"
 [tool.poe.tasks.install-coverage-tools]
 help = "Install cargo-llvm-cov"
 cmd = "cargo install cargo-llvm-cov"
+
+[tool.poe.tasks.coverage-full]
+help = "Run full coverage report (includes platform-specific code paths)"
+cmd = "cargo llvm-cov --workspace --summary-only"
+
+# ============================================================================
+# FUZZ TESTING
+# ============================================================================
+
+[tool.poe.tasks.install-fuzz-tools]
+help = "Install cargo-fuzz"
+cmd = "cargo install cargo-fuzz"
+
+[tool.poe.tasks.fuzz-config]
+help = "Fuzz the YAML config parser"
+cmd = "cargo fuzz run config_yaml -- -max_total_time=30"
+cwd = "crates/core/fuzz"
+
+[tool.poe.tasks.fuzz-rule]
+help = "Fuzz Rule YAML/JSON deserialization"
+cmd = "cargo fuzz run rule_yaml -- -max_total_time=30"
+cwd = "crates/core/fuzz"
+
+[tool.poe.tasks.fuzz-all]
+help = "Run all fuzz targets (short regression mode)"
+sequence = ["fuzz-config", "fuzz-rule"]
+
+[tool.poe.tasks.fuzz-ci]
+help = "CI fuzz check — short regression run for each target"
+shell = """
+cd crates/core/fuzz && cargo fuzz run config_yaml -- -max_total_time=10 -rss_limit_mb=256
+cd ../../.. && cd crates/core/fuzz && cargo fuzz run rule_yaml -- -max_total_time=10 -rss_limit_mb=256
+"""
 
 # ============================================================================
 # LEGACY / ALIAS TASKS
@@ -132,6 +178,22 @@ cmd = "uv run python tools/size.py"
 [tool.poe.tasks.list]
 help = "List all available tasks"
 cmd = "poe"
+
+# ============================================================================
+# CHANGELOG TASKS
+# ============================================================================
+
+[tool.poe.tasks.changelog]
+help = "Generate CHANGELOG.md from git history"
+cmd = "git cliff -o CHANGELOG.md"
+
+[tool.poe.tasks.changelog-preview]
+help = "Preview next release notes without writing to file"
+cmd = "git cliff --unreleased"
+
+[tool.poe.tasks.install-changelog-tools]
+help = "Install git-cliff"
+cmd = "cargo install git-cliff"
 
 [tool.poe.tasks.lint]
 help = "Run Clippy lints"

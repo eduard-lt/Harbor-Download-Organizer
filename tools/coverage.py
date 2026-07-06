@@ -1,16 +1,17 @@
 """Cross-platform coverage runner for Harbor.
 
 Usage:
-    python tools/coverage.py
+    python tools/coverage.py [--blocking]
 
 Runs:
     1. Rust coverage via cargo llvm-cov (requires cargo-llvm-cov)
     2. Frontend coverage via npm test (optional)
 
-Exits with 0 even if coverage threshold is not met (non-blocking warning).
-Exits non-zero only on tool/test failures.
+By default, exits 0 even if coverage threshold is not met (non-blocking warning).
+With --blocking, exits non-zero when coverage is below the 70% threshold.
 """
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
@@ -25,7 +26,15 @@ def run_cmd(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
 
 
 def main() -> None:
-    failed = False
+    parser = argparse.ArgumentParser(description="Harbor coverage runner")
+    parser.add_argument(
+        "--blocking",
+        action="store_true",
+        help="Exit non-zero if coverage is below threshold (for CI use)",
+    )
+    args = parser.parse_args()
+
+    coverage_failed = False
 
     # --- Rust backend coverage ---
     print("=" * 60)
@@ -44,11 +53,14 @@ def main() -> None:
         print(stderr, file=sys.stderr)
 
     if code != 0:
-        print(
-            "\nWARNING: Backend coverage is below the 70% target "
-            "(non-blocking in this phase).",
-            file=sys.stderr,
+        msg = (
+            "\nWARNING: Backend coverage is below the 70% target."
         )
+        if args.blocking:
+            print(f"{msg} Failing build.", file=sys.stderr)
+            coverage_failed = True
+        else:
+            print(f"{msg} (non-blocking in this phase).", file=sys.stderr)
 
     # --- Frontend coverage (only if npm test is available) ---
     ui_dir = ROOT / "packages" / "ui"
@@ -67,7 +79,7 @@ def main() -> None:
         if code != 0:
             print("\nWARNING: Frontend coverage command failed.", file=sys.stderr)
 
-    if failed:
+    if coverage_failed:
         sys.exit(1)
     else:
         print("\nCoverage run complete.")
