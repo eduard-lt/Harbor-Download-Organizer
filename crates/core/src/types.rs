@@ -1,44 +1,4 @@
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "orchestrator")]
-use std::collections::HashMap;
-
-#[cfg(feature = "orchestrator")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceConfig {
-    pub services: Vec<Service>,
-}
-
-#[cfg(feature = "orchestrator")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Service {
-    pub name: String,
-    pub command: String,
-    pub cwd: Option<String>,
-    pub env: Option<HashMap<String, String>>,
-    pub depends_on: Option<Vec<String>>,
-    pub health_check: Option<HealthCheck>,
-}
-
-#[cfg(feature = "orchestrator")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HealthCheck {
-    pub kind: HealthCheckKind,
-    pub command: Option<String>,
-    pub url: Option<String>,
-    pub tcp_port: Option<u16>,
-    pub timeout_ms: Option<u64>,
-    pub retries: Option<u32>,
-}
-
-#[cfg(feature = "orchestrator")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum HealthCheckKind {
-    Command,
-    Http,
-    Tcp,
-    None,
-}
 
 /// Generates a new random UUID string; used as the serde default for `Rule::id`.
 pub fn new_rule_id() -> String {
@@ -70,22 +30,6 @@ fn default_enabled() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[cfg(feature = "orchestrator")]
-    #[test]
-    fn test_service_serde() {
-        let s = Service {
-            name: "test".to_string(),
-            command: "echo".to_string(),
-            cwd: Some(".".to_string()),
-            env: None,
-            depends_on: None,
-            health_check: None,
-        };
-        let json = serde_json::to_string(&s).unwrap();
-        let s2: Service = serde_json::from_str(&json).unwrap();
-        assert_eq!(s.name, s2.name);
-    }
 
     #[test]
     fn test_rule_serde() {

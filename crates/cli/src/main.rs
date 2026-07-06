@@ -30,37 +30,6 @@ enum Commands {
         #[arg(default_value_t = 5)]
         interval_secs: u64,
     },
-    Validate {
-        #[arg(default_value = "harbor.config.yaml")]
-        path: String,
-    },
-    Init {
-        #[arg(default_value = "harbor.config.yaml")]
-        path: String,
-    },
-    Up {
-        #[arg(default_value = "harbor.config.yaml")]
-        path: String,
-        #[arg(default_value = ".")]
-        base_dir: String,
-        #[arg(default_value = "harbor_state.json")]
-        state_path: String,
-    },
-    Down {
-        #[arg(default_value = "harbor_state.json")]
-        state_path: String,
-    },
-    Status {
-        #[arg(default_value = "harbor_state.json")]
-        state_path: String,
-    },
-    Logs {
-        service: String,
-        #[arg(default_value = "logs")]
-        logs_dir: String,
-        #[arg(default_value = "stdout")]
-        stream: String,
-    },
     TrayInstall {
         #[arg(long)]
         source: Option<String>,
@@ -126,74 +95,9 @@ fn execute_command(
             )?;
             Ok(())
         }
-        Commands::Validate { path } => {
-            let cfg = harbor_core::config::load_config(&path)?;
-            harbor_core::config::validate_config(&cfg)?;
-            println!("valid");
-            Ok(())
-        }
-        Commands::Init { path } => init_config(&path),
-        Commands::Up {
-            path,
-            base_dir,
-            state_path,
-        } => {
-            let cfg = harbor_core::config::load_config(&path)?;
-            harbor_core::config::validate_config(&cfg)?;
-            let st = harbor_core::orchestrator::up(
-                &cfg,
-                PathBuf::from(base_dir),
-                PathBuf::from(state_path),
-            )?;
-            println!("{}", serde_json::to_string_pretty(&st)?);
-            Ok(())
-        }
-        Commands::Down { state_path } => {
-            harbor_core::orchestrator::down(PathBuf::from(state_path))?;
-            println!("down");
-            Ok(())
-        }
-        Commands::Status { state_path } => {
-            let st = harbor_core::orchestrator::status(PathBuf::from(state_path))?;
-            for (name, pid, alive) in st {
-                println!("{} {} {}", name, pid, if alive { "alive" } else { "dead" });
-            }
-            Ok(())
-        }
-        Commands::Logs {
-            service,
-            logs_dir,
-            stream,
-        } => {
-            let path = match stream.as_str() {
-                "stdout" => PathBuf::from(format!("{}/{}.out.log", logs_dir, service)),
-                "stderr" => PathBuf::from(format!("{}/{}.err.log", logs_dir, service)),
-                _ => PathBuf::from(format!("{}/{}.out.log", logs_dir, service)),
-            };
-            let content = std::fs::read_to_string(path)?;
-            println!("{}", content);
-            Ok(())
-        }
         Commands::TrayInstall { source } => tray_install(source, None, None),
         Commands::TrayUninstall => tray_uninstall(None),
     }
-}
-
-fn init_config(path: &str) -> Result<()> {
-    let sample = r#"services:
-  - name: web
-    command: "node server.js"
-    cwd: "."
-    depends_on: []
-    health_check:
-      kind: http
-      url: "http://localhost:3000/health"
-      timeout_ms: 5000
-      retries: 10
-"#;
-    std::fs::write(path, sample)?;
-    println!("created {}", path);
-    Ok(())
 }
 
 #[cfg(windows)]
@@ -337,26 +241,9 @@ rules:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
     use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
     use tempfile::NamedTempFile;
-
-    #[test]
-    fn test_init_config() {
-        let file = NamedTempFile::new().unwrap();
-        let path = file.path().to_str().unwrap();
-        execute_command(
-            Commands::Init {
-                path: path.to_string(),
-            },
-            None,
-        )
-        .unwrap();
-        let content = std::fs::read_to_string(path).unwrap();
-        assert!(content.contains("services:"));
-        assert!(content.contains("health_check:"));
-    }
 
     #[test]
     fn test_init_downloads_config() {
@@ -372,22 +259,6 @@ mod tests {
         let content = std::fs::read_to_string(path).unwrap();
         assert!(content.contains("download_dir:"));
         assert!(content.contains("rules:"));
-    }
-
-    #[test]
-    fn test_validate_valid() {
-        let mut file = tempfile::Builder::new().suffix(".yaml").tempfile().unwrap();
-        writeln!(file, "services: []").unwrap();
-        let path = file.path().to_str().unwrap().to_string();
-        assert!(execute_command(Commands::Validate { path }, None).is_ok());
-    }
-
-    #[test]
-    fn test_validate_invalid() {
-        let mut file = tempfile::Builder::new().suffix(".yaml").tempfile().unwrap();
-        writeln!(file, "invalid").unwrap();
-        let path = file.path().to_str().unwrap().to_string();
-        assert!(execute_command(Commands::Validate { path }, None).is_err());
     }
 
     #[test]
@@ -452,79 +323,6 @@ rules:
                 interval_secs: 1
             },
             Some(signal)
-        )
-        .is_ok());
-    }
-
-    #[test]
-    fn test_up_down_status_logs() {
-        let temp = tempfile::TempDir::new().unwrap();
-        let base_dir = temp.path().join("base");
-        let state_path = temp.path().join("state.json");
-        std::fs::create_dir(&base_dir).unwrap();
-
-        let cfg_path = temp.path().join("config.yaml");
-        // Use a command that exits successfully quickly or stays running
-        // For 'Up', we want it to stay running briefly, or just launch.
-        // Echo is fine, but it exits immediately.
-        // If it exits immediately, 'Status' might show 'dead'.
-        let cmd = if cfg!(windows) {
-            "ping -n 2 127.0.0.1"
-        } else {
-            "sleep 1"
-        };
-
-        let cfg_content = format!(
-            r#"
-services:
-  - name: test_svc
-    command: "{}"
-"#,
-            cmd
-        );
-        std::fs::write(&cfg_path, cfg_content).unwrap();
-
-        // 1. Up
-        assert!(execute_command(
-            Commands::Up {
-                path: cfg_path.to_str().unwrap().to_string(),
-                base_dir: base_dir.to_str().unwrap().to_string(),
-                state_path: state_path.to_str().unwrap().to_string(),
-            },
-            None
-        )
-        .is_ok());
-
-        // 2. Status
-        assert!(execute_command(
-            Commands::Status {
-                state_path: state_path.to_str().unwrap().to_string(),
-            },
-            None
-        )
-        .is_ok());
-
-        // 3. App should have created logs
-        let logs_dir = base_dir.join("logs");
-        assert!(logs_dir.exists());
-
-        // Logs command
-        assert!(execute_command(
-            Commands::Logs {
-                service: "test_svc".to_string(),
-                logs_dir: logs_dir.to_str().unwrap().to_string(),
-                stream: "stdout".to_string()
-            },
-            None
-        )
-        .is_ok());
-
-        // 4. Down
-        assert!(execute_command(
-            Commands::Down {
-                state_path: state_path.to_str().unwrap().to_string(),
-            },
-            None
         )
         .is_ok());
     }

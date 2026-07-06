@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 anyhow.workspace = true
 clap = { version = "4.5.20", features = ["derive"] }
-harbor-core = { path = "../core", features = ["orchestrator"] }
+harbor-core = { path = "../core" }
 serde_yaml.workspace = true
 serde_json.workspace = true
 
