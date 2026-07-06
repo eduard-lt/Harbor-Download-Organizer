@@ -126,6 +126,8 @@ agents.md
 playwright-report/
 test-results/
 
-# Fuzzing
+# Fuzzing — handled by crates/core/fuzz/.gitignore (target, corpus, artifacts, coverage)
+crates/core/fuzz/target/
 crates/core/fuzz/artifacts/
 crates/core/fuzz/corpus/
+crates/core/fuzz/coverage/
