@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
-import { getCurrentWindow, LogicalSize, currentMonitor } from '@tauri-apps/api/window';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { getCurrentWindow, LogicalSize, LogicalPosition, currentMonitor } from '@tauri-apps/api/window';
+import type { UnlistenFn } from '@tauri-apps/api/event';
 
-const STORAGE_KEY = 'harbor-window-size';
+const STORAGE_SIZE_KEY = 'harbor-window-size';
+const STORAGE_POSITION_KEY = 'harbor-window-position';
 
 interface WindowSize {
     label: string;
     width: number;
     height: number;
+}
+
+interface WindowPosition {
+    x: number;
+    y: number;
 }
 
 export const PRESET_SIZES: WindowSize[] = [
@@ -17,55 +24,81 @@ export const PRESET_SIZES: WindowSize[] = [
 
 export function useWindowSize() {
     const [currentSize, setCurrentSize] = useState<WindowSize | null>(null);
+    const moveUnlistenRef = useRef<UnlistenFn | null>(null);
 
-    // Load saved size on mount and adjust for DPI scaling
+    const savePosition = useCallback(async () => {
+        try {
+            const window = getCurrentWindow();
+            const pos = await window.outerPosition();
+            // outerPosition returns PhysicalPosition; convert to logical for storage
+            // We store logical coordinates so they work across DPI changes
+            const scaleFactor = await window.scaleFactor();
+            const logicalPos: WindowPosition = {
+                x: Math.round(pos.x / scaleFactor),
+                y: Math.round(pos.y / scaleFactor),
+            };
+            localStorage.setItem(STORAGE_POSITION_KEY, JSON.stringify(logicalPos));
+        } catch {
+            // Silently ignore position save failures
+        }
+    }, []);
+
+    // Load saved size/position on mount
     useEffect(() => {
-        const initializeWindowSize = async () => {
+        const initializeWindow = async () => {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
+                const saved = localStorage.getItem(STORAGE_SIZE_KEY);
+
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
                         if (parsed && typeof parsed.width === 'number' && typeof parsed.height === 'number') {
                             setCurrentSize(parsed);
-                            // Use LogicalSize which handles DPI automatically
-                            await applySize(parsed);
+                            await applySizeAndPosition(parsed, true);
                         }
                     } catch (e) {
                         console.error('Failed to parse saved window size', e);
                         await applyDefaultSize();
                     }
                 } else {
-                    // No saved size - use intelligent default based on screen size
                     await applyDefaultSize();
                 }
+
+                // Listen for window moves to persist position
+                const window = getCurrentWindow();
+                moveUnlistenRef.current = await window.onMoved(() => {
+                    savePosition();
+                });
             } catch (error) {
                 console.error('Failed to initialize window size:', error);
             }
         };
 
-        initializeWindowSize();
+        initializeWindow();
+
+        return () => {
+            if (moveUnlistenRef.current) {
+                moveUnlistenRef.current();
+                moveUnlistenRef.current = null;
+            }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const applyDefaultSize = async () => {
         try {
-            // Get available screen size
             const monitor = await currentMonitor();
             if (monitor && monitor.size) {
                 const screenWidth = monitor.size.width;
                 const screenHeight = monitor.size.height;
-                
+
                 console.log(`[Harbor] Detected screen: ${screenWidth}x${screenHeight}`);
-                
-                // Smart preset selection based on screen size
-                // Use 70% of screen size as comfortable maximum
+
                 const targetWidth = screenWidth * 0.7;
                 const targetHeight = screenHeight * 0.7;
-                
-                let selectedPreset = PRESET_SIZES[0]; // Default to Compact
-                
-                // Choose the largest preset that comfortably fits
+
+                let selectedPreset = PRESET_SIZES[0];
+
                 for (let i = PRESET_SIZES.length - 1; i >= 0; i--) {
                     const preset = PRESET_SIZES[i];
                     if (preset.width <= targetWidth && preset.height <= targetHeight) {
@@ -73,11 +106,7 @@ export function useWindowSize() {
                         break;
                     }
                 }
-                
-                // Additional smart sizing based on actual screen dimensions:
-                // - Small screens (<= 1366x768): Compact
-                // - Medium screens (<= 1920x1080): Medium  
-                // - Large screens (> 1920x1080): Large
+
                 if (screenWidth <= 1366 || screenHeight <= 768) {
                     selectedPreset = PRESET_SIZES[0]; // Compact
                 } else if (screenWidth <= 1920 && screenHeight <= 1080) {
@@ -85,31 +114,44 @@ export function useWindowSize() {
                 } else if (screenWidth > 1920 || screenHeight > 1080) {
                     selectedPreset = PRESET_SIZES[2]; // Large
                 }
-                
+
                 console.log(`[Harbor] Auto-selected size: ${selectedPreset.label} (${selectedPreset.width}x${selectedPreset.height})`);
-                
+
                 setCurrentSize(selectedPreset);
-                await applySize(selectedPreset);
+                await applySizeAndPosition(selectedPreset, false);
             } else {
-                // Fallback to medium if we can't detect screen size
                 console.warn('[Harbor] Could not detect screen size, using Medium');
                 const defaultSize = PRESET_SIZES[1];
                 setCurrentSize(defaultSize);
-                await applySize(defaultSize);
+                await applySizeAndPosition(defaultSize, false);
             }
         } catch (error) {
             console.error('Failed to apply default size:', error);
-            // Last resort fallback
             const defaultSize = PRESET_SIZES[1];
             setCurrentSize(defaultSize);
         }
     };
 
-    const applySize = async (size: { width: number; height: number }) => {
+    const applySizeAndPosition = async (size: { width: number; height: number }, restorePosition: boolean) => {
         try {
             const window = getCurrentWindow();
-            // LogicalSize automatically handles DPI scaling
             await window.setSize(new LogicalSize(size.width, size.height));
+
+            if (restorePosition) {
+                const savedPos = localStorage.getItem(STORAGE_POSITION_KEY);
+                if (savedPos) {
+                    try {
+                        const parsed: WindowPosition = JSON.parse(savedPos);
+                        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+                            await window.setPosition(new LogicalPosition(parsed.x, parsed.y));
+                            return;
+                        }
+                    } catch {
+                        // Invalid position data, fall through to center
+                    }
+                }
+            }
+            // Center window if no saved position or position restore not requested
             await window.center();
         } catch (error) {
             console.error('Failed to resize window:', error);
@@ -118,8 +160,9 @@ export function useWindowSize() {
 
     const setSize = async (size: WindowSize) => {
         setCurrentSize(size);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(size));
-        await applySize(size);
+        localStorage.setItem(STORAGE_SIZE_KEY, JSON.stringify(size));
+        // When user explicitly changes size, center the window on the current monitor
+        await applySizeAndPosition(size, false);
     };
 
     return {

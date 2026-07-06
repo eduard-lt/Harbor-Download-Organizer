@@ -10,6 +10,7 @@ import { InfoPage } from './pages/InfoPage';
 import { useEffect } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { useWindowSize } from './hooks/useWindowSize';
+import { useDpiAwareness } from './hooks/useDpiAwareness';
 
 function GlobalNavigationListener() {
   const navigate = useNavigate();
@@ -45,8 +46,10 @@ function GlobalContextMenuListener() {
 }
 
 function App() {
-  // Initialize window size persistence and DPI awareness
+  // Initialize window size & position persistence
   useWindowSize();
+  // Initialize multi-monitor DPI awareness
+  useDpiAwareness();
 
   return (
     <SettingsProvider>

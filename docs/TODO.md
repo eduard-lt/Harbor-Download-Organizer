@@ -13,12 +13,12 @@ Contributions welcome. Open an issue before starting significant work.
 - [ ] **Linux support** — Port the Tauri app and monitoring service to Linux.
 - [ ] **Multi-folder monitoring** — Watch more than just the Downloads folder.
 - [ ] **Custom notifications** — System notifications when files are moved or rules fire.
-- [ ] **macOS notification center** — Integrate with macOS Notification Center (UNUserNotificationCenter) for native alerts.
+- [x] **macOS notification center** — Integrate with macOS Notification Center (UNUserNotificationCenter) for native alerts.
 - [ ] **Dry-run mode** — Preview what would be moved without actually moving files.
 - [ ] **Log viewer** — In-app log viewer with search and filters.
 - [ ] **Zoom controls** — Ctrl+/Ctrl- for in-app UI scaling.
-- [ ] **Save window position** — Persist window position across launches.
-- [ ] **Multi-monitor DPI** — Proper handling of mixed DPI across multiple monitors.
+- [x] **Save window position** — Persist window position across launches.
+- [x] **Multi-monitor DPI** — Proper handling of mixed DPI across multiple monitors.
 
 ## Polish
 
