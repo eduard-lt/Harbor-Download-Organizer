@@ -10,6 +10,8 @@
     "preview": "NODE_OPTIONS=--no-deprecation vite preview",
     "test": "NODE_OPTIONS=--no-deprecation vitest",
     "coverage": "NODE_OPTIONS=--no-deprecation vitest run --coverage",
+    "e2e": "NODE_OPTIONS=--no-deprecation playwright test",
+    "e2e:ui": "NODE_OPTIONS=--no-deprecation playwright test --ui",
     "tauri:dev": "cd ../../crates/tauri-app && tauri dev",
     "tauri:build": "cd ../../crates/tauri-app && tauri build"
   },
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.52.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": "^2.0.0",
     "@testing-library/dom": "^10.4.1",

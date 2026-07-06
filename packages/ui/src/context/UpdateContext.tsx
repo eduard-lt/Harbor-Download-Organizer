@@ -141,6 +141,18 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    /** Send a system notification and update tray tooltip via the Rust backend. */
+    const tryNotify = useCallback(async (latestVersion: string, downloadUrl: string) => {
+        try {
+            await notifyUpdateAvailable(latestVersion, downloadUrl);
+        } catch (e) {
+            console.error('[Harbor] Failed to send update notification:', e);
+        }
+
+        // Always persist that we've notified for this version so we don't spam.
+        updateLastNotifiedVersion(latestVersion);
+    }, [updateLastNotifiedVersion]);
+
     /** Internal check that always mirrors the result into state. */
     const performAutoCheck = useCallback(async () => {
         setUpdateState(prev => ({ ...prev, loading: true, error: null }));
@@ -181,19 +193,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 checked: true
             }));
         }
-    }, []);
-
-    /** Send a system notification and update tray tooltip via the Rust backend. */
-    const tryNotify = async (latestVersion: string, downloadUrl: string) => {
-        try {
-            await notifyUpdateAvailable(latestVersion, downloadUrl);
-        } catch (e) {
-            console.error('[Harbor] Failed to send update notification:', e);
-        }
-
-        // Always persist that we've notified for this version so we don't spam.
-        updateLastNotifiedVersion(latestVersion);
-    };
+    }, [tryNotify]);
 
     // Automatic check on interval.
     // Uses only stable dependencies — the check reads lastNotifiedRef internally.
