@@ -1,5 +1,11 @@
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
+// Security: The CSP in tauri.conf.json uses 'unsafe-inline' for style-src.
+// This is required by Tailwind CSS JIT, which injects <style> tags at runtime.
+// Hashes/nonces are impractical because Tailwind generates styles dynamically.
+// This is acceptable for a Tauri desktop app: all content is bundled locally,
+// no remote untrusted HTML is loaded, and the CSP is defense-in-depth.
+
 mod commands;
 mod state;
 #[cfg(test)]
