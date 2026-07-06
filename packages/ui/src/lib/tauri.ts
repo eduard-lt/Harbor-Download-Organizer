@@ -289,6 +289,3 @@ export const notifyUpdateAvailable = async (version: string, url: string): Promi
     return await invoke('notify_update_available', { version, url });
 };
 
-export const dismissUpdateAvailable = async (): Promise<void> => {
-    return await invoke('dismiss_update_available');
-};

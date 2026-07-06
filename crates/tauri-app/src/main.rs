@@ -103,7 +103,6 @@ fn main() {
             commands::get_last_notified_version,
             commands::set_last_notified_version,
             commands::notify_update_available,
-            commands::dismiss_update_available,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

@@ -17,8 +17,8 @@ Contributions welcome. Open an issue before starting significant work.
 ### Audit Findings — High
 
 - [x] **`assets/harbor_h.png` referenced via fragile relative path** — `crates/tauri-app/src/main.rs` uses `include_bytes!("../../../assets/harbor_h.png")`. Path is brittle and depends on the crate being built from the workspace root.
-- [ ] **`dismiss_update_available` is a no-op** — The `dismiss_update_available` Tauri command does nothing (comment says "Tray management removed"). Either remove the command or implement dismissal logic.
-- [ ] **`notify_update_available` ignores `_url` parameter** — The URL parameter is accepted but never used. The notification doesn't help the user actually get the update.
+- [x] **`dismiss_update_available` is a no-op** — The `dismiss_update_available` Tauri command does nothing (comment says "Tray management removed"). Either remove the command or implement dismissal logic.
+- [x] **`notify_update_available` ignores `_url` parameter** — The URL parameter is accepted but never used. The notification doesn't help the user actually get the update.
 - [ ] **uv.lock is effectively empty (125 bytes)** — Python dependencies are not locked, making Python tooling non-deterministic across environments.
 - [ ] **`open_config_file` on Windows uses `cmd /C start ""`** — The empty quoted argument after `start` is a known Windows quirk, but is fragile and uncommented.
 - [ ] **No integration tests for Tauri app** — All Tauri command tests (`crates/tauri-app/src/commands/*.rs`) are unit tests operating on `AppState` directly. No end-to-end Tauri `setup` or menu event tests exist.

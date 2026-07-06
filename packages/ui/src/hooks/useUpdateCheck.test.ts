@@ -28,7 +28,6 @@ describe('useUpdateCheck', () => {
         vi.mocked(tauri.getLastNotifiedVersion).mockResolvedValue('1.2.0');
         vi.mocked(tauri.setLastNotifiedVersion).mockResolvedValue(undefined);
         vi.mocked(tauri.notifyUpdateAvailable).mockResolvedValue(undefined);
-        vi.mocked(tauri.dismissUpdateAvailable).mockResolvedValue(undefined);
     });
 
     afterEach(() => {

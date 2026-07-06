@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import packageJson from '../../package.json';
-import { getCheckUpdates, setCheckUpdates, getLastNotifiedVersion, setLastNotifiedVersion, notifyUpdateAvailable, dismissUpdateAvailable } from '../lib/tauri';
+import { getCheckUpdates, setCheckUpdates, getLastNotifiedVersion, setLastNotifiedVersion, notifyUpdateAvailable } from '../lib/tauri';
 
 const GITHUB_REPO = 'eduard-lt/Harbor-Download-Organizer';
 
@@ -215,10 +215,6 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
     const dismissNotification = useCallback(() => {
         setUpdateState(prev => ({ ...prev, available: false }));
-        // Restore default tray tooltip.
-        dismissUpdateAvailable().catch(e =>
-            console.error('[Harbor] Failed to dismiss update notification:', e)
-        );
     }, []);
 
     return (

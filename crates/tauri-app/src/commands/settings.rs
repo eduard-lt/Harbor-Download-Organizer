@@ -967,29 +967,23 @@ pub async fn set_last_notified_version(
 pub async fn notify_update_available(
     app: AppHandle,
     version: String,
-    _url: String,
+    url: String,
 ) -> Result<(), String> {
     // Spawn notification on the async runtime (matching proven pattern from tray organize).
     let app_handle = app.clone();
-    let version_clone = version.clone();
+    let body = format!("Version {version} is ready. Open Harbor to download:\n{url}");
     tauri::async_runtime::spawn(async move {
         if let Err(e) = app_handle
             .notification()
             .builder()
             .title("Harbor Update Available")
-            .body(format!("Version {version_clone} is ready to download."))
+            .body(body)
             .show()
         {
             eprintln!("[Harbor] Failed to show update notification: {e}");
         }
     });
 
-    Ok(())
-}
-
-/// No-op: kept for API compatibility. Tray management removed.
-#[tauri::command]
-pub async fn dismiss_update_available(_app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
