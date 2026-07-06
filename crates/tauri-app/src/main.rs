@@ -134,9 +134,15 @@ fn main() {
 
             // Load tray icon — platform-specific format
             #[cfg(target_os = "macos")]
-            let icon_bytes = include_bytes!("../../../assets/harbor_h.png");
+            let icon_bytes = include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../assets/harbor_h.png"
+            ));
             #[cfg(target_os = "windows")]
-            let icon_bytes = include_bytes!("../../../assets/icon_h.ico");
+            let icon_bytes = include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../assets/icon_h.ico"
+            ));
             let tray_icon = Image::from_bytes(icon_bytes).expect("Failed to load tray icon");
 
             // Build Tray Menu

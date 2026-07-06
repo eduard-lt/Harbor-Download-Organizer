@@ -12,11 +12,11 @@ Contributions welcome. Open an issue before starting significant work.
 
 - [x] **Inconsistent log formats between tray and Tauri app** — `crates/tray/src/logic.rs` uses `"Moved src -> dst (Rule: name)"` while `crates/tauri-app/src/commands/settings.rs` uses `"src -> dst (name)"`. The activity log parser won't parse tray-produced entries correctly.
 - [x] **Two separate download organization engines** — The tray crate (`crates/tray`) duplicates logic from the Tauri app for `append_recent`, `load_initial_config`, and `cleanup_old_symlinks`. These should be unified under `harbor-core`.
-- [ ] **`cli` crate contains legacy orchestrator code** — The 17K-line `crates/cli/src/main.rs` depends on `orchestrator` feature of `harbor-core`, which is a completely separate feature set (service orchestration, not download organization). This split personality is confusing and the CLI crate appears unmaintained.
+- [x] **`cli` crate contains legacy orchestrator code** — The 17K-line `crates/cli/src/main.rs` depends on `orchestrator` feature of `harbor-core`, which is a completely separate feature set (service orchestration, not download organization). This split personality is confusing and the CLI crate appears unmaintained.
 
 ### Audit Findings — High
 
-- [ ] **`assets/harbor_h.png` referenced via fragile relative path** — `crates/tauri-app/src/main.rs` uses `include_bytes!("../../../assets/harbor_h.png")`. Path is brittle and depends on the crate being built from the workspace root.
+- [x] **`assets/harbor_h.png` referenced via fragile relative path** — `crates/tauri-app/src/main.rs` uses `include_bytes!("../../../assets/harbor_h.png")`. Path is brittle and depends on the crate being built from the workspace root.
 - [ ] **`dismiss_update_available` is a no-op** — The `dismiss_update_available` Tauri command does nothing (comment says "Tray management removed"). Either remove the command or implement dismissal logic.
 - [ ] **`notify_update_available` ignores `_url` parameter** — The URL parameter is accepted but never used. The notification doesn't help the user actually get the update.
 - [ ] **uv.lock is effectively empty (125 bytes)** — Python dependencies are not locked, making Python tooling non-deterministic across environments.
