@@ -1,15 +1,15 @@
 {
   "name": "ui",
   "private": true,
-  "version": "2.0.3",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "NODE_OPTIONS=--no-deprecation vite",
+    "build": "tsc -b && NODE_OPTIONS=--no-deprecation vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest",
-    "coverage": "vitest run --coverage",
+    "preview": "NODE_OPTIONS=--no-deprecation vite preview",
+    "test": "NODE_OPTIONS=--no-deprecation vitest",
+    "coverage": "NODE_OPTIONS=--no-deprecation vitest run --coverage",
     "tauri:dev": "cd ../../crates/tauri-app && tauri dev",
     "tauri:build": "cd ../../crates/tauri-app && tauri build"
   },

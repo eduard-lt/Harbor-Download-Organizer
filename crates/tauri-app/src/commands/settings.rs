@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_autostart::ManagerExt;
 
 #[cfg(windows)]
@@ -1020,6 +1021,37 @@ pub async fn set_last_notified_version(
         config.last_notified_version = Some(version);
     }
     save_config_to_disk(&state)
+}
+
+/// Notifies the user that an update is available via a system notification.
+#[tauri::command]
+pub async fn notify_update_available(
+    app: AppHandle,
+    version: String,
+    _url: String,
+) -> Result<(), String> {
+    // Spawn notification on the async runtime (matching proven pattern from tray organize).
+    let app_handle = app.clone();
+    let version_clone = version.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = app_handle
+            .notification()
+            .builder()
+            .title("Harbor Update Available")
+            .body(format!("Version {version_clone} is ready to download."))
+            .show()
+        {
+            eprintln!("[Harbor] Failed to show update notification: {e}");
+        }
+    });
+
+    Ok(())
+}
+
+/// No-op: kept for API compatibility. Tray management removed.
+#[tauri::command]
+pub async fn dismiss_update_available(_app: AppHandle) -> Result<(), String> {
+    Ok(())
 }
 
 #[cfg(test)]

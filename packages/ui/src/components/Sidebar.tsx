@@ -61,7 +61,9 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => (
+        {navItems.map((item) => {
+          const showUpdateBadge = available && item.to === '/info';
+          return (
           <NavLink
             key={item.to}
             to={item.to}
@@ -72,10 +74,17 @@ export function Sidebar() {
               }`
             }
           >
-            <span className="material-icons-round group-hover:text-primary">{item.icon}</span>
+            <span className="material-icons-round group-hover:text-primary relative">{item.icon}
+              {showUpdateBadge && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white dark:border-slate-900"></span>
+                </span>
+              )}
+            </span>
             <span className="font-medium hidden lg:block">{item.label}</span>
           </NavLink>
-        ))}
+        )})}
       </nav>
 
       {/* Service Toggle & Footer Links */}

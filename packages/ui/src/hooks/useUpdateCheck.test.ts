@@ -4,7 +4,6 @@ import { useUpdateCheck } from './useUpdateCheck';
 import { UpdateProvider } from '../context/UpdateContext';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as tauri from '../lib/tauri';
-import * as notifications from '@tauri-apps/plugin-notification';
 
 // Mock package.json
 vi.mock('../../package.json', () => ({
@@ -13,9 +12,6 @@ vi.mock('../../package.json', () => ({
 
 // Mock Tauri commands - Auto-mocking
 vi.mock('../lib/tauri');
-
-// Mock Notification plugin - Auto-mocking
-vi.mock('@tauri-apps/plugin-notification');
 
 describe('useUpdateCheck', () => {
     beforeEach(() => {
@@ -31,10 +27,8 @@ describe('useUpdateCheck', () => {
         vi.mocked(tauri.setCheckUpdates).mockResolvedValue(undefined);
         vi.mocked(tauri.getLastNotifiedVersion).mockResolvedValue('1.2.0');
         vi.mocked(tauri.setLastNotifiedVersion).mockResolvedValue(undefined);
-
-        vi.mocked(notifications.isPermissionGranted).mockResolvedValue(true);
-        vi.mocked(notifications.requestPermission).mockResolvedValue('granted');
-        vi.mocked(notifications.sendNotification).mockReturnValue(undefined);
+        vi.mocked(tauri.notifyUpdateAvailable).mockResolvedValue(undefined);
+        vi.mocked(tauri.dismissUpdateAvailable).mockResolvedValue(undefined);
     });
 
     afterEach(() => {
@@ -151,5 +145,23 @@ describe('useUpdateCheck', () => {
         });
 
         expect(result.current.checkForUpdates).toBe(false);
+    });
+
+    it('should set checked and error state on manual check failure', async () => {
+        vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
+
+        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+
+        await waitFor(() => {
+            expect(result.current.updateState.loading).toBe(false);
+        });
+
+        await act(async () => {
+            await result.current.checkNow();
+        });
+
+        expect(result.current.updateState.checked).toBe(true);
+        expect(result.current.updateState.error).toBe('Network error');
+        expect(result.current.updateState.available).toBe(false);
     });
 });

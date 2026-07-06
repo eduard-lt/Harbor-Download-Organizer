@@ -3,6 +3,7 @@ import { Header } from '../components/Header';
 import { useSettings } from '../hooks/useSettings';
 import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { useState } from 'react';
+import { open } from '@tauri-apps/plugin-shell';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useWindowSize } from '../hooks/useWindowSize';
 import { ActivityTable } from '../components/ActivityTable';
@@ -327,6 +328,30 @@ export function SettingsPage() {
                     {updateLoading ? 'Checking...' : 'Check Now'}
                   </button>
                 </div>
+
+                {/* Update Available Button - only visible when an update is detected */}
+                {updateHasUpdate && updateVersion && updateUrl && (
+                  <div className="md:col-span-2 flex items-center justify-between p-4 bg-primary/10 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                      <span className="material-icons-round text-primary text-xl">new_releases</span>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 dark:text-white">
+                          Harbor {updateVersion} is available
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          Download the latest release from GitHub.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => open(updateUrl)}
+                      className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                    >
+                      <span className="material-icons-round text-base">download</span>
+                      Download Update
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
                   {/* Notifications placeholder - not yet implemented in backend properly */}

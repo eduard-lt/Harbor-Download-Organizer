@@ -284,3 +284,11 @@ export const getLastNotifiedVersion = async (): Promise<string | null> => {
 export const setLastNotifiedVersion = async (version: string): Promise<void> => {
     return await invoke('set_last_notified_version', { version });
 };
+
+export const notifyUpdateAvailable = async (version: string, url: string): Promise<void> => {
+    return await invoke('notify_update_available', { version, url });
+};
+
+export const dismissUpdateAvailable = async (): Promise<void> => {
+    return await invoke('dismiss_update_available');
+};

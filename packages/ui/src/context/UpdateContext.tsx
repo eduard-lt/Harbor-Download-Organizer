@@ -1,10 +1,14 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import packageJson from '../../package.json';
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
-import { getCheckUpdates, setCheckUpdates, getLastNotifiedVersion, setLastNotifiedVersion } from '../lib/tauri';
+import { getCheckUpdates, setCheckUpdates, getLastNotifiedVersion, setLastNotifiedVersion, notifyUpdateAvailable, dismissUpdateAvailable } from '../lib/tauri';
 
 const GITHUB_REPO = 'eduard-lt/Harbor-Download-Organizer';
+
+/** Delay before first automatic check to ensure the app is fully initialized. */
+const INITIAL_CHECK_DELAY_MS = 5_000;
+/** Interval between automatic checks. */
+const CHECK_INTERVAL_MS = 1000 * 60 * 60 * 3; // 3 hours
 
 interface UpdateState {
     available: boolean;
@@ -32,6 +36,9 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     const [lastNotifiedVersion, setLastNotifiedVersionState] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
+    // Ref to always have the latest lastNotifiedVersion without triggering effect re-runs.
+    const lastNotifiedRef = useRef<string | null>(null);
+
     const [updateState, setUpdateState] = useState<UpdateState>({
         available: false,
         hasUpdate: false,
@@ -41,6 +48,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         error: null,
         checked: false
     });
+
+    // Keep ref in sync with state.
+    useEffect(() => {
+        lastNotifiedRef.current = lastNotifiedVersion;
+    }, [lastNotifiedVersion]);
 
     // Load settings from backend on mount
     useEffect(() => {
@@ -56,7 +68,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 setIsLoaded(true);
                 setUpdateState(prev => ({ ...prev, loading: false }));
             } catch (error) {
-                console.error('Failed to load update settings:', error);
+                console.error('[Harbor] Failed to load update settings:', error);
                 setIsLoaded(true);
                 setUpdateState(prev => ({ ...prev, loading: false }));
             }
@@ -69,16 +81,17 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         try {
             await setCheckUpdates(value);
         } catch (error) {
-            console.error('Failed to save check updates setting:', error);
+            console.error('[Harbor] Failed to save check updates setting:', error);
         }
     }, []);
 
     const updateLastNotifiedVersion = useCallback(async (version: string) => {
         setLastNotifiedVersionState(version);
+        lastNotifiedRef.current = version;
         try {
             await setLastNotifiedVersion(version);
         } catch (error) {
-            console.error('Failed to save last notified version:', error);
+            console.error('[Harbor] Failed to save last notified version:', error);
         }
     }, []);
 
@@ -118,7 +131,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
             });
 
         } catch (error) {
-            console.error('Update check failed:', error);
+            console.error('[Harbor] Update check failed:', error);
             setUpdateState(prev => ({
                 ...prev,
                 loading: false,
@@ -128,64 +141,84 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Automatic check on interval
+    /** Internal check that always mirrors the result into state. */
+    const performAutoCheck = useCallback(async () => {
+        setUpdateState(prev => ({ ...prev, loading: true, error: null }));
+
+        try {
+            const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+            if (!response.ok) throw new Error('Failed to fetch release info');
+
+            const data = await response.json();
+            const latestVersion = data.tag_name.replace(/^v/, '');
+            const currentVersion = packageJson.version;
+
+            const hasNewUpdate = compareVersions(latestVersion, currentVersion) > 0;
+
+            setUpdateState({
+                available: hasNewUpdate,
+                hasUpdate: hasNewUpdate,
+                version: latestVersion,
+                url: data.html_url,
+                loading: false,
+                error: null,
+                checked: true
+            });
+
+            if (hasNewUpdate) {
+                // Use ref to avoid stale closure and prevent effect re-triggering.
+                if (lastNotifiedRef.current !== latestVersion) {
+                    // Fire-and-forget notification — don't let it block state update.
+                    tryNotify(latestVersion, data.html_url);
+                }
+            }
+        } catch (e) {
+            console.error('[Harbor] Auto update check failed:', e);
+            setUpdateState(prev => ({
+                ...prev,
+                loading: false,
+                error: e instanceof Error ? e.message : 'Unknown error',
+                checked: true
+            }));
+        }
+    }, []);
+
+    /** Send a system notification and update tray tooltip via the Rust backend. */
+    const tryNotify = async (latestVersion: string, downloadUrl: string) => {
+        try {
+            await notifyUpdateAvailable(latestVersion, downloadUrl);
+        } catch (e) {
+            console.error('[Harbor] Failed to send update notification:', e);
+        }
+
+        // Always persist that we've notified for this version so we don't spam.
+        updateLastNotifiedVersion(latestVersion);
+    };
+
+    // Automatic check on interval.
+    // Uses only stable dependencies — the check reads lastNotifiedRef internally.
     useEffect(() => {
         if (!isLoaded || !checkForUpdates) return;
 
-        const checkService = async () => {
-            try {
-                const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-                if (!response.ok) throw new Error('Failed to fetch release info');
+        // Delay the first check slightly so the app is fully initialized.
+        const initialTimer = setTimeout(() => {
+            performAutoCheck();
+        }, INITIAL_CHECK_DELAY_MS);
 
-                const data = await response.json();
-                const latestVersion = data.tag_name.replace(/^v/, '');
-                const currentVersion = packageJson.version;
+        const interval = setInterval(performAutoCheck, CHECK_INTERVAL_MS);
 
-                if (compareVersions(latestVersion, currentVersion) > 0) {
-                    setUpdateState(prev => ({
-                        ...prev,
-                        available: true,
-                        hasUpdate: true,
-                        version: latestVersion,
-                        url: data.html_url,
-                        checked: true
-                    }));
-
-                    // Check if already notified
-                    if (lastNotifiedVersion !== latestVersion) {
-                        // Send notification
-                        let granted = await isPermissionGranted();
-                        if (!granted) {
-                            const permission = await requestPermission();
-                            granted = permission === 'granted';
-                        }
-
-                        if (granted) {
-                            sendNotification({
-                                title: 'Update Available',
-                                body: `New version ${latestVersion} is available.`,
-                            });
-                        }
-
-                        // Update persisted state
-                        updateLastNotifiedVersion(latestVersion);
-                    }
-                }
-            } catch (e) {
-                console.error("Auto update check failed", e);
-            }
+        return () => {
+            clearTimeout(initialTimer);
+            clearInterval(interval);
         };
-
-        checkService(); // Check immediately on mount/enable
-
-        // Then interval
-        const interval = setInterval(checkService, 1000 * 60 * 60 * 3); // 3 hours
-        return () => clearInterval(interval);
-
-    }, [isLoaded, checkForUpdates, lastNotifiedVersion, updateLastNotifiedVersion]);
+    }, [isLoaded, checkForUpdates, performAutoCheck]);
 
     const dismissNotification = useCallback(() => {
         setUpdateState(prev => ({ ...prev, available: false }));
+        // Restore default tray tooltip.
+        dismissUpdateAvailable().catch(e =>
+            console.error('[Harbor] Failed to dismiss update notification:', e)
+        );
     }, []);
 
     return (
