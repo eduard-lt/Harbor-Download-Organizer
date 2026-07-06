@@ -1,0 +1,33 @@
+[package]
+name = "harbor-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Isolate from parent workspace so cargo-fuzz can manage its own build
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_yaml = "0.9"
+serde_json = "1"
+
+[dependencies.harbor-core]
+path = ".."
+
+[[bin]]
+name = "config_yaml"
+path = "fuzz_targets/config_yaml.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rule_yaml"
+path = "fuzz_targets/rule_yaml.rs"
+test = false
+doc = false
+bench = false
