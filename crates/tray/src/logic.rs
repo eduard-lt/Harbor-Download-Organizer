@@ -148,6 +148,9 @@ pub fn open_folder(path: &std::path::Path) {
 pub fn open_config(path: &std::path::Path) {
     #[cfg(not(test))]
     if cfg!(windows) {
+        // The empty string after "start" is the window title placeholder.
+        // Without it, "start" would consume the first quoted argument (e.g., a
+        // path containing spaces) as the title instead of opening the file.
         let _ = std::process::Command::new("cmd")
             .args(["/C", "start", "", path.to_str().unwrap_or("")])
             .spawn();

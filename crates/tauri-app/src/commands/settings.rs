@@ -823,6 +823,9 @@ pub async fn open_config_file(state: State<'_, AppState>) -> Result<(), String> 
 
     #[cfg(windows)]
     {
+        // The empty string after "start" is the window title placeholder.
+        // Without it, "start" would consume the first quoted argument (e.g., a
+        // path containing spaces) as the title instead of opening the file.
         std::process::Command::new("cmd")
             .args(["/C", "start", "", path.to_string_lossy().as_ref()])
             .spawn()
