@@ -20,7 +20,7 @@ Contributions welcome. Open an issue before starting significant work.
 - [x] **`dismiss_update_available` is a no-op** — The `dismiss_update_available` Tauri command does nothing (comment says "Tray management removed"). Either remove the command or implement dismissal logic.
 - [x] **`notify_update_available` ignores `_url` parameter** — The URL parameter is accepted but never used. The notification doesn't help the user actually get the update.
 - [x] **uv.lock is effectively empty (125 bytes)** — Python dependencies are not locked, making Python tooling non-deterministic across environments.
-- [ ] **`open_config_file` on Windows uses `cmd /C start ""`** — The empty quoted argument after `start` is a known Windows quirk, but is fragile and uncommented.
+- [x] **`open_config_file` on Windows uses `cmd /C start ""`** — The empty quoted argument after `start` is a known Windows quirk, but is fragile and uncommented.
 - [ ] **No integration tests for Tauri app** — All Tauri command tests (`crates/tauri-app/src/commands/*.rs`) are unit tests operating on `AppState` directly. No end-to-end Tauri `setup` or menu event tests exist.
 - [ ] **Fuzz build artifacts in `crates/core/fuzz/target`** — The fuzz target directory contains compiled binaries and build artifacts. Should be in `.gitignore` (currently only `artifacts/` and `corpus/` are ignored, not the full `target/`).
 - [ ] **Orchestrator `up`/`down` tests use `System::new_all()` and spawn real processes** — `crates/core/src/orchestrator.rs` tests spawn `sleep 5`/`ping` processes and use `ProcessesToUpdate::All`, which is resource-intensive and potentially flaky.

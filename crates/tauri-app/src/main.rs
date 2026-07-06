@@ -2,6 +2,8 @@
 
 mod commands;
 mod state;
+#[cfg(test)]
+mod integration_tests;
 
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
