@@ -5,17 +5,12 @@ edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
 thiserror.workspace = true
 regex.workspace = true
 uuid.workspace = true
-ureq = { version = "2.9.6", features = ["json"], optional = true }
-sysinfo = { version = "0.33.1", features = ["serde"], optional = true }
-
-[features]
-orchestrator = ["ureq", "sysinfo"]
-
 [dev-dependencies]
 tempfile.workspace = true

@@ -12,9 +12,9 @@ use std::sync::Arc;
 #[cfg(windows)]
 mod logic;
 #[cfg(windows)]
-use logic::{
-    load_initial_config, open_config, open_folder, windows::utils::SingleInstance, TrayLogic,
-};
+use harbor_core::downloads::load_or_initialize_config;
+#[cfg(windows)]
+use logic::{open_config, open_folder, windows::utils::SingleInstance, TrayLogic};
 
 #[cfg(windows)]
 #[derive(Default)]
@@ -47,7 +47,7 @@ fn tray_main() -> Result<()> {
     let cfg_path = harbor_app_dir().join("harbor.downloads.yaml");
 
     // Load config using refactored function
-    let cfg = load_initial_config(&cfg_path)?;
+    let cfg = load_or_initialize_config(&cfg_path)?;
 
     let app_logic = Arc::new(TrayLogic::new(cfg));
 

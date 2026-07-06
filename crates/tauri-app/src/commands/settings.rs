@@ -1,10 +1,10 @@
 use crate::commands::error_contract::{map_legacy_organize_error, AppError, AppErrorDto};
 use crate::state::{AppState, ServiceLifecycleState};
-use harbor_core::downloads::{load_downloads_config, organize_once, watch_polling, OrganizeResult};
+use harbor_core::downloads::{
+    append_organize_results_to_log, load_downloads_config, organize_once, watch_polling,
+};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -19,11 +19,6 @@ use winreg::enums::*;
 #[cfg(windows)]
 use winreg::RegKey;
 
-/// Maximum number of lines kept in the activity log before it is trimmed.
-const LOG_MAX_LINES: usize = 10_000;
-/// Trim the log when it exceeds this file-size threshold to avoid reading the
-/// file on every single append.
-const LOG_ROTATION_THRESHOLD_BYTES: u64 = 1_024 * 1_024; // 1 MiB
 /// Coalescing window for rapid restart requests triggered by bursty rule edits.
 pub const RESTART_DEBOUNCE_WINDOW: Duration = Duration::from_millis(500);
 
@@ -138,62 +133,6 @@ pub fn map_tray_organize_outcome(response: &OrganizeNowResponse) -> TrayOrganize
         remediation_summary,
         primary_code,
     }
-}
-
-fn append_to_log(log_path: &PathBuf, actions: &[OrganizeResult]) {
-    if actions.is_empty() {
-        return;
-    }
-
-    if let Some(parent) = log_path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
-
-    let mut buf = String::new();
-    for result in actions {
-        let symlink_msg = result.symlink_info.as_deref().unwrap_or("");
-        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-        buf.push_str(&format!(
-            "[{}] {} -> {} ({}) {}\n",
-            timestamp,
-            result.source.display(),
-            result.destination.display(),
-            result.rule_name,
-            symlink_msg
-        ));
-    }
-
-    if let Ok(mut file) = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(log_path)
-    {
-        let _ = file.write_all(buf.as_bytes());
-    }
-
-    rotate_log_if_needed(log_path);
-}
-
-/// Trims the log file to the last [`LOG_MAX_LINES`] lines when it grows beyond
-/// [`LOG_ROTATION_THRESHOLD_BYTES`]. This keeps memory usage bounded without
-/// paying the cost of reading the file on every append.
-fn rotate_log_if_needed(log_path: &PathBuf) {
-    let size = fs::metadata(log_path).map(|m| m.len()).unwrap_or(0);
-    if size <= LOG_ROTATION_THRESHOLD_BYTES {
-        return;
-    }
-
-    let Ok(content) = fs::read_to_string(log_path) else {
-        return;
-    };
-
-    let lines: Vec<&str> = content.lines().collect();
-    if lines.len() <= LOG_MAX_LINES {
-        return;
-    }
-
-    let trimmed = lines[lines.len() - LOG_MAX_LINES..].join("\n") + "\n";
-    let _ = fs::write(log_path, trimmed);
 }
 
 #[tauri::command]
@@ -329,7 +268,7 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
     let thread_flag = new_flag.clone();
     let handle = thread::spawn(move || {
         let _ = watch_polling(&config, 5, &thread_flag, |actions| {
-            append_to_log(&log_path, actions);
+            append_organize_results_to_log(&log_path, actions);
         });
     });
 
@@ -658,7 +597,7 @@ pub async fn impl_trigger_organize_now(state: &AppState) -> OrganizeNowResponse 
         eprintln!("[Harbor] {err}");
     }
 
-    append_to_log(&log_path, &summary.moved);
+    append_organize_results_to_log(&log_path, &summary.moved);
 
     map_organize_summary_to_response(summary, download_dir)
 }
@@ -1057,7 +996,8 @@ pub async fn dismiss_update_available(_app: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use harbor_core::downloads::{DownloadsConfig, OrganizeSummary};
+    use harbor_core::downloads::{DownloadsConfig, OrganizeResult, OrganizeSummary};
+    use std::path::PathBuf;
     use tempfile::tempdir;
 
     fn test_config(service_enabled: bool, min_age_secs: u64) -> DownloadsConfig {
@@ -1104,7 +1044,7 @@ mod tests {
             },
         ];
 
-        append_to_log(&log_path, &actions);
+        append_organize_results_to_log(&log_path, &actions);
 
         assert!(log_path.exists());
         let content = std::fs::read_to_string(&log_path).unwrap();
@@ -1126,7 +1066,7 @@ mod tests {
         let log_path = tmp.path().join("empty.log");
         let actions = vec![];
 
-        append_to_log(&log_path, &actions);
+        append_organize_results_to_log(&log_path, &actions);
 
         assert!(!log_path.exists());
     }

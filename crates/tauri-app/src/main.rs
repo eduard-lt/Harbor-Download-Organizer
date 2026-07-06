@@ -3,7 +3,7 @@
 mod commands;
 mod state;
 
-use harbor_core::downloads::{default_config, load_downloads_config};
+use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
 use state::AppState;
 use tauri::menu::ContextMenu;
@@ -32,29 +32,19 @@ fn main() {
 
     let cfg_path = harbor_dir.join("harbor.downloads.yaml");
 
-    // If config doesn't exist, try to copy from default template or create default
+    let config = load_or_initialize_config(&cfg_path).unwrap_or_else(|e| {
+        eprintln!("[Harbor] Warning: failed to load config: {e}");
+        harbor_core::downloads::default_config()
+    });
+
+    // Ensure a default config file exists on disk for first-run users.
     if !cfg_path.exists() {
-        let default_config_path = harbor_dir.join("harbor.downloads.yaml.default");
-        if default_config_path.exists() {
-            if let Err(e) = std::fs::copy(&default_config_path, &cfg_path) {
-                eprintln!("[Harbor] Warning: failed to copy default config to disk: {e}");
-            }
-        } else {
-            // Create default config
-            let config = default_config();
-            if let Ok(yaml) = serde_yaml::to_string(&config) {
-                if let Err(e) = std::fs::write(&cfg_path, yaml) {
-                    eprintln!("[Harbor] Warning: failed to write config to disk: {e}");
-                }
+        if let Ok(yaml) = serde_yaml::to_string(&config) {
+            if let Err(e) = std::fs::write(&cfg_path, yaml) {
+                eprintln!("[Harbor] Warning: failed to write default config to disk: {e}");
             }
         }
     }
-
-    let config = if cfg_path.exists() {
-        load_downloads_config(&cfg_path).unwrap_or_else(|_| default_config())
-    } else {
-        default_config()
-    };
 
     // Start service if enabled in config (Default: true for new users)
     let service_enabled = config.service_enabled.unwrap_or(true);

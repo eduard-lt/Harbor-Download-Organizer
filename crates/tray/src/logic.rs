@@ -1,9 +1,9 @@
 use anyhow::Result;
 use harbor_core::downloads::{
-    cleanup_old_symlinks, load_downloads_config, organize_once, watch_polling, DownloadsConfig,
-    OrganizeResult,
+    append_organize_results_to_log, cleanup_old_symlinks, load_or_initialize_config,
+    organize_once, watch_polling, DownloadsConfig, OrganizeResult,
 };
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -132,37 +132,7 @@ impl TrayLogic {
     }
 
     fn append_recent(&self, actions: &[OrganizeResult]) {
-        if actions.is_empty() {
-            return;
-        }
-
-        // Ensure directory exists
-        if let Some(parent) = self.log_path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.log_path)
-        {
-            use std::io::Write;
-            for result in actions {
-                let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-                let _ = writeln!(
-                    file,
-                    "[{}] Moved {} -> {} (Rule: {})",
-                    timestamp,
-                    result
-                        .source
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy(),
-                    result.destination.display(),
-                    result.rule_name
-                );
-            }
-        }
+        append_organize_results_to_log(&self.log_path, actions);
     }
 }
 
@@ -181,25 +151,6 @@ pub fn open_config(path: &std::path::Path) {
         let _ = std::process::Command::new("cmd")
             .args(["/C", "start", "", path.to_str().unwrap_or("")])
             .spawn();
-    }
-}
-
-pub fn load_initial_config(config_path: &Path) -> Result<DownloadsConfig> {
-    // If config doesn't exist, try to copy from default template
-    if !config_path.exists() {
-        // Look for .default in the same directory
-        let default_config_path = config_path.with_extension("yaml.default");
-        if default_config_path.exists() {
-            // Copy the default config to the active config
-            let _ = std::fs::copy(&default_config_path, config_path);
-        }
-    }
-
-    if config_path.exists() {
-        load_downloads_config(config_path)
-    } else {
-        // Use core default config
-        Ok(harbor_core::downloads::default_config())
     }
 }
 
@@ -253,39 +204,6 @@ mod tests {
         let (config, _tmp) = create_test_config();
         let logic = TrayLogic::new(config);
         assert!(logic.cleanup_old_symlinks().is_ok());
-    }
-
-    #[test]
-    fn test_load_initial_config() {
-        let tmp = tempdir().unwrap();
-        let cfg_path = tmp.path().join("config.yaml");
-
-        // 1. Not exists -> default
-        let cfg = load_initial_config(&cfg_path).unwrap();
-
-        // We know default config uses "Downloads"
-        if cfg!(windows) {
-            assert!(cfg.download_dir.contains("Downloads"));
-        }
-
-        // 2. Exists -> load
-        let content = "download_dir: \"test_dir\"\nrules: []";
-        std::fs::write(&cfg_path, content).unwrap();
-        let cfg = load_initial_config(&cfg_path).unwrap();
-        assert_eq!(cfg.download_dir, "test_dir");
-
-        // 3. Default file exists (and config does not) -> copy
-        std::fs::remove_file(&cfg_path).unwrap();
-        let default_path = tmp.path().join("config.yaml.default");
-        std::fs::write(
-            &default_path,
-            "download_dir: \"default_from_file\"\nrules: []",
-        )
-        .unwrap();
-
-        let cfg = load_initial_config(&cfg_path).unwrap();
-        assert_eq!(cfg.download_dir, "default_from_file");
-        assert!(cfg_path.exists());
     }
 
     #[cfg(windows)]
@@ -352,7 +270,7 @@ mod tests {
 
         assert!(logic.log_path.exists());
         let content = std::fs::read_to_string(&logic.log_path).unwrap();
-        assert!(content.contains("Moved a.txt -> b.txt (Rule: rule)"));
+        assert!(content.contains("a.txt -> b.txt (rule)"));
     }
 
     #[test]

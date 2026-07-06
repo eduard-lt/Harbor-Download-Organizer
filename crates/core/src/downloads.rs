@@ -700,6 +700,99 @@ pub fn cleanup_old_symlinks(cfg: &DownloadsConfig) -> Result<usize> {
     Ok(count)
 }
 
+/// Maximum number of lines kept in the activity log before it is trimmed.
+pub const LOG_MAX_LINES: usize = 10_000;
+
+/// Trim the log when it exceeds this file-size threshold to avoid reading the
+/// file on every single append.
+pub const LOG_ROTATION_THRESHOLD_BYTES: u64 = 1_024 * 1_024; // 1 MiB
+
+/// Appends a batch of [`OrganizeResult`] entries to the activity log file.
+///
+/// Each entry follows the format:
+/// `[timestamp] <source> -> <dest> (<rule>) <symlink_info>`
+///
+/// The log file is automatically rotated when it exceeds
+/// [`LOG_ROTATION_THRESHOLD_BYTES`] bytes — old entries beyond
+/// [`LOG_MAX_LINES`] are discarded.
+pub fn append_organize_results_to_log(log_path: &Path, actions: &[OrganizeResult]) {
+    if actions.is_empty() {
+        return;
+    }
+
+    if let Some(parent) = log_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+
+    let mut buf = String::new();
+    for result in actions {
+        let symlink_msg = result.symlink_info.as_deref().unwrap_or("");
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+        buf.push_str(&format!(
+            "[{}] {} -> {} ({}) {}\n",
+            timestamp,
+            result.source.display(),
+            result.destination.display(),
+            result.rule_name,
+            symlink_msg
+        ));
+    }
+
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    {
+        use std::io::Write;
+        let _ = file.write_all(buf.as_bytes());
+    }
+
+    rotate_log_if_needed(log_path);
+}
+
+/// Trims the log file to the last [`LOG_MAX_LINES`] lines when it grows beyond
+/// [`LOG_ROTATION_THRESHOLD_BYTES`].
+fn rotate_log_if_needed(log_path: &Path) {
+    let size = fs::metadata(log_path).map(|m| m.len()).unwrap_or(0);
+    if size <= LOG_ROTATION_THRESHOLD_BYTES {
+        return;
+    }
+
+    let Ok(content) = fs::read_to_string(log_path) else {
+        return;
+    };
+
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.len() <= LOG_MAX_LINES {
+        return;
+    }
+
+    let trimmed = lines[lines.len() - LOG_MAX_LINES..].join("\n") + "\n";
+    let _ = fs::write(log_path, trimmed);
+}
+
+/// Loads the configuration from `config_path`, falling back to a default
+/// template or a programmatic default.
+///
+/// If the config file does not exist, this function attempts to copy
+/// `<config_path>.default` into place before loading. When neither the
+/// config nor its `.default` template exist, the built-in
+/// [`default_config`] is returned.
+pub fn load_or_initialize_config(config_path: &Path) -> Result<DownloadsConfig> {
+    if !config_path.exists() {
+        let default_config_path = config_path.with_extension("yaml.default");
+        if default_config_path.exists() {
+            let _ = fs::copy(&default_config_path, config_path);
+        }
+    }
+
+    if config_path.exists() {
+        load_downloads_config(config_path)
+    } else {
+        Ok(default_config())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1136,5 +1229,138 @@ rules:
         // wallpaper.png → should go to Images (regex rule checked first but doesn't match)
         assert!(!wp_path.exists());
         assert!(images.join("wallpaper.png").exists());
+    }
+
+    // ── append_organize_results_to_log ──────────────────────────
+
+    #[test]
+    fn test_append_organize_results_creates_and_writes() {
+        let root = TempDir::new().unwrap();
+        let log_path = root.path().join("logs").join("recent.log");
+
+        let actions = vec![
+            OrganizeResult {
+                source: PathBuf::from("src/a.txt"),
+                destination: PathBuf::from("dst/a.txt"),
+                rule_name: "Images".to_string(),
+                symlink_info: None,
+            },
+            OrganizeResult {
+                source: PathBuf::from("src/b.txt"),
+                destination: PathBuf::from("dst/b.txt"),
+                rule_name: "Docs".to_string(),
+                symlink_info: Some("Symlinked".to_string()),
+            },
+        ];
+
+        append_organize_results_to_log(&log_path, &actions);
+
+        assert!(log_path.exists());
+        let content = fs::read_to_string(&log_path).unwrap();
+        assert!(content.contains("src/a.txt -> dst/a.txt (Images)"));
+        assert!(content.contains("src/b.txt -> dst/b.txt (Docs) Symlinked"));
+        // Every non-empty line should start with a timestamp bracket
+        for line in content.lines().filter(|l| !l.is_empty()) {
+            assert!(line.starts_with('['), "expected timestamp prefix on: {line}");
+        }
+    }
+
+    #[test]
+    fn test_append_organize_results_empty() {
+        let root = TempDir::new().unwrap();
+        let log_path = root.path().join("empty.log");
+        append_organize_results_to_log(&log_path, &[]);
+        assert!(!log_path.exists());
+    }
+
+    #[test]
+    fn test_append_organize_results_creates_dir() {
+        let root = TempDir::new().unwrap();
+        let log_path = root.path().join("nested").join("dir").join("log.txt");
+
+        let action = OrganizeResult {
+            source: PathBuf::from("a"),
+            destination: PathBuf::from("b"),
+            rule_name: "rule".into(),
+            symlink_info: None,
+        };
+        append_organize_results_to_log(&log_path, &[action]);
+        assert!(log_path.exists());
+    }
+
+    #[test]
+    fn test_rotate_log_trims_old_entries() {
+        let root = TempDir::new().unwrap();
+        let log_path = root.path().join("rotate.log");
+
+        // Write enough data to exceed LOG_ROTATION_THRESHOLD_BYTES (1 MiB).
+        // Pad each line to ~110 bytes so ~10_100 lines exceeds the threshold.
+        let pad = "x".repeat(40);
+        let mut big = String::new();
+        for i in 0..LOG_MAX_LINES + 100 {
+            big.push_str(&format!(
+                "[2024-01-01 00:00:00] src/file_{i:04}_{pad}.txt -> dst/file_{i:04}_{pad}.txt (Rule)\n"
+            ));
+        }
+        fs::write(&log_path, &big).unwrap();
+
+        // Append one more entry to trigger rotation
+        let action = OrganizeResult {
+            source: PathBuf::from("src/new.txt"),
+            destination: PathBuf::from("dst/new.txt"),
+            rule_name: "Rule".into(),
+            symlink_info: None,
+        };
+        append_organize_results_to_log(&log_path, &[action]);
+
+        let content = fs::read_to_string(&log_path).unwrap();
+        let line_count = content.lines().count();
+        assert!(
+            line_count <= LOG_MAX_LINES + 1,
+            "expected ≤ {} lines, got {line_count}",
+            LOG_MAX_LINES + 1
+        );
+        // The newest entry should be present
+        assert!(content.contains("src/new.txt -> dst/new.txt (Rule)"));
+    }
+
+    // ── load_or_initialize_config ───────────────────────────────
+
+    #[test]
+    fn test_load_or_initialize_config_not_exists() {
+        let root = TempDir::new().unwrap();
+        let cfg_path = root.path().join("config.yaml");
+        let cfg = load_or_initialize_config(&cfg_path).unwrap();
+        // Should return the built-in default
+        assert!(cfg.download_dir.contains("Downloads"));
+    }
+
+    #[test]
+    fn test_load_or_initialize_config_exists() {
+        let root = TempDir::new().unwrap();
+        let cfg_path = root.path().join("config.yaml");
+        fs::write(
+            &cfg_path,
+            "download_dir: \"test_dir\"\nrules: []\n",
+        )
+        .unwrap();
+        let cfg = load_or_initialize_config(&cfg_path).unwrap();
+        assert_eq!(cfg.download_dir, "test_dir");
+    }
+
+    #[test]
+    fn test_load_or_initialize_config_copies_default() {
+        let root = TempDir::new().unwrap();
+        let cfg_path = root.path().join("config.yaml");
+        let default_path = root.path().join("config.yaml.default");
+        fs::write(
+            &default_path,
+            "download_dir: \"default_from_file\"\nrules: []\n",
+        )
+        .unwrap();
+
+        let cfg = load_or_initialize_config(&cfg_path).unwrap();
+        assert_eq!(cfg.download_dir, "default_from_file");
+        assert!(cfg_path.exists());
     }
 }
