@@ -24,7 +24,7 @@ Contributions welcome. Open an issue before starting significant work.
 - [x] **No integration tests for Tauri app** — All Tauri command tests (`crates/tauri-app/src/commands/*.rs`) are unit tests operating on `AppState` directly. No end-to-end Tauri `setup` or menu event tests exist.
 - [x] **Fuzz build artifacts in `crates/core/fuzz/target`** — The fuzz target directory contains compiled binaries and build artifacts. Should be in `.gitignore` (currently only `artifacts/` and `corpus/` are ignored, not the full `target/`).
 - [x] **Orchestrator `up`/`down` tests use `System::new_all()` and spawn real processes** — `crates/core/src/orchestrator.rs` tests spawn `sleep 5`/`ping` processes and use `ProcessesToUpdate::All`, which is resource-intensive and potentially flaky.
-- [ ] **Hardcoded `csp` in `tauri.conf.json` uses `unsafe-inline` for styles** — Relaxes CSP policy. Should use hashes or nonces instead.
+- [x] **Hardcoded `csp` in `tauri.conf.json` uses `unsafe-inline` for styles** — Relaxes CSP policy. Should use hashes or nonces instead.
 
 ## Features
 
@@ -56,11 +56,11 @@ Contributions welcome. Open an issue before starting significant work.
 - [x] **README** — Rewritten for public launch (v2.0.3).
 - [x] **CHANGELOG** — Rebuilt from accurate git history.
 - [x] **POE_TASKS.md** — Accurate reference for all tasks.
-- [ ] **Architecture doc** — Document crate layout and key abstractions (partially exists in git history).
-- [ ] **Contributing guide** — CONTRIBUTING.md with setup, workflow, and PR guidelines.
+- [x] **Architecture doc** — Document crate layout and key abstractions (partially exists in git history).
+- [x] **Contributing guide** — CONTRIBUTING.md with setup, workflow, and PR guidelines.
 
 ## Infrastructure
 
-- [ ] **Dependabot** — Enable Dependabot for Rust and npm dependency updates.
+- [x] **Dependabot** — Enable Dependabot for Rust and npm dependency updates.
 - [ ] **Stale issue bot** — Auto-close stale issues and PRs.
 - [ ] **GitHub pages** — Host documentation site (optional).

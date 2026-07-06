@@ -1,8 +1,8 @@
 # Contributing to Harbor
 
-Thank you for considering contributing to Harbor! We appreciate your time and effort. This guide will help you get started with contributing to the project.
+Thank you for considering contributing to Harbor! This guide covers everything you need to get started.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
 - [How Can I Contribute?](#how-can-i-contribute)
@@ -13,8 +13,6 @@ Thank you for considering contributing to Harbor! We appreciate your time and ef
 - [Testing](#testing)
 - [Submitting Changes](#submitting-changes)
 - [Release Process](#release-process)
-
----
 
 ## Code of Conduct
 
@@ -30,44 +28,35 @@ This project follows a simple principle: **Be kind and respectful**. We're all h
 
 ## How Can I Contribute?
 
-### 🐛 Reporting Bugs
+### Reporting Bugs
 
 Before submitting a bug report:
 1. Check the [existing issues](https://github.com/eduard-lt/Harbor-Download-Organizer/issues) to avoid duplicates
-2. Collect information about the bug:
-   - Harbor version (`harbor-cli --version`)
-   - Windows version
+2. Collect information:
+   - Harbor version (see the Settings page, or `harbor-cli --version`)
+   - OS and version
    - Steps to reproduce
    - Expected vs actual behavior
-   - Error messages or logs from `recent_moves.log`
-   - Your configuration (remove sensitive paths if any)
+   - Error messages or `recent_moves.log` contents
+   - Your rule configuration (remove sensitive paths)
 
-**Submit bugs using our [GitHub Issues](https://github.com/eduard-lt/Harbor-Download-Organizer/issues/new)** with the "bug" label.
+**Submit bugs via [GitHub Issues](https://github.com/eduard-lt/Harbor-Download-Organizer/issues/new)** with the "bug" label.
 
-### 💡 Suggesting Features
+### Suggesting Features
 
-We love new ideas! Before suggesting:
-1. Check if it's already in the [Roadmap](README.md#️-roadmap)
-2. Search existing feature requests
-3. Consider if it fits Harbor's core purpose
+- Check if it's already in the [Roadmap](README.md#roadmap) or [TODO list](docs/TODO.md)
+- Search existing feature requests
+- Consider if it fits Harbor's core purpose
 
 Include in your suggestion:
 - Clear use case and motivation
-- How it would work (mock-ups welcome!)
+- How it would work
 - Any alternatives you've considered
 - Whether you'd be willing to implement it
 
-### 📝 Improving Documentation
+### Improving Documentation
 
-Documentation improvements are always welcome:
-- Fix typos or clarify confusing sections
-- Add examples or use cases
-- Improve installation instructions
-- Write tutorials or guides
-
-### 💻 Contributing Code
-
-See the sections below for development setup and workflow.
+Documentation improvements are always welcome — typos, clarifications, examples, tutorials, or better installation instructions.
 
 ---
 
@@ -75,50 +64,46 @@ See the sections below for development setup and workflow.
 
 ### Prerequisites
 
-1. **Rust** (latest stable)
-   ```powershell
-   # Install via rustup
-   winget install Rustlang.Rustup
-   # Or visit https://rustup.rs/
-   ```
-
-2. **WiX Toolset v3** (for building installers)
-   ```powershell
-   winget install WiXToolset.WiXToolset
-   ```
-
-3. **Python** (for poe tasks, optional but recommended)
-   ```powershell
-   winget install Python.Python.3.12
-   ```
-
-4. **Poe the Poet** (task runner)
-   ```powershell
-   pip install poethepoet
-   ```
+- **Rust** (latest stable) — [rustup.rs](https://rustup.rs/)
+- **Node.js 20+** — for the React frontend
+- **Python 3.10+** — for Poe task runner and tool scripts
+- **uv** — Python package manager ([install](https://docs.astral.sh/uv/))
+- **Poe the Poet** — `uv tool install poethepoet`
+- **WiX Toolset v3** (Windows only) — for building MSI installers
 
 ### Clone and Build
 
-```powershell
-# Clone the repository
+```bash
 git clone https://github.com/eduard-lt/Harbor-Download-Organizer.git
-cd Harbor
+cd Harbor-Download-Organizer
 
-# Build all crates
-cargo build --release
+# Install frontend dependencies
+cd packages/ui && npm install && cd ../..
 
-# Or use poe
+# Build the Tauri app
 poe build
+
+# Or build just the Rust crates
+cargo build
+```
+
+### Development Mode
+
+```bash
+# Start the Tauri dev server (hot reload for frontend)
+poe dev
+
+# Or just the Rust side
+cargo build
 ```
 
 ### Install Development Tools (Optional)
 
-```powershell
-# For watching file changes during development
-cargo install cargo-watch
-
-# For code coverage
-cargo install cargo-tarpaulin
+```bash
+cargo install cargo-watch        # Auto-rebuild on changes
+cargo install cargo-llvm-cov     # Code coverage
+cargo install cargo-fuzz         # Fuzz testing
+cargo install git-cliff          # Changelog generation
 ```
 
 ---
@@ -126,137 +111,109 @@ cargo install cargo-tarpaulin
 ## Project Structure
 
 ```
-Harbor/
+Harbor-Download-Organizer/
 ├── crates/
-│   ├── core/           # Core library (downloads, orchestrator, config)
-│   │   ├── src/
-│   │   │   ├── config.rs
-│   │   │   ├── downloads.rs
-│   │   │   ├── health.rs
-│   │   │   ├── orchestrator.rs
-│   │   │   └── ...
-│   │   └── tests/      # Unit tests
-│   ├── cli/            # Command-line interface
-│   │   └── src/main.rs
-│   └── tray/           # System tray application
-│       └── src/main.rs
-├── examples/           # Example configurations
-├── tools/              # Development scripts
-├── wix/                # MSI installer configuration
-├── assets/             # Icons and resources
-└── pyproject.toml      # Poe task definitions
+│   ├── core/                    # Core library (business logic)
+│   │   └── src/
+│   │       ├── types.rs         # Rule data model
+│   │       ├── downloads.rs     # Config, organize, polling, logging
+│   │       └── platform/        # Cross-platform path resolution
+│   ├── cli/                     # CLI (init, organize, watch)
+│   ├── tray/                    # Windows system tray app (legacy)
+│   └── tauri-app/               # Tauri v2 desktop app (primary UI)
+│       └── src/
+│           ├── main.rs          # App bootstrap, tray menu
+│           ├── state.rs         # Service lifecycle state machine
+│           └── commands/        # Tauri IPC handlers
+│               ├── rules.rs     # Rule CRUD
+│               ├── activity.rs  # Activity log + stats
+│               ├── settings.rs  # Service control, startup, organize
+│               └── error_contract.rs
+├── packages/ui/                 # React frontend
+│   └── src/
+│       ├── components/          # Reusable UI components
+│       ├── pages/               # Rules, Activity, Settings, Info
+│       └── context/             # React contexts (theme, settings, updates)
+├── tools/                       # Python utility scripts
+│   ├── version.py               # Version bump + git release
+│   ├── coverage.py              # Backend coverage orchestration
+│   ├── cleanup_startup.py       # Ghost startup entry removal
+│   └── size.py                  # Binary size reporting
+├── docs/                        # Documentation
+│   ├── ARCHITECTURE.md          # Crate layout and key abstractions
+│   ├── TODO.md                  # Planned features and improvements
+│   ├── POE_TASKS.md             # Poe task reference
+│   ├── WINDOW_MANAGEMENT.md     # Tauri window visibility guide
+│   └── testing/                 # Testing docs (coverage policy, etc.)
+├── assets/                      # Icons and resources
+├── Cargo.toml                   # Rust workspace
+├── pyproject.toml               # Poe tasks + project metadata
+└── cliff.toml                   # git-cliff changelog config
 ```
 
-### Crate Responsibilities
-
-- **`harbor-core`**: Business logic, file operations, configuration parsing
-- **`harbor-cli`**: CLI commands and argument parsing
-- **`harbor-tray`**: Windows system tray GUI and file watcher
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for a detailed breakdown of crate responsibilities and data flow.
 
 ---
 
 ## Development Workflow
 
-### Daily Development
+### Common Commands
 
-```powershell
-# Run tests
-poe test
+| Task | Command |
+|---|---|
+| Run all tests | `poe test-all` |
+| Run Rust tests | `poe test` |
+| Run frontend tests | `poe test-ui` |
+| Run all linters | `poe lint-all` |
+| Rust lints (Clippy) | `poe lint` |
+| Frontend lints (ESLint) | `poe lint-ui` |
+| Build release | `poe build` |
+| Dev server (hot reload) | `poe dev` |
+| Clean build artifacts | `poe clean` |
+| Backend coverage | `poe coverage` |
+| Frontend coverage | `poe coverage-ui` |
+| Version bump (patch) | `poe bump-patch` |
+| Version bump (minor) | `poe bump-minor` |
+| Generate changelog | `poe changelog` |
 
-# Format code
-cargo fmt
+Full list: `poe` or see [POE_TASKS.md](docs/POE_TASKS.md).
 
-# Check for issues
-cargo clippy
+### Before Submitting
 
-# Build and update local installation
-poe update-local
+Always run these before opening a PR:
 
-# Watch for changes and run tests
-cargo watch -x test
+```bash
+poe lint-all     # Clippy + ESLint
+poe test-all     # Rust + React tests
 ```
 
-### Using Poe Tasks
+If your changes touch the service lifecycle or organize pipeline, also run:
 
-We use [Poe the Poet](https://github.com/nat-n/poethepoet) for common tasks:
-
-```powershell
-poe build              # Build release binaries
-poe test               # Run all tests
-poe clean              # Clean build artifacts
-poe msi                # Build MSI installer
-poe update-local       # Install to %LOCALAPPDATA%\Harbor for testing
-poe version            # Show current version
-poe bump-patch         # Bump version (0.6.0 -> 0.6.1)
-poe bump-minor         # Bump version (0.6.0 -> 0.7.0)
-poe release            # Build binaries + MSI
+```bash
+cargo test -p harbor-tauri-app   # Integration tests for service orchestration
 ```
-
-### Testing Your Changes
-
-1. **Build locally**:
-   ```powershell
-   cargo build --release
-   ```
-
-2. **Install locally for testing**:
-   ```powershell
-   poe update-local
-   # Or manually:
-   .\tools\update-local-install.ps1
-   ```
-
-3. **Test the tray app**:
-   - Check system tray for Harbor icon
-   - Test all menu items
-   - Verify file organization works
-   - Check `recent_moves.log`
-
-4. **Test CLI**:
-   ```powershell
-   harbor-cli downloads-organize
-   harbor-cli downloads-watch --interval-secs 5
-   ```
 
 ---
 
 ## Coding Standards
 
-### Rust Style
+### Rust
 
-We follow standard Rust conventions:
+Follow standard Rust conventions. We use `rustfmt` defaults and require zero Clippy warnings:
 
-```rust
-// Use rustfmt defaults
+```bash
 cargo fmt
-
-// Pass clippy with no warnings
 cargo clippy -- -D warnings
 ```
 
-### Code Organization
+**Guidelines:**
+- One module per file
+- Public APIs must have doc comments (`///`)
+- Use `anyhow::Result` for application code, `thiserror` for libraries
+- Provide context on errors: `.with_context(|| format!("..."))?`
+- Descriptive names: `organize_downloads()` not `org_dl()`
 
-- **One module per file** in `core/src/`
-- **Public APIs should have doc comments**:
-  ```rust
-  /// Organizes files in the downloads folder once.
-  ///
-  /// # Arguments
-  ///
-  /// * `cfg` - The downloads configuration
-  ///
-  /// # Returns
-  ///
-  /// A vector of tuples containing (source, destination, rule_name, symlink_info)
-  pub fn organize_once(cfg: &DownloadsConfig) -> Result<Vec<(PathBuf, PathBuf, String, Option<String>)>> {
-      // ...
-  }
-  ```
-
-- **Use `Result<T>` for operations that can fail**
-- **Prefer `anyhow::Result` for applications, `thiserror` for libraries**
-
-### Error Handling
+**Error handling:**
 
 ```rust
 // Good: Provide context
@@ -269,12 +226,12 @@ if !path.exists() {
 }
 ```
 
-### Naming Conventions
+### TypeScript / React
 
-- **Functions**: `snake_case`
-- **Types**: `PascalCase`
-- **Constants**: `SCREAMING_SNAKE_CASE`
-- **Be descriptive**: `organize_downloads()` not `org_dl()`
+- ESLint and Prettier for formatting
+- One component per file
+- Tests live alongside components in `*.test.tsx` files
+- Use Tauri's `invoke()` for all backend communication
 
 ---
 
@@ -282,11 +239,11 @@ if !path.exists() {
 
 ### Running Tests
 
-```powershell
+```bash
 # All tests
-cargo test
+poe test-all
 
-# Specific crate
+# Specific Rust crate
 cargo test -p harbor-core
 
 # Specific test
@@ -294,58 +251,57 @@ cargo test test_rule_matching
 
 # With output
 cargo test -- --nocapture
+
+# Frontend tests in watch mode
+cd packages/ui && npm run test
 ```
 
 ### Writing Tests
 
-#### Unit Tests
+#### Rust Unit Tests
 
-Place tests in the same file as the code:
+Place tests in the same file as the code using `#[cfg(test)] mod tests`:
 
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
 
     #[test]
-    fn test_rule_matches_extension() {
-        let rule = Rule {
-            name: "images".to_string(),
-            extensions: Some(vec!["jpg".to_string(), "png".to_string()]),
-            pattern: None,
-            target_dir: "test".to_string(),
-            ..Default::default()
-        };
-        
-        assert!(rule.matches("photo.jpg"));
-        assert!(!rule.matches("video.mp4"));
+    fn test_organize_moves_matching_file() {
+        let tmp = TempDir::new().unwrap();
+        // ... create files + config, call organize_once, assert
     }
 }
 ```
 
+#### Frontend Tests
+
+Use Vitest. Place test files alongside components:
+
+```tsx
+// components/StatCard.test.tsx
+import { render, screen } from '@testing-library/react';
+import { StatCard } from './StatCard';
+
+test('renders value and label', () => {
+  render(<StatCard value={42} label="Files" />);
+  expect(screen.getByText('42')).toBeInTheDocument();
+  expect(screen.getByText('Files')).toBeInTheDocument();
+});
+```
+
 #### Integration Tests
 
-Create files in `crates/core/tests/`:
-
-```rust
-// tests/downloads_integration.rs
-use harbor_core::downloads::*;
-use tempfile::TempDir;
-
-#[test]
-fn test_organize_with_real_files() {
-    let tmp = TempDir::new().unwrap();
-    // ... test with actual files
-}
-```
+Tauri app orchestration tests live in `crates/tauri-app/src/integration_tests.rs`. These exercise the service lifecycle (start, stop, degrade, restart) and organize pipelines.
 
 ### Test Guidelines
 
 - **Test public APIs**, not internal implementation
 - **Use descriptive test names**: `test_symlink_creation_requires_permissions`
-- **One assertion per test** when possible
-- **Use `tempfile` for file system tests** to avoid side effects
-- **Mock external dependencies** (file system, network)
+- **Use `tempfile::TempDir` for file system tests** to avoid side effects
+- **Mock external dependencies** when possible
 
 ---
 
@@ -367,29 +323,24 @@ chore: update dependencies
 ### Pull Request Process
 
 1. **Fork the repository** and create a branch:
-   ```powershell
+   ```bash
    git checkout -b feature/my-amazing-feature
    ```
 
 2. **Make your changes**:
    - Write tests for new functionality
    - Update documentation if needed
-   - Run `cargo fmt` and `cargo clippy`
-   - Ensure all tests pass
+   - Run `poe lint-all` and `poe test-all`
 
-3. **Commit your changes**:
-   ```powershell
+3. **Commit and push**:
+   ```bash
    git add .
    git commit -m "feat: add my amazing feature"
-   ```
-
-4. **Push to your fork**:
-   ```powershell
    git push origin feature/my-amazing-feature
    ```
 
-5. **Open a Pull Request**:
-   - Use a clear title and description
+4. **Open a Pull Request**:
+   - Clear title and description
    - Reference related issues
    - Explain what changed and why
    - Include screenshots for UI changes
@@ -397,15 +348,11 @@ chore: update dependencies
 
 ### PR Checklist
 
-Before submitting, ensure:
-
-- [ ] Code follows style guidelines (`cargo fmt`, `cargo clippy`)
-- [ ] Tests pass (`cargo test`)
+- [ ] Code follows style guidelines (`poe lint-all` passes)
+- [ ] Tests pass (`poe test-all` passes)
 - [ ] New functionality has tests
-- [ ] Documentation is updated
-- [ ] CHANGELOG.md is updated (for significant changes)
+- [ ] Documentation is updated (if needed)
 - [ ] Commit messages follow conventions
-- [ ] No merge conflicts with main
 
 ---
 
@@ -415,44 +362,33 @@ Before submitting, ensure:
 
 ### Version Bumping
 
-```powershell
-# Patch release (0.6.0 -> 0.6.1)
-poe bump-patch
-
-# Minor release (0.6.0 -> 0.7.0)
-poe bump-minor
-
-# Major release (0.6.0 -> 1.0.0)
-poe bump-major
+```bash
+poe bump-patch   # 2.0.0 → 2.0.1
+poe bump-minor   # 2.0.0 → 2.1.0
+poe bump-major   # 2.0.0 → 3.0.0
 ```
 
 ### Creating a Release
 
 1. **Update CHANGELOG.md**:
-   - Move items from `[Unreleased]` to new version section
-   - Add release date
-   - Update comparison links
+   ```bash
+   poe changelog     # Generate from git history via git-cliff
+   ```
 
 2. **Bump version**:
-   ```powershell
-   poe bump-minor  # or bump-patch
+   ```bash
+   poe bump-minor    # or bump-patch
    ```
 
 3. **Commit and tag**:
-   ```powershell
+   ```bash
    git add .
-   git commit -m "chore: release v0.7.0"
-   git tag v0.7.0
+   git commit -m "chore: release v2.1.0"
+   git tag v2.1.0
    git push origin main --tags
    ```
 
-4. **GitHub Actions will**:
-   - Build binaries
-   - Create MSI installer
-   - Create GitHub release
-   - Attach artifacts
-
-5. **Update release notes** on GitHub with highlights from CHANGELOG
+4. **GitHub Actions** will build binaries, create the MSI/DMG, and attach them to a GitHub release.
 
 ---
 
@@ -460,7 +396,6 @@ poe bump-major
 
 - 💬 Open a [Discussion](https://github.com/eduard-lt/Harbor-Download-Organizer/discussions)
 - 🐛 Report bugs via [Issues](https://github.com/eduard-lt/Harbor-Download-Organizer/issues)
-- 📧 Contact: [Your contact method]
 
 ---
 
