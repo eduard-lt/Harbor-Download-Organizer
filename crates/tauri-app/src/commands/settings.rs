@@ -14,10 +14,6 @@ use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_autostart::ManagerExt;
 
-#[cfg(windows)]
-use winreg::enums::*;
-#[cfg(windows)]
-use winreg::RegKey;
 
 /// Coalescing window for rapid restart requests triggered by bursty rule edits.
 pub const RESTART_DEBOUNCE_WINDOW: Duration = Duration::from_millis(500);
@@ -686,28 +682,6 @@ fn organize_now_failure_response(error: AppError, download_dir: &Path) -> Organi
     }
 }
 
-#[cfg(windows)]
-fn cleanup_legacy_startup_registry_entry() -> Result<(), String> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let run_key = hkcu
-        .open_subkey_with_flags(
-            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-            KEY_ALL_ACCESS,
-        )
-        .map_err(|e| format!("Failed to open registry key: {e}"))?;
-
-    match run_key.delete_value("Harbor") {
-        Ok(()) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(e) => Err(format!("Failed to remove legacy startup entry: {e}")),
-    }
-}
-
-#[cfg(not(windows))]
-fn cleanup_legacy_startup_registry_entry() -> Result<(), String> {
-    Ok(())
-}
-
 trait StartupAuthority {
     fn enable(&self) -> Result<(), String>;
     fn disable(&self) -> Result<(), String>;
@@ -751,7 +725,6 @@ fn apply_startup_enabled(
     authority: &impl StartupAuthority,
     enabled: bool,
     emit: &mut impl FnMut(bool, &str) -> Result<(), String>,
-    cleanup: &impl Fn() -> Result<(), String>,
 ) -> Result<(), String> {
     emit(enabled, "intent")?;
 
@@ -765,7 +738,6 @@ fn apply_startup_enabled(
         if enabled {
             let _ = authority.disable();
         }
-        let _ = cleanup();
         let _ = emit(false, "reconciled");
         return Err(format!(
             "Failed to update startup setting: {error}. Startup remains disabled. Retry from Settings."
@@ -776,7 +748,6 @@ fn apply_startup_enabled(
         .is_enabled()
         .map_err(|e| format!("Failed to verify startup state: {e}"))?;
 
-    cleanup()?;
     emit(authoritative, "reconciled")?;
 
     if enabled && !authoritative {
@@ -789,19 +760,15 @@ fn apply_startup_enabled(
 }
 
 pub fn reconcile_startup_authority(app: &AppHandle) -> Result<(), String> {
-    let authority = AppStartupAuthority::new(app);
-    let _ = authority
-        .is_enabled()
-        .map_err(|e| format!("Failed to read autostart state: {e}"))?;
-    cleanup_legacy_startup_registry_entry()
+    let _authority = AppStartupAuthority::new(app);
+    // Auto-launch plugin manages the registry key; no separate cleanup needed.
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn get_startup_enabled(app: AppHandle) -> Result<bool, String> {
     let authority = AppStartupAuthority::new(&app);
     let enabled = authority.is_enabled()?;
-
-    cleanup_legacy_startup_registry_entry()?;
     Ok(enabled)
 }
 
@@ -809,12 +776,7 @@ pub async fn get_startup_enabled(app: AppHandle) -> Result<bool, String> {
 pub async fn set_startup_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
     let authority = AppStartupAuthority::new(&app);
     let mut emit = |value: bool, phase: &str| emit_startup_status_event(&app, value, phase);
-    apply_startup_enabled(
-        &authority,
-        enabled,
-        &mut emit,
-        &cleanup_legacy_startup_registry_entry,
-    )
+    apply_startup_enabled(&authority, enabled, &mut emit)
 }
 
 #[tauri::command]
@@ -1734,9 +1696,8 @@ mod tests {
             events.lock().unwrap().push((enabled, phase.to_string()));
             Ok(())
         };
-        let cleanup = || Ok(());
 
-        let result = apply_startup_enabled(&authority, true, &mut emit, &cleanup);
+        let result = apply_startup_enabled(&authority, true, &mut emit);
         assert!(result.is_ok());
         assert_eq!(
             events.lock().unwrap().clone(),
@@ -1756,9 +1717,8 @@ mod tests {
             events.lock().unwrap().push((enabled, phase.to_string()));
             Ok(())
         };
-        let cleanup = || Ok(());
 
-        let result = apply_startup_enabled(&authority, true, &mut emit, &cleanup);
+        let result = apply_startup_enabled(&authority, true, &mut emit);
         assert!(result.is_err());
         let calls = *authority.disable_calls.lock().unwrap();
         assert_eq!(calls, 1);

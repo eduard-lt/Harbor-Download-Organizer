@@ -34,7 +34,6 @@ Contributions welcome. Open an issue before starting significant work.
 - [x] **macOS notification center** — Integrate with macOS Notification Center (UNUserNotificationCenter) for native alerts.
 - [ ] **Dry-run mode** — Preview what would be moved without actually moving files.
 - [ ] **Log viewer** — In-app log viewer with search and filters.
-- [ ] **Zoom controls** — Ctrl+/Ctrl- for in-app UI scaling.
 - [x] **Save window position** — Persist window position across launches.
 - [x] **Multi-monitor DPI** — Proper handling of mixed DPI across multiple monitors.
 
