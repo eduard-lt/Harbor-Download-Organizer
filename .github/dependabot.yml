@@ -39,6 +39,9 @@ updates:
       tauri:
         patterns:
           - "@tauri-apps/*"
+        update-types:
+          - "minor"
+          - "patch"
       react:
         patterns:
           - "react"
@@ -46,6 +49,9 @@ updates:
           - "react-router-dom"
           - "@types/react"
           - "@types/react-dom"
+        update-types:
+          - "minor"
+          - "patch"
       testing:
         patterns:
           - "vitest"
@@ -53,3 +59,28 @@ updates:
           - "@testing-library/*"
           - "@playwright/test"
           - "jsdom"
+        update-types:
+          - "minor"
+          - "patch"
+      linting:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "typescript-eslint"
+          - "globals"
+          - "eslint-plugin-*"
+        update-types:
+          - "minor"
+          - "patch"
+      build:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "@tailwindcss/*"
+          - "tailwindcss"
+          - "typescript"
+          - "@types/node"
+          - "cross-env"
+        update-types:
+          - "minor"
+          - "patch"
