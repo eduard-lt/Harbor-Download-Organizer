@@ -161,10 +161,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo install cargo-fuzz
       - name: Fuzz config parser
-        run: cargo fuzz run config_yaml -- -max_total_time=15 -rss_limit_mb=256
+        run: cargo fuzz run config_yaml -- -max_total_time=15 -max_len=65536 -rss_limit_mb=1024
         working-directory: crates/core/fuzz
       - name: Fuzz rule deserialization
-        run: cargo fuzz run rule_yaml -- -max_total_time=15 -rss_limit_mb=256
+        run: cargo fuzz run rule_yaml -- -max_total_time=15 -max_len=65536 -rss_limit_mb=1024
         working-directory: crates/core/fuzz
       - uses: actions/upload-artifact@v7
         if: failure()

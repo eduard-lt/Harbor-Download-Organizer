@@ -103,8 +103,8 @@ sequence = ["fuzz-config", "fuzz-rule"]
 [tool.poe.tasks.fuzz-ci]
 help = "CI fuzz check — short regression run for each target"
 shell = """
-cd crates/core/fuzz && cargo fuzz run config_yaml -- -max_total_time=10 -rss_limit_mb=256
-cd ../../.. && cd crates/core/fuzz && cargo fuzz run rule_yaml -- -max_total_time=10 -rss_limit_mb=256
+cd crates/core/fuzz && cargo fuzz run config_yaml -- -max_total_time=10 -max_len=65536 -rss_limit_mb=1024
+cd ../../.. && cd crates/core/fuzz && cargo fuzz run rule_yaml -- -max_total_time=10 -max_len=65536 -rss_limit_mb=1024
 """
 
 # ============================================================================
