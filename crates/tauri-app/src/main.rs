@@ -14,6 +14,7 @@ mod integration_tests;
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
 use state::AppState;
+use tauri::menu::ContextMenu;
 use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_notification::NotificationExt;
 
@@ -213,25 +214,38 @@ fn main() {
                 }
             });
 
-            // Let Tauri manage menu display natively (avoids manual popup event
-            // ordering bugs on Windows). Platform behavior:
-            //   macOS:   left-click shows the menu (default), right-click opens app
-            //   Windows: right-click shows the menu, double left-click opens app
-            #[allow(unused_mut)]
-            let mut tray_builder = TrayIconBuilder::with_id("tray")
-                .icon(tray_icon)
-                .icon_as_template(true)
-                .menu(&menu);
+            // macOS: manual popup on left-click (no bug here).
+            // Windows: use Tauri's native menu management to avoid popup event
+            // ordering bugs. Right-click shows menu, double left-click opens app.
+            #[cfg(target_os = "macos")]
+            let menu_for_tray = menu.clone();
 
             #[cfg(target_os = "windows")]
-            {
-                tray_builder = tray_builder.show_menu_on_left_click(false);
-            }
+            let tray_builder = TrayIconBuilder::with_id("tray")
+                .icon(tray_icon.clone())
+                .icon_as_template(true)
+                .menu(&menu)
+                .show_menu_on_left_click(false);
+
+            #[cfg(target_os = "macos")]
+            let tray_builder = TrayIconBuilder::with_id("tray")
+                .icon(tray_icon.clone())
+                .icon_as_template(true);
 
             let _tray = tray_builder
                 .on_tray_icon_event(move |tray, event| {
                     let app = tray.app_handle();
                     match event {
+                        // macOS: left-click = show mini popup menu
+                        #[cfg(target_os = "macos")]
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            ..
+                        } => {
+                            if let Some(webview) = app.get_webview_window("main") {
+                                let _ = menu_for_tray.popup(webview.as_ref().window().clone());
+                            }
+                        }
                         // Double left-click: open main window (all platforms)
                         TrayIconEvent::DoubleClick {
                             button: MouseButton::Left,
