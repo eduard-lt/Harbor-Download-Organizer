@@ -226,8 +226,8 @@ jobs:
           key: node-${{ hashFiles('packages/ui/package-lock.json') }}
       - run: npm install
         working-directory: packages/ui
-      - run: cargo install cargo-llvm-cov
-      - run: python tools/coverage.py --blocking
+      - run: npm run coverage
+        working-directory: packages/ui
 
   # ============================================================================
   # macOS — compilation, tests, and coverage
