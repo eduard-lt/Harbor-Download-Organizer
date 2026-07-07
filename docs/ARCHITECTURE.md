@@ -220,4 +220,3 @@ Config is stored as `harbor.downloads.yaml` in the app data directory (see "App 
 | E2E tests | `poe test-e2e` | Playwright via `packages/ui` |
 | Fuzz tests | `poe fuzz-*` | `crates/core/fuzz/` (cargo-fuzz) |
 | Coverage | `poe coverage` / `poe coverage-ui` | Backend via cargo-llvm-cov, frontend via Vitest |
-
