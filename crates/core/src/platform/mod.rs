@@ -33,6 +33,29 @@ mod os {
 mod os {
     pub use super::windows::*;
 }
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+mod os {
+    use std::path::PathBuf;
+    pub fn app_data_dir() -> PathBuf {
+        dirs_next().unwrap_or_else(|| PathBuf::from("."))
+    }
+    pub fn downloads_dir() -> PathBuf {
+        dirs_next().unwrap_or_else(|| PathBuf::from("."))
+    }
+    pub fn home_dir() -> PathBuf {
+        dirs_next().unwrap_or_else(|| PathBuf::from("."))
+    }
+    fn dirs_next() -> Option<PathBuf> {
+        #[cfg(unix)]
+        {
+            std::env::var("HOME").ok().map(PathBuf::from)
+        }
+        #[cfg(not(unix))]
+        {
+            None
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

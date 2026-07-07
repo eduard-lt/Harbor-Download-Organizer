@@ -25,8 +25,10 @@ test.describe('Rules CRUD', () => {
         const form = page.locator('form');
         await form.getByPlaceholder('e.g. Images').fill('Videos');
         await form.getByPlaceholder('e.g. jpg, png, gif').fill('mp4, mkv');
-        // Destination field: filler text is platform-dependent (~/Downloads/Images on Mac)
-        await form.getByPlaceholder(/Downloads/).fill('/Users/test/Videos');
+        // Destination field: placeholder is platform-dependent
+        //   macOS:  ~/Downloads/Images
+        //   Linux/Windows: C:\Users\Name\Pictures
+        await form.getByPlaceholder(/Downloads|Users/).fill('/Users/test/Videos');
 
         // Save
         await form.getByRole('button', { name: 'Save Rule' }).click();
