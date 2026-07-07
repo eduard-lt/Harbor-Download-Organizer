@@ -84,8 +84,7 @@ fn tray_main() -> Result<()> {
 
     // Use MessageWindow (like the official nwg example) — avoids focus-related
     // spurious OnContextMenu events that cause the popup menu to reopen on click.
-    nwg::MessageWindow::builder()
-        .build(&mut ui.window)?;
+    nwg::MessageWindow::builder().build(&mut ui.window)?;
 
     // We need to load icon from file or resource
     let mut icon = nwg::Icon::default();

@@ -7,9 +7,9 @@
 // no remote untrusted HTML is loaded, and the CSP is defense-in-depth.
 
 mod commands;
-mod state;
 #[cfg(test)]
 mod integration_tests;
+mod state;
 
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use harbor_core::downloads::{
-    append_organize_results_to_log, cleanup_old_symlinks,
-    organize_once, watch_polling, DownloadsConfig, OrganizeResult,
+    append_organize_results_to_log, cleanup_old_symlinks, organize_once, watch_polling,
+    DownloadsConfig, OrganizeResult,
 };
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};

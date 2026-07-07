@@ -1261,7 +1261,10 @@ rules:
         assert!(content.contains("src/b.txt -> dst/b.txt (Docs) Symlinked"));
         // Every non-empty line should start with a timestamp bracket
         for line in content.lines().filter(|l| !l.is_empty()) {
-            assert!(line.starts_with('['), "expected timestamp prefix on: {line}");
+            assert!(
+                line.starts_with('['),
+                "expected timestamp prefix on: {line}"
+            );
         }
     }
 
@@ -1339,11 +1342,7 @@ rules:
     fn test_load_or_initialize_config_exists() {
         let root = TempDir::new().unwrap();
         let cfg_path = root.path().join("config.yaml");
-        fs::write(
-            &cfg_path,
-            "download_dir: \"test_dir\"\nrules: []\n",
-        )
-        .unwrap();
+        fs::write(&cfg_path, "download_dir: \"test_dir\"\nrules: []\n").unwrap();
         let cfg = load_or_initialize_config(&cfg_path).unwrap();
         assert_eq!(cfg.download_dir, "test_dir");
     }

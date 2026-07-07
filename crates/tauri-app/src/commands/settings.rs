@@ -11,9 +11,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
-use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_autostart::ManagerExt;
-
+use tauri_plugin_notification::NotificationExt;
 
 /// Coalescing window for rapid restart requests triggered by bursty rule edits.
 pub const RESTART_DEBOUNCE_WINDOW: Duration = Duration::from_millis(500);
