@@ -11,7 +11,7 @@ serde_yaml.workspace = true
 serde_json.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.55"
+winreg = "0.56"
 
 [dev-dependencies]
 tempfile.workspace = true
