@@ -151,6 +151,11 @@ fn main() {
                 env!("CARGO_MANIFEST_DIR"),
                 "/../../assets/icon_h.ico"
             ));
+            #[cfg(target_os = "linux")]
+            let icon_bytes = include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../assets/harbor_h.png"
+            ));
             let tray_icon = Image::from_bytes(icon_bytes).expect("Failed to load tray icon");
 
             // Build Tray Menu
@@ -227,6 +232,12 @@ fn main() {
                 .icon_as_template(true)
                 .menu(&menu)
                 .show_menu_on_left_click(false);
+
+            #[cfg(target_os = "linux")]
+            let tray_builder = TrayIconBuilder::with_id("tray")
+                .icon(tray_icon.clone())
+                .icon_as_template(true)
+                .menu(&menu);
 
             #[cfg(target_os = "macos")]
             let tray_builder = TrayIconBuilder::with_id("tray")
