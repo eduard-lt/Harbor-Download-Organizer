@@ -5,9 +5,15 @@ use harbor_core::downloads::{harbor_app_dir, harbor_log_path};
 #[cfg(windows)]
 use native_windows_gui as nwg;
 #[cfg(windows)]
+use std::cell::Cell;
+#[cfg(windows)]
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::sync::Arc;
+#[cfg(windows)]
+use std::time::SystemTime;
+#[cfg(windows)]
+use std::time::UNIX_EPOCH;
 
 #[cfg(windows)]
 mod logic;
@@ -29,12 +35,35 @@ struct TrayState {
     item_open_cfg: nwg::MenuItem,
     item_open_recent: nwg::MenuItem,
     item_exit: nwg::MenuItem,
+    /// Timestamp (ms) of the last popup menu close, used to debounce
+    /// spurious OnContextMenu events that fire after the popup dismisses.
+    last_popup_close_ms: Cell<u128>,
 }
 
 #[cfg(windows)]
 fn show_menu(ui: &TrayState) {
+    // Debounce: ignore OnContextMenu events that arrive right after a popup
+    // was dismissed. On some Windows versions, dismissing the popup menu by
+    // clicking an item triggers a spurious WM_CONTEXTMENU that re-opens the
+    // menu at the cursor position before OnMenuItemSelected can be delivered.
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    if now_ms.saturating_sub(ui.last_popup_close_ms.get()) <= 300 {
+        return;
+    }
+
     let (x, y) = nwg::GlobalCursor::position();
     ui.tray_menu.popup(x, y);
+
+    // Record close time so the next OnContextMenu is debounced
+    ui.last_popup_close_ms.set(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis(),
+    );
 }
 
 #[cfg(windows)]
