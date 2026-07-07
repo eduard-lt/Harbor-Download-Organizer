@@ -52,7 +52,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-20 lg:w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20">
+    <aside className="w-20 lg:w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20">
       {/* Logo */}
       <div className="p-6 pt-10 flex items-center gap-3">
         <img src="/harbor.svg" alt="Harbor" className="w-10 h-10 object-contain" />
@@ -159,8 +159,8 @@ export function Sidebar() {
             className="w-full flex items-center gap-4 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer relative"
             title={available ? "Update Available!" : "GitHub Repository"}
           >
-            <div className="relative">
-              <span className={`material-icons-round text-xl !leading-none transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>code</span>
+            <div className="relative inline-flex items-center justify-center w-fit">
+              <span className={`material-icons-round text-xl leading-none transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>code</span>
               {available && (
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -168,7 +168,7 @@ export function Sidebar() {
                 </span>
               )}
             </div>
-            <span className={`text-sm font-medium hidden lg:block transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>
+            <span className={`text-sm font-medium hidden lg:block whitespace-nowrap transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>
               {available ? 'Update Available' : 'GitHub'}
             </span>
           </button>

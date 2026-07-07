@@ -8,8 +8,6 @@ use native_windows_gui as nwg;
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::sync::Arc;
-#[cfg(windows)]
-use std::time::Instant;
 
 #[cfg(windows)]
 mod logic;
@@ -21,7 +19,7 @@ use logic::{open_config, open_folder, windows::utils::SingleInstance, TrayLogic}
 #[cfg(windows)]
 #[derive(Default)]
 struct TrayState {
-    window: nwg::Window,
+    window: nwg::MessageWindow,
     tray: nwg::TrayNotification,
     tray_menu: nwg::Menu,
     item_start: nwg::MenuItem,
@@ -34,16 +32,7 @@ struct TrayState {
 }
 
 #[cfg(windows)]
-fn show_menu(ui: &TrayState, last_menu_show: &std::sync::Mutex<Instant>) {
-    // Debounce: prevent the menu from reopening immediately after
-    // a menu item is clicked (which can trigger a spurious OnContextMenu).
-    {
-        let mut last = last_menu_show.lock().unwrap();
-        if last.elapsed() < std::time::Duration::from_millis(500) {
-            return;
-        }
-        *last = Instant::now();
-    }
+fn show_menu(ui: &TrayState) {
     let (x, y) = nwg::GlobalCursor::position();
     ui.tray_menu.popup(x, y);
 }
@@ -64,11 +53,9 @@ fn tray_main() -> Result<()> {
 
     let mut ui = TrayState::default();
 
-    // We modify ui fields in place
-    nwg::Window::builder()
-        .flags(nwg::WindowFlags::POPUP)
-        .size((300, 300))
-        .title("Harbor Tray")
+    // Use MessageWindow (like the official nwg example) — avoids focus-related
+    // spurious OnContextMenu events that cause the popup menu to reopen on click.
+    nwg::MessageWindow::builder()
         .build(&mut ui.window)?;
 
     // We need to load icon from file or resource
@@ -142,13 +129,12 @@ fn tray_main() -> Result<()> {
         .unwrap_or(PathBuf::from(&app_logic.config.download_dir));
 
     let logic_c = app_logic.clone();
-    let last_menu_show = Arc::new(std::sync::Mutex::new(Instant::now() - std::time::Duration::from_secs(10)));
 
     let handler = move |evt, _evt_data, handle| {
         if let Some(ui) = ui_weak.upgrade() {
             match evt {
                 nwg::Event::OnContextMenu if handle == ui.tray => {
-                    show_menu(&ui, &last_menu_show);
+                    show_menu(&ui);
                 }
                 nwg::Event::OnMenuItemSelected => {
                     if handle == ui.item_start {
