@@ -226,17 +226,40 @@ fn main() {
                             button: MouseButton::Left,
                             ..
                         } => {
-                            if let Some(webview) = app.get_webview_window("main") {
-                                let _ = menu_for_tray.popup(webview.as_ref().window().clone());
+                            // macOS: left-click = mini popup menu
+                            // Windows: left-click = open main window
+                            #[cfg(target_os = "macos")]
+                            {
+                                if let Some(webview) = app.get_webview_window("main") {
+                                    let _ = menu_for_tray.popup(webview.as_ref().window().clone());
+                                }
+                            }
+                            #[cfg(target_os = "windows")]
+                            {
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
                             }
                         }
                         TrayIconEvent::Click {
                             button: MouseButton::Right,
                             ..
                         } => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
+                            // macOS: right-click (two-finger) = open main window
+                            // Windows: right-click = mini popup menu
+                            #[cfg(target_os = "macos")]
+                            {
+                                if let Some(window) = app.get_webview_window("main") {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                            #[cfg(target_os = "windows")]
+                            {
+                                if let Some(webview) = app.get_webview_window("main") {
+                                    let _ = menu_for_tray.popup(webview.as_ref().window().clone());
+                                }
                             }
                         }
                         _ => {}
