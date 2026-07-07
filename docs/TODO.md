@@ -62,4 +62,4 @@ Contributions welcome. Open an issue before starting significant work.
 
 - [x] **Dependabot** — Enable Dependabot for Rust and npm dependency updates.
 - [ ] **Stale issue bot** — Auto-close stale issues and PRs.
-- [ ] **GitHub pages** — Host documentation site (optional).
+- [x] **GitHub Pages** — Documentation site hosted at [eduard-lt.github.io/Harbor-Download-Organizer](https://eduard-lt.github.io/Harbor-Download-Organizer/).

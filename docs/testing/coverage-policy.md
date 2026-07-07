@@ -1,28 +1,45 @@
-# Coverage Policy (Phase 3)
+# Coverage Policy
 
-This project currently uses a **non-blocking coverage policy** for high-risk runtime paths.
+Harbor enforces a **70% code coverage threshold** on all production code paths.
 
 ## Policy
 
-1. Coverage reporting is required for backend and UI paths.
-2. The initial target for high-risk runtime paths is **70%**.
-3. The target is **warning-only** in this phase (no hard fail-under gate yet).
-4. `poe coverage` runs a threshold check and prints a warning if backend line coverage is below 70%, but still exits successfully.
-
-## Scope
-
-- Backend: includes `harbor-tauri-app` command modules via workspace coverage.
-- UI: Vitest coverage report in `packages/ui`.
+1. Frontend coverage is **blocking** in CI — `vitest run --coverage` exits non-zero if below 70%.
+2. Backend coverage is **non-blocking** (informational only) — Rust tests are validated by the `test` CI job; `cargo llvm-cov` is run on macOS for platform-specific coverage reporting.
+3. The 70% threshold applies to **statements, branches, functions, and lines**.
 
 ## Commands
 
 ```bash
-poe coverage
-poe coverage-ui
+poe coverage            # Backend coverage (warning-only, 70% threshold)
+poe coverage-ui         # Frontend coverage (blocking in CI, 70% threshold)
+poe coverage-full       # Full workspace llvm-cov summary
 ```
 
-## Notes
+## CI Jobs
 
-- `poe coverage` uses `cargo llvm-cov --workspace --ignore-filename-regex main\.rs --summary-only --fail-under-lines 70` and converts threshold failures into warnings (non-blocking).
-- Hard-fail CI coverage gates are deferred to a later milestone phase.
+| Job | Platform | Behavior |
+|-----|----------|----------|
+| `Coverage (≥70%)` | Ubuntu | Frontend coverage via Vitest — **blocks CI** if below 70% |
+| `macOS Check` → coverage | macOS | Backend `cargo llvm-cov` — **informational only** |
 
+## Threshold Configuration
+
+Frontend thresholds are configured in `vite.config.ts`:
+
+```typescript
+coverage: {
+  provider: 'v8',
+  thresholds: {
+    statements: 70,
+    branches: 70,
+    functions: 70,
+    lines: 70,
+  },
+},
+```
+
+## Scope
+
+- **Frontend:** Components, pages, contexts, hooks in `packages/ui/src/`
+- **Backend:** All crates in the workspace via `cargo llvm-cov --workspace`
