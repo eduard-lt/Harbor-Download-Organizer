@@ -11,11 +11,11 @@ dependencies = []
 
 [tool.poe.tasks.build]
 help = "Build release binaries and installer (via Tauri)"
-cmd = "npm run tauri:build --prefix packages/ui"
+cmd = "npm.cmd run tauri:build --prefix packages/ui"
 
 [tool.poe.tasks.build-debug]
 help = "Build debug binaries"
-cmd = "npm run tauri:build --prefix packages/ui -- --debug"
+cmd = "npm.cmd run tauri:build --prefix packages/ui -- --debug"
 
 [tool.poe.tasks.unquarantine]
 help = "Remove macOS quarantine attribute from built .app bundle"
@@ -35,7 +35,7 @@ cmd = "uv run python tools/cleanup_startup.py"
 
 [tool.poe.tasks.dev]
 help = "Start development server (Hot Reload)"
-cmd = "npm run tauri:dev --prefix packages/ui"
+cmd = "npm.cmd run tauri:dev --prefix packages/ui"
 
 [tool.poe.tasks.test]
 help = "Run unit tests"
@@ -43,19 +43,19 @@ cmd = "cargo test"
 
 [tool.poe.tasks.test-ui]
 help = "Run frontend unit tests"
-cmd = "npm run test --prefix packages/ui -- --run"
+cmd = "npm.cmd run test --prefix packages/ui -- --run"
 
 [tool.poe.tasks.test-e2e]
 help = "Run E2E tests (Playwright)"
-cmd = "npm run e2e --prefix packages/ui"
+cmd = "npm.cmd run e2e --prefix packages/ui"
 
 [tool.poe.tasks.test-e2e-ui]
 help = "Run E2E tests with Playwright UI"
-cmd = "npm run e2e:ui --prefix packages/ui"
+cmd = "npm.cmd run e2e:ui --prefix packages/ui"
 
 [tool.poe.tasks.install-e2e-tools]
 help = "Install Playwright browsers"
-cmd = "npx --prefix packages/ui playwright install chromium"
+cmd = "npx.cmd --prefix packages/ui playwright install chromium"
 
 [tool.poe.tasks.test-all]
 help = "Run both backend and frontend tests"
@@ -168,7 +168,7 @@ help = "Install development tools (cargo-watch, cargo-outdated, npm deps, etc.)"
 shell = """
 cargo install cargo-watch
 cargo install cargo-outdated
-npm install --prefix packages/ui
+npm.cmd install --prefix packages/ui
 echo "Development tools and dependencies installed successfully!"
 """
 
@@ -202,7 +202,7 @@ cmd = "cargo clippy --workspace -- -D warnings"
 
 [tool.poe.tasks.lint-ui]
 help = "Run frontend ESLint"
-cmd = "npm run lint --prefix packages/ui"
+cmd = "npm.cmd run lint --prefix packages/ui"
 
 [tool.poe.tasks.lint-all]
 help = "Run all linters (Clippy + ESLint)"
