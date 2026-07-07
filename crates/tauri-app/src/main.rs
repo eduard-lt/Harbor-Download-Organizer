@@ -151,6 +151,11 @@ fn main() {
                 env!("CARGO_MANIFEST_DIR"),
                 "/../../assets/icon_h.ico"
             ));
+            #[cfg(target_os = "linux")]
+            let icon_bytes = include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../assets/harbor_h.png"
+            ));
             let tray_icon = Image::from_bytes(icon_bytes).expect("Failed to load tray icon");
 
             // Build Tray Menu
@@ -218,6 +223,7 @@ fn main() {
             // macOS: manual popup on left-click (no bug here).
             // Windows: use Tauri's native menu management to avoid popup event
             // ordering bugs. Right-click shows menu, double left-click opens app.
+            // Linux: stub — only used for CI compilation, not a runtime target.
             #[cfg(target_os = "macos")]
             let menu_for_tray = menu.clone();
 
@@ -232,6 +238,12 @@ fn main() {
             let tray_builder = TrayIconBuilder::with_id("tray")
                 .icon(tray_icon.clone())
                 .icon_as_template(true);
+
+            #[cfg(target_os = "linux")]
+            let tray_builder = TrayIconBuilder::with_id("tray")
+                .icon(tray_icon.clone())
+                .icon_as_template(true)
+                .menu(&menu);
 
             let _tray = tray_builder
                 .on_tray_icon_event(move |tray, event| {
