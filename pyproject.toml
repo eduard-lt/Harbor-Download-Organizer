@@ -59,7 +59,7 @@ shell = "npx --prefix packages/ui playwright install chromium"
 
 [tool.poe.tasks.test-all]
 help = "Run both backend and frontend tests"
-sequence = ["test", "test-ui"]
+sequence = ["lint", "lint-ui", "test", "test-ui"]
 
 [tool.poe.tasks.coverage]
 help = "Run backend coverage report (add --blocking for CI)"

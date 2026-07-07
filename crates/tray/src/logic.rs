@@ -1,6 +1,6 @@
 use anyhow::Result;
 use harbor_core::downloads::{
-    append_organize_results_to_log, cleanup_old_symlinks, load_or_initialize_config,
+    append_organize_results_to_log, cleanup_old_symlinks,
     organize_once, watch_polling, DownloadsConfig, OrganizeResult,
 };
 use std::path::PathBuf;

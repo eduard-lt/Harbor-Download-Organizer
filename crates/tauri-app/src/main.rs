@@ -14,6 +14,7 @@ mod integration_tests;
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
 use state::AppState;
+#[cfg(target_os = "macos")]
 use tauri::menu::ContextMenu;
 use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_notification::NotificationExt;
