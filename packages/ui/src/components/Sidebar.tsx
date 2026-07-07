@@ -160,7 +160,7 @@ export function Sidebar() {
             title={available ? "Update Available!" : "GitHub Repository"}
           >
             <div className="relative">
-              <span className={`material-icons-round text-xl transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>code</span>
+              <span className={`material-icons-round text-xl !leading-none transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>code</span>
               {available && (
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

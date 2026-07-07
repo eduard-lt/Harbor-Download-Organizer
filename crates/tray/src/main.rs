@@ -8,6 +8,8 @@ use native_windows_gui as nwg;
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::sync::Arc;
+#[cfg(windows)]
+use std::time::Instant;
 
 #[cfg(windows)]
 mod logic;
@@ -32,7 +34,16 @@ struct TrayState {
 }
 
 #[cfg(windows)]
-fn show_menu(ui: &TrayState) {
+fn show_menu(ui: &TrayState, last_menu_show: &std::sync::Mutex<Instant>) {
+    // Debounce: prevent the menu from reopening immediately after
+    // a menu item is clicked (which can trigger a spurious OnContextMenu).
+    {
+        let mut last = last_menu_show.lock().unwrap();
+        if last.elapsed() < std::time::Duration::from_millis(500) {
+            return;
+        }
+        *last = Instant::now();
+    }
     let (x, y) = nwg::GlobalCursor::position();
     ui.tray_menu.popup(x, y);
 }
@@ -131,12 +142,13 @@ fn tray_main() -> Result<()> {
         .unwrap_or(PathBuf::from(&app_logic.config.download_dir));
 
     let logic_c = app_logic.clone();
+    let last_menu_show = Arc::new(std::sync::Mutex::new(Instant::now() - std::time::Duration::from_secs(10)));
 
     let handler = move |evt, _evt_data, handle| {
         if let Some(ui) = ui_weak.upgrade() {
             match evt {
                 nwg::Event::OnContextMenu if handle == ui.tray => {
-                    show_menu(&ui);
+                    show_menu(&ui, &last_menu_show);
                 }
                 nwg::Event::OnMenuItemSelected => {
                     if handle == ui.item_start {
