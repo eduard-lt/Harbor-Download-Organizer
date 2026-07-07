@@ -14,7 +14,6 @@ mod integration_tests;
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
 use state::AppState;
-use tauri::menu::ContextMenu;
 use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_notification::NotificationExt;
 
@@ -214,52 +213,44 @@ fn main() {
                 }
             });
 
-            let menu_for_tray = menu.clone();
-            let _tray = TrayIconBuilder::with_id("tray")
+            // Let Tauri manage menu display natively (avoids manual popup event
+            // ordering bugs on Windows). Platform behavior:
+            //   macOS:   left-click shows the menu (default), right-click opens app
+            //   Windows: right-click shows the menu, double left-click opens app
+            #[allow(unused_mut)]
+            let mut tray_builder = TrayIconBuilder::with_id("tray")
                 .icon(tray_icon)
-                .show_menu_on_left_click(false)
                 .icon_as_template(true)
+                .menu(&menu);
+
+            #[cfg(target_os = "windows")]
+            {
+                tray_builder = tray_builder.show_menu_on_left_click(false);
+            }
+
+            let _tray = tray_builder
                 .on_tray_icon_event(move |tray, event| {
                     let app = tray.app_handle();
                     match event {
-                        TrayIconEvent::Click {
+                        // Double left-click: open main window (all platforms)
+                        TrayIconEvent::DoubleClick {
                             button: MouseButton::Left,
                             ..
                         } => {
-                            // macOS: left-click = mini popup menu
-                            // Windows: left-click = open main window
-                            #[cfg(target_os = "macos")]
-                            {
-                                if let Some(webview) = app.get_webview_window("main") {
-                                    let _ = menu_for_tray.popup(webview.as_ref().window().clone());
-                                }
-                            }
-                            #[cfg(target_os = "windows")]
-                            {
-                                if let Some(window) = app.get_webview_window("main") {
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                }
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
                             }
                         }
+                        // macOS: right-click (two-finger) = open main window
+                        #[cfg(target_os = "macos")]
                         TrayIconEvent::Click {
                             button: MouseButton::Right,
                             ..
                         } => {
-                            // macOS: right-click (two-finger) = open main window
-                            // Windows: right-click = mini popup menu
-                            #[cfg(target_os = "macos")]
-                            {
-                                if let Some(window) = app.get_webview_window("main") {
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                }
-                            }
-                            #[cfg(target_os = "windows")]
-                            {
-                                if let Some(webview) = app.get_webview_window("main") {
-                                    let _ = menu_for_tray.popup(webview.as_ref().window().clone());
-                                }
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
                             }
                         }
                         _ => {}
