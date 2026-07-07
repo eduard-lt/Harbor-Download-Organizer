@@ -16,7 +16,7 @@ vi.mock('../lib/tauri');
 describe('useUpdateCheck', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        global.fetch = vi.fn().mockResolvedValue({
+        globalThis.fetch = vi.fn().mockResolvedValue({
             ok: false,
             status: 404,
             json: async () => ({}),
@@ -55,7 +55,7 @@ describe('useUpdateCheck', () => {
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.1',
         };
 
-        vi.mocked(global.fetch).mockResolvedValue({
+        vi.mocked(globalThis.fetch).mockResolvedValue({
             ok: true,
             json: async () => mockRelease,
         } as Response);
@@ -83,7 +83,7 @@ describe('useUpdateCheck', () => {
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.0',
         };
 
-        vi.mocked(global.fetch).mockResolvedValue({
+        vi.mocked(globalThis.fetch).mockResolvedValue({
             ok: true,
             json: async () => mockRelease,
         } as Response);
@@ -107,7 +107,7 @@ describe('useUpdateCheck', () => {
             html_url: 'https://github.com/eduard-lt/Harbor-Download-Organizer/releases/tag/v1.2.1',
         };
 
-        vi.mocked(global.fetch).mockResolvedValue({
+        vi.mocked(globalThis.fetch).mockResolvedValue({
             ok: true,
             json: async () => mockRelease,
         } as Response);
@@ -147,7 +147,7 @@ describe('useUpdateCheck', () => {
     });
 
     it('should set checked and error state on manual check failure', async () => {
-        vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
+        vi.mocked(globalThis.fetch).mockRejectedValue(new Error('Network error'));
 
         const { result } = renderHook(() => useUpdateCheck(), { wrapper });
 

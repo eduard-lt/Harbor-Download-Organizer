@@ -31,7 +31,7 @@ function GlobalNavigationListener() {
 function GlobalContextMenuListener() {
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
-      if (process.env.NODE_ENV === 'production') {
+      if (import.meta.env.PROD) {
         e.preventDefault();
       }
     };

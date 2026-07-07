@@ -201,7 +201,7 @@ describe('SettingsContext', () => {
     });
 
     it('polling interval is cleaned up on unmount', async () => {
-        const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+        const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
         const { unmount } = renderHook(() => useSettingsContext(), { wrapper });
         await waitFor(() => expect(clearIntervalSpy.mock.calls.length).toBeGreaterThanOrEqual(0));
         unmount();
