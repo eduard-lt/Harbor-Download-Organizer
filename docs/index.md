@@ -12,7 +12,6 @@
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Crate layout, data flow, key abstractions |
 | [Contributing](CONTRIBUTING.md) | Setup, workflow, coding standards, PR process |
-| [Window Management](WINDOW_MANAGEMENT.md) | DPI awareness, sizing presets, persistence |
 | [Poe Tasks](POE_TASKS.md) | Build, test, lint, and release automation commands |
 | [Testing Policy](testing/coverage-policy.md) | Coverage thresholds and enforcement |
 | [TODO](TODO.md) | Planned features, audit findings, roadmap |

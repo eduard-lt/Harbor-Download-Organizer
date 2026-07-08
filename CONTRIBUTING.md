@@ -143,7 +143,6 @@ Harbor-Download-Organizer/
 │   ├── ARCHITECTURE.md          # Crate layout and key abstractions
 │   ├── TODO.md                  # Planned features and improvements
 │   ├── POE_TASKS.md             # Poe task reference
-│   ├── WINDOW_MANAGEMENT.md     # Tauri window visibility guide
 │   └── testing/                 # Testing docs (coverage policy, etc.)
 ├── assets/                      # Icons and resources
 ├── Cargo.toml                   # Rust workspace

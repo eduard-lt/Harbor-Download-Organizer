@@ -1,0 +1,7 @@
+title: Harbor Documentation
+description: Download Organizer & File Manager
+theme: null
+markdown: kramdown
+exclude:
+  - node_modules
+  - vendor
