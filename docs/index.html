@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harbor Documentation</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --tag-bg: #eef2ff;
+    --tag-text: #4338ca;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --accent: #818cf8;
+      --accent-hover: #6366f1;
+      --tag-bg: #1e1b4b;
+      --tag-text: #a5b4fc;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+  header { text-align: center; margin-bottom: 3rem; }
+  h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.5px; }
+  .subtitle { color: var(--muted); font-size: 1.1rem; margin-top: 0.5rem; }
+  .links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem; }
+  .links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    background: var(--tag-bg);
+    transition: background 0.2s;
+  }
+  .links a:hover { background: var(--accent); color: white; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, transform 0.2s;
+    display: block;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .card p { color: var(--muted); font-size: 0.9rem; }
+  .footer { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚓ Harbor Docs</h1>
+  <p class="subtitle">Download Organizer & File Manager — Architecture, Guides, and Reference</p>
+  <div class="links">
+    <a href="https://github.com/eduard-lt/Harbor-Download-Organizer">GitHub</a>
+    <a href="https://github.com/eduard-lt/Harbor-Download-Organizer/releases">Releases</a>
+    <a href="https://github.com/eduard-lt/Harbor-Download-Organizer/issues">Issues</a>
+  </div>
+</header>
+
+<div class="grid">
+  <a class="card" href="index.md">
+    <h3>🏠 Overview</h3>
+    <p>Project overview, quick links, tech stack, CI pipeline reference.</p>
+  </a>
+  <a class="card" href="ARCHITECTURE.md">
+    <h3>🏗 Architecture</h3>
+    <p>Crate layout, data flow, key abstractions, testing strategy.</p>
+  </a>
+  <a class="card" href="https://github.com/eduard-lt/Harbor-Download-Organizer/blob/main/CONTRIBUTING.md">
+    <h3>🤝 Contributing</h3>
+    <p>Development setup, workflow, coding standards, PR process.</p>
+  </a>
+  <a class="card" href="POE_TASKS.md">
+    <h3>⚙️ Poe Tasks</h3>
+    <p>Build, test, lint, release, and fuzz automation commands.</p>
+  </a>
+  <a class="card" href="WINDOW_MANAGEMENT.md">
+    <h3>🪟 Window Management</h3>
+    <p>DPI awareness, sizing presets, window persistence.</p>
+  </a>
+  <a class="card" href="testing/coverage-policy.md">
+    <h3>📊 Coverage Policy</h3>
+    <p>70% threshold, CI enforcement, frontend vs backend gates.</p>
+  </a>
+  <a class="card" href="TODO.md">
+    <h3>📋 Roadmap</h3>
+    <p>Planned features, audit findings, infrastructure improvements.</p>
+  </a>
+</div>
+
+<footer class="footer">
+  Harbor is MIT licensed. Built with Tauri v2, Rust, and React.
+</footer>
+</body>
+</html>
