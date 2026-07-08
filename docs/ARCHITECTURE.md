@@ -185,15 +185,15 @@ The "Organize Now" action emits `harbor://tray-organize-outcome` for the fronten
 ## Data Flow
 
 ```
-┌──────────────┐    invoke()     ┌─────────────────┐   organize_once()    ┌──────────────┐
+┌──────────────┐    invoke()     ┌─────────────────┐   organize_once()   ┌──────────────┐
 │              │ ──────────────→ │                 │ ──────────────────→ │              │
 │  React UI    │                 │  Tauri Commands │                     │  harbor-core │
 │  (webview)   │ ←────────────── │  (Rust)         │ ←────────────────── │              │
 │              │   responses     │                 │      results        │              │
 └──────────────┘                 └─────────────────┘                     └──────┬───────┘
-                                                                               │
-                                                                     YAML config
-                                                                     (load/save)
+                                                                                │
+                                                                           YAML config
+                                                                           (load/save)
 
 Activity log: written by both Tauri backend and tray app
               to ~/Library/Application Support/Harbor/recent_moves.log
