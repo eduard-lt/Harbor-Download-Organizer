@@ -115,21 +115,84 @@ fn main() {
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // X button / Cmd+W: hide window, keep in tray.
                 window.hide().unwrap();
                 api.prevent_close();
             }
         })
         .setup(move |app| {
             use tauri::image::Image;
-            use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder};
+            use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
             use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
             if let Err(e) = commands::settings::reconcile_startup_authority(app.handle()) {
                 eprintln!("[Harbor] Warning: failed to reconcile startup authority: {e}");
             }
 
+            // --- Override macOS app menu Quit item to intercept Cmd+Q ---
+            // NOTE: Using a custom macOS menu to intercept Cmd+Q before the system handles it.
+            // This is more reliable than ExitRequested::prevent_exit() on macOS.
+            // Also restores Cmd+W (Close Window) which is lost when replacing the default menus.
+            #[cfg(target_os = "macos")]
+            {
+                let quit_item = MenuItemBuilder::with_id("harbor_quit", "Quit Harbor")
+                    .accelerator("Cmd+Q")
+                    .build(app)?;
+
+                let close_window = MenuItemBuilder::with_id("close_window", "Close Window")
+                    .accelerator("Cmd+W")
+                    .build(app)?;
+
+                let app_submenu = SubmenuBuilder::new(app, "Harbor")
+                    .item(&PredefinedMenuItem::about(app, Some("About Harbor"), None)?)
+                    .item(&PredefinedMenuItem::separator(app)?)
+                    .item(&PredefinedMenuItem::services(app, None)?)
+                    .item(&PredefinedMenuItem::separator(app)?)
+                    .item(&PredefinedMenuItem::hide(app, None)?)
+                    .item(&PredefinedMenuItem::hide_others(app, None)?)
+                    .item(&PredefinedMenuItem::show_all(app, None)?)
+                    .item(&PredefinedMenuItem::separator(app)?)
+                    .item(&quit_item)
+                    .build()?;
+
+                let file_submenu = SubmenuBuilder::new(app, "File")
+                    .item(&close_window)
+                    .build()?;
+
+                let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                    .item(&PredefinedMenuItem::undo(app, None)?)
+                    .item(&PredefinedMenuItem::redo(app, None)?)
+                    .item(&PredefinedMenuItem::separator(app)?)
+                    .item(&PredefinedMenuItem::cut(app, None)?)
+                    .item(&PredefinedMenuItem::copy(app, None)?)
+                    .item(&PredefinedMenuItem::paste(app, None)?)
+                    .item(&PredefinedMenuItem::select_all(app, None)?)
+                    .build()?;
+
+                let window_submenu = SubmenuBuilder::new(app, "Window")
+                    .item(&PredefinedMenuItem::minimize(app, None)?)
+                    .build()?;
+
+                let menu = MenuBuilder::new(app)
+                    .item(&app_submenu)
+                    .item(&file_submenu)
+                    .item(&edit_submenu)
+                    .item(&window_submenu)
+                    .build()?;
+
+                app.set_menu(menu)?;
+            }
+
             // --- Smart Visibility Logic ---
             let args: Vec<String> = std::env::args().collect();
             let is_minimized_launch = args.contains(&"--minimized".to_string());
+
+            // Helper to show the main window.
+            let show_main_window = |app: &tauri::AppHandle| {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            };
 
             if let Some(window) = app.get_webview_window("main") {
                 if is_minimized_launch {
@@ -264,10 +327,7 @@ fn main() {
                             button: MouseButton::Left,
                             ..
                         } => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                            show_main_window(app);
                         }
                         // macOS: right-click (two-finger) = open main window
                         #[cfg(target_os = "macos")]
@@ -275,16 +335,16 @@ fn main() {
                             button: MouseButton::Right,
                             ..
                         } => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                            show_main_window(app);
                         }
                         _ => {}
                     }
                 })
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "quit" => {
+                        // Bypass double-press logic for tray quit.
+                        let state: tauri::State<AppState> = app.state();
+                        state.tray_quit_requested.store(true, std::sync::atomic::Ordering::SeqCst);
                         app.exit(0);
                     }
                     "service_on" => {
@@ -410,23 +470,20 @@ fn main() {
                         });
                     }
                     "open_rules" => {
+                        show_main_window(app);
                         if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
                             let _ = window.emit("navigate", "/");
                         }
                     }
                     "open_activity" => {
+                        show_main_window(app);
                         if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
                             let _ = window.emit("navigate", "/activity");
                         }
                     }
                     "open_settings" => {
+                        show_main_window(app);
                         if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
                             let _ = window.emit("navigate", "/settings");
                         }
                     }
@@ -436,6 +493,56 @@ fn main() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            match event {
+                // Cmd+Q via custom macOS menu item.
+                tauri::RunEvent::MenuEvent(menu_event) if menu_event.id.as_ref() == "harbor_quit" => {
+                    let state: tauri::State<AppState> = app_handle.state();
+                    let mut last_close = state.last_close_request.lock().unwrap();
+                    let now = std::time::Instant::now();
+                    let should_quit = match *last_close {
+                        Some(t) => now.duration_since(t).as_secs() < 7,
+                        None => false,
+                    };
+                    if should_quit {
+                        app_handle.exit(0);
+                    } else {
+                        *last_close = Some(now);
+                        let _ = app_handle.emit("show-quit-popup", ());
+                    }
+                }
+                // Cmd+W via custom macOS File > Close Window menu item.
+                tauri::RunEvent::MenuEvent(menu_event) if menu_event.id.as_ref() == "close_window" => {
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.hide();
+                    }
+                }
+                // Fallback: Cmd+Q via system quit event.
+                tauri::RunEvent::ExitRequested { api, .. } => {
+                    let state: tauri::State<AppState> = app_handle.state();
+
+                    // Tray "Quit" bypasses double-press.
+                    if state.tray_quit_requested.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                        // Allow exit immediately.
+                    } else {
+                        let mut last_close = state.last_close_request.lock().unwrap();
+                        let now = std::time::Instant::now();
+                        let should_quit = match *last_close {
+                            Some(t) => now.duration_since(t).as_secs() < 7,
+                            None => false,
+                        };
+                        if should_quit {
+                            // Allow exit (don't call prevent_exit).
+                        } else {
+                            *last_close = Some(now);
+                            api.prevent_exit();
+                            let _ = app_handle.emit("show-quit-popup", ());
+                        }
+                    }
+                }
+                _ => {}
+            }
+        });
 }

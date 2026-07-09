@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { UpdateProvider } from './context/UpdateContext';
 import { Layout } from './components/Layout';
+import { QuitToast } from './components/QuitToast';
 import { ActivityLogsPage } from './pages/ActivityLogsPage';
 import { RulesPage } from './pages/RulesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -66,6 +67,7 @@ function App() {
                 <Route path="info" element={<InfoPage />} />
               </Route>
             </Routes>
+            <QuitToast />
           </UpdateProvider>
         </BrowserRouter>
       </ThemeProvider>

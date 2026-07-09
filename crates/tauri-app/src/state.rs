@@ -37,6 +37,10 @@ pub struct AppState {
     pub restart_in_progress: Arc<Mutex<bool>>,
     /// True while a timed-out stop keeps a background join waiter owning shutdown completion.
     pub watcher_join_pending: Arc<Mutex<bool>>,
+    /// Timestamp of the last Cmd+Q / close request. Used for double-press-to-quit.
+    pub last_close_request: Arc<Mutex<Option<Instant>>>,
+    /// Set to true when tray "Quit" is pressed, to bypass double-press logic.
+    pub tray_quit_requested: Arc<AtomicBool>,
 }
 
 impl AppState {
@@ -52,6 +56,8 @@ impl AppState {
             last_restart_request: Arc::new(Mutex::new(None)),
             restart_in_progress: Arc::new(Mutex::new(false)),
             watcher_join_pending: Arc::new(Mutex::new(false)),
+            last_close_request: Arc::new(Mutex::new(None)),
+            tray_quit_requested: Arc::new(AtomicBool::new(false)),
         }
     }
 

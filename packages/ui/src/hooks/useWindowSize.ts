@@ -5,6 +5,14 @@ import type { UnlistenFn } from '@tauri-apps/api/event';
 const STORAGE_SIZE_KEY = 'harbor-window-size';
 const STORAGE_POSITION_KEY = 'harbor-window-position';
 
+// Prevent re-initialization when the hook is called from multiple components.
+let globalInitialized = false;
+
+/** Reset global init flag (for tests only). */
+export function __resetWindowSizeForTest() {
+  globalInitialized = false;
+}
+
 interface WindowSize {
     label: string;
     width: number;
@@ -23,7 +31,23 @@ export const PRESET_SIZES: WindowSize[] = [
 ];
 
 export function useWindowSize() {
-    const [currentSize, setCurrentSize] = useState<WindowSize | null>(null);
+    const [currentSize, setCurrentSize] = useState<WindowSize | null>(() => {
+        // If another component already initialized, read saved size from localStorage.
+        if (globalInitialized) {
+            try {
+                const saved = localStorage.getItem(STORAGE_SIZE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && typeof parsed.width === 'number' && typeof parsed.height === 'number') {
+                        return parsed;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        }
+        return null;
+    });
     const moveUnlistenRef = useRef<UnlistenFn | null>(null);
 
     const savePosition = useCallback(async () => {
@@ -43,8 +67,11 @@ export function useWindowSize() {
         }
     }, []);
 
-    // Load saved size/position on mount
+    // Load saved size/position on mount (once globally)
     useEffect(() => {
+        if (globalInitialized) return;
+        globalInitialized = true;
+
         const initializeWindow = async () => {
             try {
                 const saved = localStorage.getItem(STORAGE_SIZE_KEY);

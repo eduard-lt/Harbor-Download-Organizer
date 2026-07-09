@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useWindowSize, PRESET_SIZES } from './useWindowSize';
+import { useWindowSize, PRESET_SIZES, __resetWindowSizeForTest } from './useWindowSize';
 
 const mockFns = vi.hoisted(() => {
     const mocks = {
@@ -51,6 +51,7 @@ describe('useWindowSize', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        __resetWindowSizeForTest();
         mockCurrentMonitor.mockResolvedValue({
             size: { width: 1920, height: 1080 }
         });
