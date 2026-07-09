@@ -52,10 +52,10 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-20 lg:w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20">
+    <aside className="w-20 lg:w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20 select-none">
       {/* Logo */}
       <div className="p-6 pt-10 flex items-center gap-3">
-        <img src="/harbor.svg" alt="Harbor" className="w-10 h-10 object-contain" />
+        <img src="/harbor.svg" alt="Harbor" className="w-10 h-10 object-contain" draggable="false" />
         <span className="text-xl font-bold tracking-tight hidden lg:block dark:text-white">Harbor</span>
       </div>
 

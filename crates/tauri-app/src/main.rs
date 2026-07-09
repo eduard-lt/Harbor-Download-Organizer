@@ -115,9 +115,15 @@ fn main() {
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // X button / Cmd+W: hide window, keep in tray.
+                // X button / Cmd+W: hide window, remove from dock (macOS), keep in tray.
                 window.hide().unwrap();
                 api.prevent_close();
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = window
+                        .app_handle()
+                        .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                }
             }
         })
         .setup(move |app| {
@@ -186,7 +192,16 @@ fn main() {
             let args: Vec<String> = std::env::args().collect();
             let is_minimized_launch = args.contains(&"--minimized".to_string());
 
-            // Helper to show the main window.
+            // Helper to show the main window and restore dock icon on macOS.
+            #[cfg(target_os = "macos")]
+            let show_main_window = |app: &tauri::AppHandle| {
+                let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            };
+            #[cfg(not(target_os = "macos"))]
             let show_main_window = |app: &tauri::AppHandle| {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.show();
@@ -197,6 +212,12 @@ fn main() {
             if let Some(window) = app.get_webview_window("main") {
                 if is_minimized_launch {
                     let _ = window.hide();
+                    #[cfg(target_os = "macos")]
+                    {
+                        let _ = app
+                            .handle()
+                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                    }
                 } else {
                     let _ = window.show();
                     let _ = window.set_focus();
@@ -517,6 +538,10 @@ fn main() {
                 tauri::RunEvent::MenuEvent(menu_event) if menu_event.id.as_ref() == "close_window" => {
                     if let Some(window) = app_handle.get_webview_window("main") {
                         let _ = window.hide();
+                    }
+                    #[cfg(target_os = "macos")]
+                    {
+                        let _ = app_handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
                     }
                 }
                 // Fallback: Cmd+Q via system quit event.

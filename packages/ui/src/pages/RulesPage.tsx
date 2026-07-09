@@ -353,7 +353,7 @@ export function RulesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="font-mono text-sm text-slate-500 dark:text-slate-400 break-words">
+                        <span className="font-mono text-sm text-slate-500 dark:text-slate-400 break-words allow-select">
                           {(() => {
                             const { parent, leaf } = formatPath(rule.destination);
                             return (

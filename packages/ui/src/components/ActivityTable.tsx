@@ -107,11 +107,11 @@ export function ActivityTable({
                   <div className="flex flex-col gap-1">
                     <div className="text-xs text-slate-500 flex items-center gap-1">
                       <span className="material-icons-round text-[14px]">folder_open</span>
-                      <span className="truncate max-w-[350px]" title={sanitizePathForUi(log.source_path)}>{sanitizePathForUi(log.source_path)}</span>
+                      <span className="truncate max-w-[350px] allow-select" title={sanitizePathForUi(log.source_path)}>{sanitizePathForUi(log.source_path)}</span>
                     </div>
                     <div className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       <span className="material-icons-round text-[16px]">arrow_forward</span>
-                      <span className="truncate max-w-[350px]" title={sanitizePathForUi(log.dest_path)}>{sanitizePathForUi(log.dest_path)}</span>
+                      <span className="truncate max-w-[350px] allow-select" title={sanitizePathForUi(log.dest_path)}>{sanitizePathForUi(log.dest_path)}</span>
                     </div>
                   </div>
                 </td>

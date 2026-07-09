@@ -27,6 +27,17 @@
   body {
     font-family: var(--font-family-display);
     overscroll-behavior: none;
+    user-select: none;
+  }
+
+  /* Re-enable text selection on specific content areas */
+  input[type="text"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  [data-selectable],
+  .allow-select {
+    user-select: text;
   }
 
   button {
