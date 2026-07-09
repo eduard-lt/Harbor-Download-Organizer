@@ -128,7 +128,9 @@ fn main() {
         })
         .setup(move |app| {
             use tauri::image::Image;
-            use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+            use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder};
+            #[cfg(target_os = "macos")]
+            use tauri::menu::{PredefinedMenuItem, SubmenuBuilder};
             use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
             if let Err(e) = commands::settings::reconcile_startup_authority(app.handle()) {
                 eprintln!("[Harbor] Warning: failed to reconcile startup authority: {e}");
