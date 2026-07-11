@@ -108,7 +108,7 @@ pub fn default_config() -> DownloadsConfig {
         download_dir: dl_str,
         min_age_secs: Some(5),
         tutorial_completed: Some(false),
-        service_enabled: Some(true),
+        service_enabled: Some(false),
         check_updates: Some(true),
         last_notified_version: None,
         rules: vec![
@@ -1107,7 +1107,7 @@ rules:
     fn test_default_config() {
         let cfg = default_config();
         assert!(cfg.download_dir.contains("Downloads"));
-        assert_eq!(cfg.service_enabled, Some(true));
+        assert_eq!(cfg.service_enabled, Some(false));
         assert!(!cfg.rules.is_empty());
         assert!(cfg.rules.iter().any(|r| r.name == "Images"));
     }

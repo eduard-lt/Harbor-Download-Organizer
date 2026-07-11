@@ -233,7 +233,7 @@ mod integration {
 
         let config = load_or_initialize_config(&cfg_path).unwrap();
         assert!(!config.download_dir.is_empty());
-        assert_eq!(config.service_enabled, Some(true));
+        assert_eq!(config.service_enabled, Some(false));
     }
 
     // -----------------------------------------------------------------------

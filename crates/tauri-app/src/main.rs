@@ -56,7 +56,7 @@ fn main() {
     }
 
     // Start service if enabled in config (Default: true for new users)
-    let service_enabled = config.service_enabled.unwrap_or(true);
+    let service_enabled = config.service_enabled.unwrap_or(false);
 
     let app_state = AppState::new(cfg_path, config);
 
