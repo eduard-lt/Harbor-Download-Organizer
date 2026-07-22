@@ -306,7 +306,12 @@ fn main() {
                 }
             });
 
-            // macOS: manual popup on left-click (no bug here).
+            // macOS: manual popup on left-click. We call popup() manually so
+            // we can differentiate left-click (popup menu) vs double-click
+            // (open window) vs right-click (open window). The menu must be
+            // attached to the tray via .menu(&menu) so the NSStatusItem owns
+            // it and properly unhighlights the button when the popup dismisses.
+            // Without this, macOS leaves the tray icon stuck in a pressed state.
             // Windows: use Tauri's native menu management to avoid popup event
             // ordering bugs. Right-click shows menu, double left-click opens app.
             // Linux: stub — only used for CI compilation, not a runtime target.
@@ -323,7 +328,9 @@ fn main() {
             #[cfg(target_os = "macos")]
             let tray_builder = TrayIconBuilder::with_id("tray")
                 .icon(tray_icon.clone())
-                .icon_as_template(true);
+                .icon_as_template(true)
+                .menu(&menu)
+                .show_menu_on_left_click(false);
 
             #[cfg(target_os = "linux")]
             let tray_builder = TrayIconBuilder::with_id("tray")
