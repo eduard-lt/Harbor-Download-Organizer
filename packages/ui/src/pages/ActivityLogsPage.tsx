@@ -5,7 +5,7 @@ import { useActivity } from '../hooks/useActivity';
 import type { OrganizeFailureGroup } from '../lib/tauri';
 
 export function ActivityLogsPage() {
-  const { logs, loading, error, hasMore, loadMore, total } = useActivity();
+  const { logs, loading, error, hasMore, loadMore, total, refresh } = useActivity();
   const [lastFailureGroups, setLastFailureGroups] = useState<OrganizeFailureGroup[]>([]);
 
   useEffect(() => {
@@ -21,7 +21,11 @@ export function ActivityLogsPage() {
 
   return (
     <>
-      <Header title="Activity Logs" subtitle={`${total} moves recorded`} />
+      <Header title="Activity Logs" subtitle={`${total} moves recorded`}>
+        <button onClick={refresh} disabled={loading} className="px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-50">
+          Refresh
+        </button>
+      </Header>
       <div className="flex-1 p-12 overflow-auto">
         {error && (
           <div className="p-4 mb-4 bg-red-50 text-red-600 rounded-lg">

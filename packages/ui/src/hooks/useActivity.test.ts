@@ -26,6 +26,7 @@ describe('useActivity', () => {
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         vi.restoreAllMocks();
     });
 
@@ -63,7 +64,7 @@ describe('useActivity', () => {
         const moreLogs = [{ ...mockLogs[0], id: '2' }];
         vi.mocked(tauri.getActivityLogs)
             .mockResolvedValueOnce({ logs: mockLogs, total: 2, has_more: true })
-            .mockResolvedValueOnce({ logs: moreLogs, total: 2, has_more: false });
+            .mockResolvedValueOnce({ logs: [...mockLogs, ...moreLogs], total: 2, has_more: false });
 
         const { result } = renderHook(() => useActivity(1));
 
@@ -75,6 +76,7 @@ describe('useActivity', () => {
         });
 
         await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(tauri.getActivityLogs).toHaveBeenLastCalledWith(2, 0);
         expect(result.current.logs).toHaveLength(2);
         expect(result.current.hasMore).toBe(false);
     });
@@ -88,6 +90,33 @@ describe('useActivity', () => {
             result.current.loadMore();
         });
         expect(vi.mocked(tauri.getActivityLogs).mock.calls.length).toBe(callCount);
+    });
+
+    it('does not skip a page when loading more fails', async () => {
+        vi.mocked(tauri.getActivityLogs).mockResolvedValueOnce({ logs: mockLogs, total: 3, has_more: true })
+            .mockRejectedValueOnce(new Error('Offline'))
+            .mockResolvedValueOnce({ logs: [...mockLogs, { ...mockLogs[0], id: '2' }], total: 3, has_more: true });
+        const { result } = renderHook(() => useActivity(1));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        act(() => result.current.loadMore());
+        await waitFor(() => expect(result.current.error).toBe('Offline'));
+        act(() => result.current.loadMore());
+        await waitFor(() => expect(result.current.logs).toHaveLength(2));
+        expect(tauri.getActivityLogs).toHaveBeenLastCalledWith(2, 0);
+    });
+
+    it('polls new activity and stops after unmount', async () => {
+        vi.useFakeTimers();
+        const { result, unmount } = renderHook(() => useActivity());
+        await act(async () => { await Promise.resolve(); });
+        const newLog = { ...mockLogs[0], id: 'new' };
+        vi.mocked(tauri.getActivityLogs).mockResolvedValue({ logs: [newLog, ...mockLogs], total: 2, has_more: false });
+        await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+        expect(result.current.logs[0].id).toBe('new');
+        const calls = vi.mocked(tauri.getActivityLogs).mock.calls.length;
+        unmount();
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(tauri.getActivityLogs).toHaveBeenCalledTimes(calls);
     });
 
     it('refresh resets logs', async () => {
