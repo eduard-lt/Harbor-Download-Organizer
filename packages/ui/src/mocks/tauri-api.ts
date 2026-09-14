@@ -62,6 +62,7 @@ export async function open(): Promise<void | string | null> {
 
 export function getCurrentWindow() {
     return {
+        setTheme: () => Promise.resolve(),
         setSize: () => Promise.resolve(),
         setPosition: () => Promise.resolve(),
         center: () => Promise.resolve(),

@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+
+vi.mock('@tauri-apps/api/window', () => ({
+    getCurrentWindow: vi.fn(() => ({ setTheme: vi.fn().mockResolvedValue(undefined) })),
+}));
+
 import { ThemeProvider, useTheme } from './ThemeContext';
 
 const wrapper = ({ children }: { children: React.ReactNode }) =>
@@ -17,6 +23,23 @@ describe('ThemeContext', () => {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
         } as unknown as MediaQueryList);
+    });
+
+    it('synchronizes the native title bar and restores system appearance', async () => {
+        const nativeTheme = vi.fn().mockResolvedValue(undefined);
+        vi.mocked(getCurrentWindow).mockReturnValue({ setTheme: nativeTheme } as unknown as ReturnType<typeof getCurrentWindow>);
+        Object.defineProperty(window, '__TAURI_INTERNALS__', { value: {}, configurable: true });
+        try {
+            const { result } = renderHook(() => useTheme(), { wrapper });
+            act(() => result.current.setTheme('light'));
+            await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith('light'));
+            act(() => result.current.setTheme('dark'));
+            await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith('dark'));
+            act(() => result.current.setTheme('system'));
+            await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith(null));
+        } finally {
+            Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+        }
     });
 
     it('defaults to "system" theme when no localStorage value', () => {
