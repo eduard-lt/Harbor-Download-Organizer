@@ -70,6 +70,9 @@ Documentation improvements are always welcome — typos, clarifications, example
 - **uv** — Python package manager ([install](https://docs.astral.sh/uv/))
 - **Poe the Poet** — `uv tool install poethepoet`
 - **WiX Toolset v3** (Windows only) — for building MSI installers
+- **Xcode 26 or later** (macOS only, when editing the icon) — for compiling the Icon Composer asset. Select the full Xcode developer directory with `xcode-select`.
+
+The editable macOS icon is `assets/Harbor.icon`. Open it in Icon Composer to adjust the layers and preview appearances. Keep SVG layers self-contained, with explicit dimensions and no external document type declarations. Save and close the document before running `poe icon-macos`, then commit both the source and `assets/macos/Assets.car`. The generated catalog is included in release builds so packaging does not require Icon Composer. The existing ICNS and ICO files remain fallbacks for older macOS versions and Windows.
 
 ### Clone and Build
 

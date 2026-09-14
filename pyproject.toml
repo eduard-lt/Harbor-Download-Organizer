@@ -17,6 +17,10 @@ shell = "npm run tauri:build --prefix packages/ui"
 help = "Build debug binaries"
 shell = "npm run tauri:build --prefix packages/ui -- --debug"
 
+[tool.poe.tasks.icon-macos]
+help = "Compile the macOS Icon Composer source (requires Xcode 26+)"
+cmd = "uv run python tools/icon_macos.py"
+
 [tool.poe.tasks.unquarantine]
 help = "Remove macOS quarantine attribute from built .app bundle"
 cmd = "xattr -d com.apple.quarantine crates/tauri-app/target/release/bundle/macos/Harbor.app || true"
