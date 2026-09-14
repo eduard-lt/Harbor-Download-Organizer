@@ -139,7 +139,11 @@ export const getRules = async (): Promise<Rule[]> => {
 };
 
 export const createRule = async (rule: Omit<Rule, 'id' | 'icon' | 'icon_color'>): Promise<Rule> => {
-    return await invoke('create_rule', { rule });
+    try {
+        return await invoke('create_rule', { rule });
+    } catch (error) {
+        throw tryParseValidationError(error) ?? error;
+    }
 };
 
 function tryParseValidationError(error: unknown): RuleValidationError | null {

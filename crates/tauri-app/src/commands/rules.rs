@@ -158,6 +158,13 @@ fn validation_error(message: impl Into<String>, fields: Vec<&'static str>) -> St
     })
 }
 
+fn validate_pattern(pattern: Option<&str>) -> Result<(), String> {
+    if let Some(pattern) = pattern {
+        regex::Regex::new(pattern).map_err(|error| validation_error(error.to_string(), vec!["pattern"]))?;
+    }
+    Ok(())
+}
+
 fn restart_service_if_running(state: &AppState) -> Result<(), String> {
     restart_monitoring_if_running(state)
 }
@@ -184,6 +191,12 @@ pub async fn impl_create_rule(
     state: &AppState,
     rule: CreateRuleRequest,
 ) -> Result<RuleDto, String> {
+    validate_pattern(rule.pattern.as_deref())?;
+    if let (Some(min), Some(max)) = (rule.min_size_bytes, rule.max_size_bytes) {
+        if min > max {
+            return Err(validation_error("Minimum size exceeds maximum size", vec!["min_size_bytes", "max_size_bytes"]));
+        }
+    }
     let new_rule = {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
@@ -211,7 +224,7 @@ pub async fn impl_create_rule(
             pattern: rule.pattern,
             min_size_bytes: rule.min_size_bytes,
             max_size_bytes: rule.max_size_bytes,
-            target_dir: rule.destination,
+            target_dir: harbor_core::downloads::expand_env(&rule.destination),
             create_symlink: rule.create_symlink.unwrap_or(false),
             enabled: rule.enabled.unwrap_or(true),
         };
@@ -250,6 +263,9 @@ pub async fn impl_update_rule(
         enabled,
     } = rule;
 
+    if let NullableField::Value(value) = &pattern {
+        validate_pattern(Some(value))?;
+    }
     let updated = {
         let mut config = state.config.write().map_err(|e| e.to_string())?;
 
@@ -301,7 +317,7 @@ pub async fn impl_update_rule(
             };
         }
         if let Some(dest) = destination {
-            r.target_dir = dest;
+            r.target_dir = harbor_core::downloads::expand_env(&dest);
         }
         if pattern.is_provided() {
             r.pattern = match pattern {
