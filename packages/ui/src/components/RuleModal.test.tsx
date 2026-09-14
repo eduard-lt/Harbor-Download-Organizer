@@ -25,6 +25,22 @@ describe('RuleModal', () => {
         onSave.mockResolvedValue(undefined);
     });
 
+    it('contains keyboard focus and supports Escape', () => {
+        render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
+        const dialog = screen.getByRole('dialog', { name: 'New Rule' });
+        const close = screen.getByRole('button', { name: 'Close rule editor' });
+        const save = screen.getByRole('button', { name: 'Save Rule' });
+        expect(close).toHaveFocus();
+        save.focus();
+        fireEvent.keyDown(save, { key: 'Tab' });
+        expect(close).toHaveFocus();
+        fireEvent.keyDown(close, { key: 'Tab', shiftKey: true });
+        expect(save).toHaveFocus();
+        fireEvent.keyDown(dialog, { key: 'Escape' });
+        expect(onClose).toHaveBeenCalledOnce();
+        expect(screen.getByRole('textbox', { name: 'Rule Name' })).toBeInTheDocument();
+    });
+
     it('renders nothing when isOpen is false', () => {
         const { container } = render(<RuleModal isOpen={false} onClose={onClose} onSave={onSave} />);
         expect(container.firstChild).toBeNull();

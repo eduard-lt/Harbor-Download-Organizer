@@ -52,11 +52,11 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-20 lg:w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20 select-none">
+    <aside className="w-20 xl:w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20 select-none">
       {/* Logo */}
       <div className="p-6 pt-10 flex items-center gap-3">
         <img src="/harbor.svg" alt="Harbor" className="w-10 h-10 object-contain" draggable="false" />
-        <span className="text-xl font-bold tracking-tight hidden lg:block dark:text-white">Harbor</span>
+        <span className="text-xl font-bold tracking-tight hidden xl:block dark:text-white">Harbor</span>
       </div>
 
       {/* Navigation */}
@@ -67,6 +67,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            aria-label={item.label}
             className={({ isActive }) =>
               `flex items-center gap-4 px-4 py-3 rounded-lg transition-colors group ${isActive
                 ? 'bg-primary/10 text-primary'
@@ -82,7 +83,7 @@ export function Sidebar() {
                 </span>
               )}
             </span>
-            <span className="font-medium hidden lg:block">{item.label}</span>
+            <span className="font-medium hidden xl:block">{item.label}</span>
           </NavLink>
         )})}
       </nav>
@@ -113,11 +114,11 @@ export function Sidebar() {
         )}
 
         {/* Service Toggle */}
-        <div id="sidebar-service-toggle" className={`rounded-xl p-3 flex items-center justify-center lg:justify-between group transition-all duration-300 ${serviceEnabled
+        <div id="sidebar-service-toggle" className={`rounded-xl p-3 flex items-center justify-center xl:justify-between group transition-all duration-300 ${serviceEnabled
           ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-2 border-emerald-500/20 shadow-lg shadow-emerald-500/10'
           : 'bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-700'
           }`}>
-          <div className="hidden lg:flex items-center gap-2 overflow-hidden">
+          <div className="hidden xl:flex items-center gap-2 overflow-hidden">
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${serviceEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-400'}`}></div>
             <div className="flex flex-col min-w-0">
               <span className={`text-xs font-bold truncate transition-colors ${serviceEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'
@@ -134,6 +135,7 @@ export function Sidebar() {
             <input
               type="checkbox"
               className="sr-only peer"
+              aria-label="Active monitoring"
               checked={serviceEnabled}
               onChange={handleToggle}
               disabled={loading}
@@ -168,7 +170,7 @@ export function Sidebar() {
                 </span>
               )}
             </div>
-            <span className={`text-sm font-medium hidden lg:block whitespace-nowrap transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>
+            <span className={`text-sm font-medium hidden xl:block whitespace-nowrap transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>
               {available ? 'Update Available' : 'GitHub'}
             </span>
           </button>
@@ -178,7 +180,7 @@ export function Sidebar() {
             title="Buy me a coffee"
           >
             <span className="material-icons-round text-xl text-slate-400 group-hover:text-[#FF5E5B] transition-colors">favorite</span>
-            <span className="text-sm font-medium hidden lg:block group-hover:text-[#FF5E5B] transition-colors">Donate</span>
+            <span className="text-sm font-medium hidden xl:block group-hover:text-[#FF5E5B] transition-colors">Donate</span>
           </button>
         </div>
       </div>

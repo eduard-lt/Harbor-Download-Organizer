@@ -31,7 +31,7 @@ test.describe('Rules CRUD', () => {
         await form.getByPlaceholder(/Downloads|Users/).fill('/Users/test/Videos');
 
         // Save
-        await form.getByRole('button', { name: 'Save Rule' }).click();
+        await page.getByRole('dialog').getByRole('button', { name: 'Save Rule' }).click();
 
         // Should appear in table (use exact to avoid matching destination path)
         await expect(page.getByText('Videos', { exact: true })).toBeVisible();
@@ -65,9 +65,9 @@ test.describe('Rules CRUD', () => {
 
     test('deletes a rule with confirmation', async ({ page }) => {
         const row = page.getByRole('row', { name: /Images/ });
-        await row.getByRole('button', { name: 'delete_outline' }).click();
+        await row.getByRole('button', { name: 'Delete Images' }).click();
 
-        // Confirmation modal — use exact match (there are also delete_outline icon buttons)
+        // Confirmation modal — use exact match (row actions also include the rule name)
         await expect(page.getByText('Delete Rule')).toBeVisible();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
@@ -77,7 +77,7 @@ test.describe('Rules CRUD', () => {
 
     test('cancels rule deletion', async ({ page }) => {
         const row = page.getByRole('row', { name: /Images/ });
-        await row.getByRole('button', { name: 'delete_outline' }).click();
+        await row.getByRole('button', { name: 'Delete Images' }).click();
 
         await expect(page.getByText('Delete Rule')).toBeVisible();
         await page.getByRole('button', { name: 'Cancel' }).click();

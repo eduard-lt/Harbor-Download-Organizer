@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
+import { useModalFocus } from '../hooks/useModalFocus';
 import type { Rule } from '../lib/tauri';
 import { open } from '@tauri-apps/plugin-dialog';
 
@@ -29,6 +30,9 @@ interface RuleModalProps {
 }
 
 export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalProps) {
+    const dialogRef = useModalFocus(isOpen, onClose);
+    const formId = useId();
+    const formRef = useRef<HTMLFormElement>(null);
     const [name, setName] = useState('');
     const [extensions, setExtensions] = useState('');
     const [destination, setDestination] = useState('');
@@ -44,6 +48,8 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
     const [fieldErrors, setFieldErrors] = useState<{ min_size_bytes?: string; max_size_bytes?: string }>({});
 
     useEffect(() => {
+        setError(null);
+        setFieldErrors({});
         if (initialData) {
             setName(initialData.name);
             setExtensions(initialData.extensions.join(', '));
@@ -74,6 +80,10 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
         setError(null);
         setFieldErrors({});
     };
+
+    useEffect(() => {
+        if (error && formRef.current) formRef.current.scrollTop = 0;
+    }, [error]);
 
     const handleBrowse = async () => {
         try {
@@ -146,32 +156,35 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={`${formId}-title`} tabIndex={-1} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
+                <div className="p-6 shrink-0 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <h2 id={`${formId}-title`} className="text-xl font-bold text-slate-800 dark:text-white">
                         {initialData ? 'Edit Rule' : 'New Rule'}
                     </h2>
                     <button
                         onClick={onClose}
+                        aria-label="Close rule editor"
                         className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors"
                     >
                         <span className="material-icons-round">close</span>
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form id={formId} ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto min-h-0">
                     {error && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg">
+                        <div role="alert" className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg">
                             {error}
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label htmlFor={`${formId}-name`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Rule Name
                         </label>
                         <input
                             type="text"
+                            id={`${formId}-name`}
+                            aria-label="Rule Name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white"
@@ -181,28 +194,32 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label htmlFor={`${formId}-extensions`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             File Extensions
                         </label>
                         <input
                             type="text"
+                            id={`${formId}-extensions`}
+                            aria-label="File Extensions"
                             value={extensions}
                             onChange={(e) => setExtensions(e.target.value)}
                             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white"
                             placeholder="e.g. jpg, png, gif"
                         />
                         <p className="text-xs text-slate-500 mt-1">
-                            Comma separated list of extensions (without dots).
+                            Comma separated extensions without dots. Leave blank to match all file types.
                         </p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label htmlFor={`${formId}-destination`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Destination Folder
                         </label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
+                                id={`${formId}-destination`}
+                                aria-label="Destination Folder"
                                 value={destination}
                                 onChange={(e) => setDestination(e.target.value)}
                                 className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
@@ -224,11 +241,13 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label htmlFor={`${formId}-pattern`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Regex Pattern (Optional)
                         </label>
                         <input
                             type="text"
+                            id={`${formId}-pattern`}
+                            aria-label="Regex Pattern (Optional)"
                             value={pattern}
                             onChange={(e) => setPattern(e.target.value)}
                             disabled={clearPattern}
@@ -257,7 +276,9 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                             <input
                                 type="number"
                                 min={0}
-                                value={minSizeBytes}
+                                id={`${formId}-minSizeBytes`}
+                            aria-label="Minimum Size (bytes)"
+                            value={minSizeBytes}
                                 onChange={(e) => setMinSizeBytes(e.target.value)}
                                 disabled={clearMinSize}
                                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
@@ -283,7 +304,9 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                             <input
                                 type="number"
                                 min={0}
-                                value={maxSizeBytes}
+                                id={`${formId}-maxSizeBytes`}
+                            aria-label="Maximum Size (bytes)"
+                            value={maxSizeBytes}
                                 onChange={(e) => setMaxSizeBytes(e.target.value)}
                                 disabled={clearMaxSize}
                                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
@@ -321,23 +344,24 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                     </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-6 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Saving...' : 'Save Rule'}
-                        </button>
-                    </div>
                 </form>
+                <div className="flex justify-end gap-3 p-4 shrink-0 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        form={formId}
+                        disabled={loading}
+                        className="px-6 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? 'Saving...' : 'Save Rule'}
+                    </button>
+                </div>
             </div>
         </div>
     );
