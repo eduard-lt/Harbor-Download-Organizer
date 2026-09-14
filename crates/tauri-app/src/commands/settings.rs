@@ -1,7 +1,7 @@
 use crate::commands::error_contract::{map_legacy_organize_error, AppError, AppErrorDto};
 use crate::state::{AppState, ServiceLifecycleState};
 use harbor_core::downloads::{
-    append_organize_results_to_log, load_downloads_config, organize_once, watch_polling,
+    append_organize_results_to_log, load_downloads_config, organize_once, watch_polling_with_config,
 };
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -256,13 +256,14 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
     let new_flag = Arc::new(std::sync::atomic::AtomicBool::new(true));
     *flag_guard = Some(new_flag.clone());
 
-    let config = state.config.read().map_err(|e| e.to_string())?.clone();
+    drop(state.config.read().map_err(|e| e.to_string())?);
+    let config = state.config.clone();
     let log_path = state.recent_log_path();
 
     // Use the *new* flag for the thread
     let thread_flag = new_flag.clone();
     let handle = thread::spawn(move || {
-        let _ = watch_polling(&config, 5, &thread_flag, |actions| {
+        let _ = watch_polling_with_config(|| config.read().unwrap_or_else(|e| e.into_inner()).clone(), 5, &thread_flag, |actions| {
             append_organize_results_to_log(&log_path, actions);
         });
     });

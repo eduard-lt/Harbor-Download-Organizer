@@ -12,5 +12,4 @@ serde_yaml.workspace = true
 thiserror.workspace = true
 regex.workspace = true
 uuid.workspace = true
-[dev-dependencies]
 tempfile.workspace = true
