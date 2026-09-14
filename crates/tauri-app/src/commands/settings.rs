@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
+#[cfg(not(target_os = "macos"))]
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_notification::NotificationExt;
 
@@ -689,35 +690,44 @@ trait StartupAuthority {
 }
 
 struct AppStartupAuthority<'a> {
-    app: &'a AppHandle,
+    _app: &'a AppHandle,
 }
 
 impl<'a> AppStartupAuthority<'a> {
     fn new(app: &'a AppHandle) -> Self {
-        Self { app }
+        Self { _app: app }
     }
 }
 
 impl StartupAuthority for AppStartupAuthority<'_> {
     fn enable(&self) -> Result<(), String> {
-        self.app
+        #[cfg(target_os = "macos")]
+        { crate::startup_macos::enable() }
+        #[cfg(not(target_os = "macos"))]
+        { self._app
             .autolaunch()
             .enable()
-            .map_err(|e| format!("Failed to update startup setting: {e}"))
+            .map_err(|e| format!("Failed to update startup setting: {e}")) }
     }
 
     fn disable(&self) -> Result<(), String> {
-        self.app
+        #[cfg(target_os = "macos")]
+        { crate::startup_macos::disable() }
+        #[cfg(not(target_os = "macos"))]
+        { self._app
             .autolaunch()
             .disable()
-            .map_err(|e| format!("Failed to update startup setting: {e}"))
+            .map_err(|e| format!("Failed to update startup setting: {e}")) }
     }
 
     fn is_enabled(&self) -> Result<bool, String> {
-        self.app
+        #[cfg(target_os = "macos")]
+        { Ok(crate::startup_macos::is_enabled()) }
+        #[cfg(not(target_os = "macos"))]
+        { self._app
             .autolaunch()
             .is_enabled()
-            .map_err(|e| format!("Failed to read startup state: {e}"))
+            .map_err(|e| format!("Failed to read startup state: {e}")) }
     }
 }
 
@@ -752,7 +762,7 @@ fn apply_startup_enabled(
 
     if enabled && !authoritative {
         return Err(
-            "Startup remains disabled after update attempt. Retry from Settings.".to_string(),
+            "Startup is not enabled yet. Check Harbor's permissions in your operating system's login or startup settings, then retry.".to_string(),
         );
     }
 
@@ -761,7 +771,8 @@ fn apply_startup_enabled(
 
 pub fn reconcile_startup_authority(app: &AppHandle) -> Result<(), String> {
     let _authority = AppStartupAuthority::new(app);
-    // Auto-launch plugin manages the registry key; no separate cleanup needed.
+    #[cfg(target_os = "macos")]
+    crate::startup_macos::migrate_legacy()?;
     Ok(())
 }
 
@@ -1706,6 +1717,19 @@ mod tests {
                 (true, "reconciled".to_string())
             ]
         );
+    }
+
+    #[test]
+    fn pending_startup_approval_preserves_registration() {
+        let authority = FakeStartupAuthority::new(Ok(()), Ok(()), Ok(false));
+        let mut events = Vec::new();
+        let result = apply_startup_enabled(&authority, true, &mut |enabled, phase| {
+            events.push((enabled, phase.to_string()));
+            Ok(())
+        });
+        assert!(result.unwrap_err().contains("permissions"));
+        assert_eq!(*authority.disable_calls.lock().unwrap(), 0);
+        assert_eq!(events.last(), Some(&(false, "reconciled".to_string())));
     }
 
     #[test]

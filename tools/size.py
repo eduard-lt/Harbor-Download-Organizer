@@ -60,7 +60,7 @@ def main() -> None:
     print(f"{'File':<25} {'Size':>12}")
     print("-" * 38)
 
-    binaries = ["harbor-cli", "harbor-tauri-app"]
+    binaries = ["harbor-cli", "Harbor"]
     # harbor-tray is Windows-only — check if it exists
     if platform.system() == "Windows":
         binaries.append("harbor-tray")

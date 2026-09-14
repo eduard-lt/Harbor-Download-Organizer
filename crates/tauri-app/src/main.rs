@@ -10,6 +10,8 @@ mod commands;
 #[cfg(test)]
 mod integration_tests;
 mod state;
+#[cfg(target_os = "macos")]
+mod startup_macos;
 
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
@@ -193,6 +195,8 @@ fn main() {
             // --- Smart Visibility Logic ---
             let args: Vec<String> = std::env::args().collect();
             let is_minimized_launch = args.contains(&"--minimized".to_string());
+            #[cfg(target_os = "macos")]
+            let is_minimized_launch = is_minimized_launch || startup_macos::is_login_launch();
 
             // Helper to show the main window and restore dock icon on macOS.
             #[cfg(target_os = "macos")]
