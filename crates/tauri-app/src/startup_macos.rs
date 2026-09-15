@@ -9,7 +9,8 @@ pub fn is_login_launch() -> bool {
         .currentAppleEvent()
         .is_some_and(|event| {
             event.eventID() == u32::from_be_bytes(*b"oapp")
-                && event.paramDescriptorForKeyword(u32::from_be_bytes(*b"prdt"))
+                && event
+                    .paramDescriptorForKeyword(u32::from_be_bytes(*b"prdt"))
                     .is_some_and(|value| value.enumCodeValue() == u32::from_be_bytes(*b"lgit"))
         })
 }
@@ -66,6 +67,62 @@ fn belongs_to_bundle(value: &plist::Value, bundle: &Path) -> bool {
         })
 }
 
+fn idle_job_matches_bundle(job: &str, bundle: &Path) -> bool {
+    let field = |name: &str| {
+        job.lines()
+            .find_map(|line| line.strip_prefix('\t')?.strip_prefix(name))
+    };
+    field("state = ") == Some("not running")
+        && field("pid = ").is_none()
+        && field("program = ").is_some_and(|program| {
+            ["Harbor", "harbor-tauri-app"]
+                .iter()
+                .any(|name| Path::new(program) == bundle.join("Contents/MacOS").join(name))
+        })
+}
+
+fn unload_retired_job(value: &plist::Value, bundle: &Path) -> Result<(), String> {
+    use std::process::Command;
+    let Some(label @ ("Harbor" | "harbor-tauri-app")) = value
+        .as_dictionary()
+        .and_then(|dict| dict.get("Label"))
+        .and_then(plist::Value::as_string)
+    else {
+        return Ok(());
+    };
+    let uid = Command::new("/usr/bin/id")
+        .arg("-u")
+        .output()
+        .map_err(|e| e.to_string())?;
+    let uid: u32 = String::from_utf8_lossy(&uid.stdout)
+        .trim()
+        .parse()
+        .map_err(|_| "Could not determine the login session user".to_string())?;
+    let service = format!("gui/{uid}/{label}");
+    let job = Command::new("/bin/launchctl")
+        .args(["print", &service])
+        .output()
+        .map_err(|e| e.to_string())?;
+    // A retired job may already be unloaded. Never stop a running app or a
+    // different installation that happens to use the same legacy label.
+    if !job.status.success()
+        || !idle_job_matches_bundle(&String::from_utf8_lossy(&job.stdout), bundle)
+    {
+        return Ok(());
+    }
+    let result = Command::new("/bin/launchctl")
+        .args(["bootout", &service])
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !result.status.success() {
+        return Err(format!(
+            "Could not unload retired startup job: {}",
+            String::from_utf8_lossy(&result.stderr)
+        ));
+    }
+    Ok(())
+}
+
 /// Replace only legacy registrations pointing into this installed bundle.
 /// Development builds must never migrate a user's installed application.
 pub fn migrate_legacy() -> Result<(), String> {
@@ -83,7 +140,14 @@ pub fn migrate_legacy() -> Result<(), String> {
     let agents = Path::new(&home).join("Library/LaunchAgents");
     for name in ["Harbor.plist", "harbor-tauri-app.plist"] {
         let path = agents.join(name);
+        let backup = path.with_extension("plist.disabled");
         if !path.exists() {
+            if backup.exists() {
+                let value = plist::Value::from_file(&backup).map_err(|e| e.to_string())?;
+                if belongs_to_bundle(&value, bundle) {
+                    unload_retired_job(&value, bundle)?;
+                }
+            }
             continue;
         }
         let value = plist::Value::from_file(&path).map_err(|e| e.to_string())?;
@@ -99,7 +163,6 @@ pub fn migrate_legacy() -> Result<(), String> {
         }
         // Preserve the old configuration for recovery while removing it from
         // launchd's .plist discovery on subsequent logins.
-        let backup = path.with_extension("plist.disabled");
         if backup.exists() {
             return Err(format!(
                 "Startup migration backup already exists: {}",
@@ -107,6 +170,7 @@ pub fn migrate_legacy() -> Result<(), String> {
             ));
         }
         std::fs::rename(&path, backup).map_err(|e| e.to_string())?;
+        unload_retired_job(&value, bundle)?;
     }
     Ok(())
 }
@@ -114,6 +178,23 @@ pub fn migrate_legacy() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn retired_job_cleanup_requires_an_idle_job_from_this_bundle() {
+        let bundle = Path::new("/Applications/Harbor.app");
+        let job = "gui/501/Harbor = {\n\tstate = not running\n\tprogram = /Applications/Harbor.app/Contents/MacOS/harbor-tauri-app\n}";
+        assert!(idle_job_matches_bundle(job, bundle));
+        assert!(!idle_job_matches_bundle(
+            &job.replace("not running", "running"),
+            bundle
+        ));
+        assert!(!idle_job_matches_bundle(
+            &job.replace("\n}", "\n\tpid = 123\n}"),
+            bundle
+        ));
+        assert!(!idle_job_matches_bundle(job, Path::new("/tmp/Harbor.app")));
+        assert!(!idle_job_matches_bundle("", bundle));
+    }
 
     #[test]
     fn migration_only_matches_this_bundles_executable() {
