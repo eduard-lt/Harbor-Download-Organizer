@@ -1,6 +1,6 @@
 # Release checklist and current status
 
-## 2.2.1 - release validation
+## 2.2.0 - release validation
 
 This version adds reliability fixes, Windows branding/startup repair, folder selection,
 preview, rule import/export, activity search and guarded undo. It removes the legacy
@@ -10,6 +10,11 @@ Signing credentials are not available. Candidates are unsigned on Windows and ad
 signed on macOS; Apple notarization is not configured. The workflow creates a **draft
 prerelease**, not a public release. Signing and native acceptance must be resolved or
 explicitly accepted before an official release.
+
+The public release version is **2.2.0**. Version 2.2.1 was used only for local
+upgrade tests and an unpublished candidate; that draft and tag are superseded.
+Historical test results below retain the version actually tested. Both installers
+must be rebuilt from the corrected 2.2.0 tag.
 
 ## Windows regression follow-up (2026-10-04)
 
@@ -131,7 +136,7 @@ with an absence of informational advisories. Linux is not a supported release pl
 ## Publishing
 
 Commit reviewed changes, confirm versions agree and complete native acceptance. A new
-`v2.2.1` tag or manual release-workflow dispatch builds candidates. Tag runs prepare a
+`v2.2.0` tag or manual release-workflow dispatch builds candidates. Tag runs prepare a
 draft prerelease with installers; review its contents before publishing. No credentials
 belong in the repository. Add signing through protected repository secrets once Windows
 and Apple Developer certificates are available; validate signed artifacts separately.
