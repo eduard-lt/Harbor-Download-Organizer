@@ -52,7 +52,7 @@ describe('TutorialModal', () => {
         expect(screen.getByText('Welcome to Harbor!')).toBeInTheDocument();
     });
 
-    it('highlights sidebar toggle element when Got it! is clicked if element exists', () => {
+    it('requests the monitoring cue without adding a rectangle when onboarding finishes', () => {
         // Create a fake sidebar toggle element
         const div = document.createElement('div');
         div.id = 'sidebar-service-toggle';
@@ -62,7 +62,8 @@ describe('TutorialModal', () => {
         fireEvent.click(screen.getByText('Next'));
         fireEvent.click(screen.getByText('Got it!'));
 
-        expect(div.classList.contains('ring-4')).toBe(true);
+        expect(div.className).toBe('');
+        expect(localStorage.getItem('harbor-monitoring-cue')).toBe('true');
         document.body.removeChild(div);
     });
 });

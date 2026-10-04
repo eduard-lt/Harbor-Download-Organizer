@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Header } from '../components/Header';
-import { StatCard } from '../components/StatCard';
 import { useRules } from '../hooks/useRules';
 import { RuleModal, type RuleFormData } from '../components/RuleModal';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -205,7 +204,7 @@ export function RulesPage() {
     <>
       <Header
         title="Rules Management"
-        subtitle="Define how Harbor handles your incoming files automatically."
+        subtitle="A little order, on autopilot."
       >
         <div className="relative group">
           <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
@@ -229,23 +228,12 @@ export function RulesPage() {
         </button>
       </Header>
 
-      <div className="p-6 xl:p-8 max-w-7xl mx-auto w-full overflow-auto">
+      <div className="harbor-content">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <StatCard
-            icon="checklist"
-            iconBgClass="bg-blue-100 dark:bg-blue-900/30"
-            iconTextClass="text-blue-600 dark:text-blue-400"
-            label="Active Rules"
-            value={rules.filter((r) => r.enabled).length}
-          />
-          <StatCard
-            icon="bolt"
-            iconBgClass="bg-primary/10"
-            iconTextClass="text-primary"
-            label="Total Rules"
-            value={rules.length}
-          />
+        <div className="harbor-rule-summary">
+          <div><span>Active Rules</span><strong>{rules.filter(r => r.enabled).length}</strong></div>
+          <div><span>Total Rules</span><strong>{rules.length}</strong></div>
+          <p>Runs from top to bottom · First matching rule wins</p>
         </div>
 
         {error && (
@@ -255,7 +243,7 @@ export function RulesPage() {
         )}
 
         {/* Rules Table */}
-        <div className="bg-white dark:bg-background-card rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-12">
+        <div className="harbor-rules-panel">
           {loading ? (
             <div className="p-8 text-center text-slate-500">Loading rules...</div>
           ) : (
@@ -287,7 +275,7 @@ export function RulesPage() {
                         } hover:bg-slate-50 dark:hover:bg-slate-800/30`}
                     >
                       <td className="px-3 py-3 text-center align-middle">
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center justify-center gap-0.5">
                           <button
                             onClick={() => handleMoveUp(actualIndex)}
                             disabled={actualIndex === 0}
@@ -345,8 +333,7 @@ export function RulesPage() {
                           {rule.extensions.map((ext) => (
                             <span
                               key={ext}
-                              className={`px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-mono text-xs border border-slate-200 dark:border-slate-700 inline-block text-center min-w-[3.5rem]`}
-                              style={{ width: `${Math.max(5, ext.length) + 2.5}ch` } as React.CSSProperties}
+                              className="harbor-extension"
                             >
                               {ext}
                             </span>
@@ -354,22 +341,17 @@ export function RulesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-sm text-slate-500 dark:text-slate-400 break-words allow-select">
+                        <div className="harbor-rule-path allow-select">
                           {(() => {
-                            const { parent, leaf } = formatPath(rule.destination);
+                            const { leaf } = formatPath(rule.destination);
                             return (
                               <>
-                                {parent && (
-                                  <>
-                                    {parent}
-                                    <br />
-                                  </>
-                                )}
-                                {rule.destination.includes('\\') ? '\\' : '/'}{leaf}
+                                <strong>→ {leaf || rule.destination}</strong>
+                                <details><summary>Full path</summary><code>{rule.destination}</code></details>
                               </>
                             );
                           })()}
-                        </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <label className="relative inline-flex items-center cursor-pointer justify-center">

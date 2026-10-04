@@ -1,6 +1,6 @@
 [project]
 name = "harbor"
-version = "2.2.0"
+version = "2.3.0"
 description = "Harbor specific tasks"
 requires-python = ">=3.10"
 dependencies = []
@@ -11,7 +11,7 @@ dependencies = []
 
 [tool.poe.tasks.build]
 help = "Build release binaries and installer (via Tauri)"
-shell = "npm run tauri:build --prefix packages/ui"
+shell = "CARGO_PROFILE_RELEASE_STRIP=none npm run tauri:build --prefix packages/ui"
 
 [tool.poe.tasks.build-debug]
 help = "Build debug binaries"
@@ -112,15 +112,15 @@ help = "Show current version"
 cmd = "uv run python tools/version.py show"
 
 [tool.poe.tasks.bump-patch]
-help = "Bump patch version (2.2.0 -> 2.2.1)"
+help = "Bump patch version (2.3.0 -> 2.3.1)"
 cmd = "uv run python tools/version.py bump patch"
 
 [tool.poe.tasks.bump-minor]
-help = "Bump minor version (2.2.0 -> 2.3.0)"
+help = "Bump minor version (2.3.0 -> 2.4.0)"
 cmd = "uv run python tools/version.py bump minor"
 
 [tool.poe.tasks.bump-major]
-help = "Bump major version (2.2.0 -> 3.0.0)"
+help = "Bump major version (2.3.0 -> 3.0.0)"
 cmd = "uv run python tools/version.py bump major"
 
 [tool.poe.tasks.git-release]

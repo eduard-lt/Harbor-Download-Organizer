@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 
@@ -30,6 +30,19 @@ const renderSidebar = () =>
     render(<MemoryRouter><Sidebar /></MemoryRouter>);
 
 describe('Sidebar', () => {
+    it('keeps the onboarding cue until monitoring is confirmed running', async () => {
+        localStorage.setItem('harbor-monitoring-cue', 'true');
+        const { rerender } = renderSidebar();
+        fireEvent.click(screen.getByRole('button', { name: 'Start monitoring' }));
+        expect(baseSettings.toggleService).toHaveBeenCalled();
+        // A click alone is insufficient: service startup can fail.
+        expect(screen.getByRole('button', { name: 'Start monitoring' })).toBeInTheDocument();
+        expect(localStorage.getItem('harbor-monitoring-cue')).toBe('true');
+        vi.mocked(useSettings).mockReturnValue({ ...baseSettings, serviceStatus: { running: true, pid: 12345 } });
+        rerender(<MemoryRouter><Sidebar /></MemoryRouter>);
+        await waitFor(() => expect(localStorage.getItem('harbor-monitoring-cue')).toBe('false'));
+        expect(screen.queryByRole('button', { name: 'Start monitoring' })).not.toBeInTheDocument();
+    });
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
@@ -98,23 +111,13 @@ describe('Sidebar', () => {
 
     it('opens GitHub link when GitHub button is clicked', () => {
         renderSidebar();
-        const githubBtn = screen.getAllByRole('button').find(b =>
-            b.querySelector('.material-icons-round')?.textContent === 'code'
-        );
-        if (githubBtn) {
-            fireEvent.click(githubBtn);
-            expect(open).toHaveBeenCalledWith(expect.stringContaining('github.com'));
-        }
+        fireEvent.click(screen.getByRole('button', { name: 'GitHub' }));
+        expect(open).toHaveBeenCalledWith(expect.stringContaining('github.com'));
     });
 
     it('opens Ko-fi link when support button is clicked', () => {
         renderSidebar();
-        const kofiBtn = screen.getAllByRole('button').find(b =>
-            b.querySelector('.material-icons-round')?.textContent === 'favorite'
-        );
-        if (kofiBtn) {
-            fireEvent.click(kofiBtn);
-            expect(open).toHaveBeenCalledWith(expect.stringContaining('ko-fi'));
-        }
+        fireEvent.click(screen.getByRole('button', { name: 'Buy me a coffee' }));
+        expect(open).toHaveBeenCalledWith(expect.stringContaining('ko-fi'));
     });
 });

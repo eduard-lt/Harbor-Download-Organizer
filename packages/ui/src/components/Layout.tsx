@@ -1,11 +1,17 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 
 export function Layout() {
+  const mainRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [pathname]);
   return (
-    <div className="h-screen flex bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden pt-[env(titlebar-area-height,0px)]">
+    <div className="harbor-shell">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <main ref={mainRef} id="main-content" className="harbor-main" tabIndex={-1}>
         <Outlet />
       </main>
     </div>
