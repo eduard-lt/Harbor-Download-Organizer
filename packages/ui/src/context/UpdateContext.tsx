@@ -108,39 +108,6 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         return 0;
     };
 
-    const checkNow = useCallback(async () => {
-        setUpdateState(prev => ({ ...prev, loading: true, error: null }));
-        try {
-            const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-            if (!response.ok) throw new Error('Failed to fetch release info');
-
-            const data = await response.json();
-            const latestVersion = data.tag_name.replace(/^v/, '');
-            const currentVersion = packageJson.version;
-
-            const hasNewUpdate = compareVersions(latestVersion, currentVersion) > 0;
-
-            setUpdateState({
-                available: hasNewUpdate,
-                hasUpdate: hasNewUpdate,
-                version: latestVersion,
-                url: data.html_url,
-                loading: false,
-                error: null,
-                checked: true
-            });
-
-        } catch (error) {
-            console.error('[Harbor] Update check failed:', error);
-            setUpdateState(prev => ({
-                ...prev,
-                loading: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
-                checked: true
-            }));
-        }
-    }, []);
-
     /** Send a system notification and update tray tooltip via the Rust backend. */
     const tryNotify = useCallback(async (latestVersion: string, downloadUrl: string) => {
         try {
@@ -154,7 +121,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     }, [updateLastNotifiedVersion]);
 
     /** Internal check that always mirrors the result into state. */
-    const performAutoCheck = useCallback(async () => {
+    const performCheck = useCallback(async (notify: boolean) => {
         setUpdateState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
@@ -177,7 +144,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 checked: true
             });
 
-            if (hasNewUpdate) {
+            if (hasNewUpdate && notify) {
                 // Use ref to avoid stale closure and prevent effect re-triggering.
                 if (lastNotifiedRef.current !== latestVersion) {
                     // Fire-and-forget notification — don't let it block state update.
@@ -194,6 +161,9 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
             }));
         }
     }, [tryNotify]);
+
+    const checkNow = useCallback(() => performCheck(false), [performCheck]);
+    const performAutoCheck = useCallback(() => performCheck(true), [performCheck]);
 
     // Automatic check on interval.
     // Uses only stable dependencies — the check reads lastNotifiedRef internally.

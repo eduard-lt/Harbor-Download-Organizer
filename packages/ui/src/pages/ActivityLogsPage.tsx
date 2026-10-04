@@ -5,7 +5,9 @@ import { useActivity } from '../hooks/useActivity';
 import type { OrganizeFailureGroup } from '../lib/tauri';
 
 export function ActivityLogsPage() {
-  const { logs, loading, error, hasMore, loadMore, total, refresh } = useActivity();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const { logs, loading, error, hasMore, loadMore, total, refresh } = useActivity(20, search, status);
   const [lastFailureGroups, setLastFailureGroups] = useState<OrganizeFailureGroup[]>([]);
 
   useEffect(() => {
@@ -21,12 +23,18 @@ export function ActivityLogsPage() {
 
   return (
     <>
-      <Header title="Activity Logs" subtitle={`${total} moves recorded`}>
+      <Header title="Activity Logs" subtitle={`${total} events recorded`}>
         <button onClick={refresh} disabled={loading} className="px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-50">
           Refresh
         </button>
       </Header>
       <div className="flex-1 p-12 overflow-auto">
+        <div className="flex flex-wrap gap-3 mb-4">
+          <input aria-label="Search activity" placeholder="Search files, folders or rules" value={search} onChange={event => setSearch(event.target.value)} className="border rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+          <select aria-label="Filter activity status" value={status} onChange={event => setStatus(event.target.value)} className="border rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <option value="">All activity</option><option value="success">Moved</option><option value="error">Errors</option><option value="recovered">Recovered</option><option value="undone">Undone</option>
+          </select>
+        </div>
         {error && (
           <div className="p-4 mb-4 bg-red-50 text-red-600 rounded-lg">
             {error}

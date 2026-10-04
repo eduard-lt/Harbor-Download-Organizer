@@ -5,20 +5,35 @@ All notable changes to Harbor are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.1] - 2026-10-04
 
 ### Added
-- [TODO list](docs/TODO.md) with planned features, polish items, and infrastructure improvements.
-- Consolidated [window management docs](docs/WINDOW_MANAGEMENT.md) (replaces verbose DPI_SCALING.md and WINDOW_SIZE_EXAMPLES.md).
+- Monitored-folder selection, read-only move preview, guarded undo of the last recorded batch.
+- Validated rule import/export and activity search/status filters.
+- Persistent background failure/recovery reporting and configuration recovery backups.
 
 ### Fixed
-- Navigation events now use correct routes in main application logic.
-- `reset_to_defaults` leaves the service stopped for user review; tutorial display logic improved.
-- Styling adjustments for rule extensions in RulesPage.
+- Preserve login startup across installer upgrades, including legacy HarborTray approval state.
+- Set explicit Windows application identity before creating the WebView. WebView2 process grouping remains a known cosmetic limitation.
+- Failed configuration writes no longer publish unsaved rule/settings changes.
+- Atomic, serialized configuration saves preserve previous valid YAML.
+- Stop signals workers even if saving the setting fails; pending workers cannot be replaced.
+- Monitoring starts after single-instance ownership; quit waits for file work.
+- Windows Known Folder discovery, login-path migration and quoted startup commands.
+- Startup/service command failures remain visible after status refresh.
 
 ### Changed
-- [Poe tasks reference](docs/POE_TASKS.md) rewritten to match actual available commands.
-- README contributing section now links to TODO list and supporting docs.
+- Shared macOS artwork exported for Windows application, window and tray icons.
+- Removed the legacy native Windows tray and installer commands; retained the downloads CLI.
+- Locked dependencies, synchronized version metadata and updated npm advisories.
+- Release reuses CI, includes NSIS and universal macOS artifacts, and creates draft prereleases.
+- Consolidated historical planning and duplicate Markdown guides into five maintained documents.
+
+## Historical releases
+
+The old checked-in changelog omitted published versions 2.0.3 through 2.1.3. Their
+source of record is [GitHub Releases](https://github.com/eduard-lt/Harbor-Download-Organizer/releases)
+and the corresponding Git tags; the entries below are retained as historical notes.
 
 ## [2.0.2] - 2026-07-05
 
@@ -51,14 +66,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-07-05
 
 ### Added
-- **macOS support** — Tauri app builds and runs on macOS (Apple Silicon + Intel).
+- **macOS support** â€” Tauri app builds and runs on macOS (Apple Silicon + Intel).
   - Cross-platform path resolution module.
   - macOS-native tray icon with swapped click behavior and overlay titlebar.
   - macOS-aware layout padding and RuleModal placeholders.
   - DMG build in release pipeline.
-- **Cross-platform task runner** — Migrated from PowerShell to Python.
-- **Rule priority scoring** — Rules can be scored and reordered via drag-and-drop.
-- **Modifier badges** — Visual badges for rule modifiers in the UI.
+- **Cross-platform task runner** â€” Migrated from PowerShell to Python.
+- **Rule priority scoring** â€” Rules can be scored and reordered via drag-and-drop.
+- **Modifier badges** â€” Visual badges for rule modifiers in the UI.
 - Real OS process ID shown in settings (instead of hardcoded "Native").
 - macOS CI check job (compilation + tests).
 
@@ -77,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.5] - 2026-04-19
 
 ### Added
-- **Reliability improvements** — TDD-driven feature set:
+- **Reliability improvements** â€” TDD-driven feature set:
   - Structured `organize-now` outcomes returned to the frontend.
   - Typed app error DTO mapper for consistent error handling.
   - Transactional monitoring restarts with debounce support.
@@ -96,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Coverage tests for backend and frontend.
 
 ### Changed
-- **Refactored** command API — positional args replaced with typed request structs for `create_rule`/`update_rule`.
+- **Refactored** command API â€” positional args replaced with typed request structs for `create_rule`/`update_rule`.
 - `rule_name` parameters renamed to `rule_id`; `reorder_rules` optimized with HashMap.
 - `harbor_app_dir` and `harbor_log_path` helpers moved to `harbor-core`.
 - `save_config_to_disk` helper extracted to eliminate repetition.
@@ -127,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modernized testing toolchain.
 
 ### Fixed
-- **Critical bug** — Prevented premature organization of incomplete downloads:
+- **Critical bug** â€” Prevented premature organization of incomplete downloads:
   - 0-byte placeholder files created by browsers are now skipped.
   - Active partial download detection (`.crdownload`, `.part`, `.tmp`, `.download`, `.opdownload`).
   - `OrganizeResult` rename errors now warn instead of failing the entire process.

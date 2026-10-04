@@ -57,7 +57,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             setServiceStatus(status);
             setStartupEnabled(startup);
             setDownloadDir(dir);
-            setError(null);
         } catch (err) {
             console.error('Failed to fetch settings:', err);
             setError(err instanceof Error ? err.message : String(err));
@@ -103,6 +102,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }, [fetchStatus]);
 
     const toggleService = async () => {
+        setError(null);
         try {
             if (serviceStatus.running) {
                 await stopService();
@@ -117,6 +117,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     const retryService = async () => {
+        setError(null);
         try {
             await retryServiceRestart();
             await fetchStatus();
@@ -127,6 +128,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     const toggleStartup = async () => {
+        setError(null);
         try {
             const newState = !startupEnabled;
             await setStartupEnabledApi(newState);
@@ -138,6 +140,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     const organizeNow = async () => {
+        setError(null);
         try {
             setOrganizing(true);
             const result = await triggerOrganizeNow();
@@ -151,6 +154,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     const reload = async () => {
+        setError(null);
         try {
             await reloadConfig();
             await fetchStatus();
@@ -161,6 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     const reset = async () => {
+        setError(null);
         try {
             await resetToDefaults();
             await fetchStatus();

@@ -9,9 +9,14 @@
 mod commands;
 #[cfg(test)]
 mod integration_tests;
-mod state;
+mod operations;
+#[cfg(test)]
+mod release_regressions;
 #[cfg(target_os = "macos")]
 mod startup_macos;
+#[cfg(windows)]
+mod startup_windows;
+mod state;
 
 use harbor_core::downloads::load_or_initialize_config;
 use serde::{Deserialize, Serialize};
@@ -38,33 +43,52 @@ struct ServiceStatusEnvelope {
 }
 
 fn main() {
+    #[cfg(windows)]
+    {
+        if let Some(result) = startup_windows::installer_maintenance() {
+            if let Err(error) = result {
+                eprintln!("Startup migration failed: {error}");
+                std::process::exit(1);
+            }
+            return;
+        }
+        // Establish the same shell identity as the installed shortcuts before
+        // creating any window or WebView. Runtime child names remain Microsoft's.
+        unsafe {
+            if let Err(error) = windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
+                windows::core::w!("com.eduard-lt.harbor"),
+            ) {
+                eprintln!("Could not set Harbor application identity: {error}");
+            }
+        }
+    }
+
     let harbor_dir = harbor_core::downloads::harbor_app_dir();
     let _ = std::fs::create_dir_all(&harbor_dir);
 
     let cfg_path = harbor_dir.join("harbor.downloads.yaml");
 
-    let config = load_or_initialize_config(&cfg_path).unwrap_or_else(|e| {
-        eprintln!("[Harbor] Warning: failed to load config: {e}");
-        harbor_core::downloads::default_config()
-    });
-
-    // Ensure a default config file exists on disk for first-run users.
+    let (config, configuration_error) = match load_or_initialize_config(&cfg_path) {
+        Ok(config) => (config, None),
+        Err(error) => {
+            let mut fallback = harbor_core::downloads::default_config();
+            fallback.rules.clear();
+            fallback.service_enabled = Some(false);
+            (fallback, Some(format!("Could not load {}: {error:#}. Repair and reload the file, restore its .bak copy, or explicitly reset. The original has been preserved.", cfg_path.display())))
+        }
+    };
+    let mut configuration_error = configuration_error;
     if !cfg_path.exists() {
-        if let Ok(yaml) = serde_yaml::to_string(&config) {
-            if let Err(e) = std::fs::write(&cfg_path, yaml) {
-                eprintln!("[Harbor] Warning: failed to write default config to disk: {e}");
-            }
+        if let Err(error) = harbor_core::config::save(&cfg_path, &config) {
+            configuration_error = Some(format!("Could not create configuration: {error:#}"));
         }
     }
-
-    // Start service if enabled in config (Default: true for new users)
-    let service_enabled = config.service_enabled.unwrap_or(false);
-
+    let service_enabled = config.service_enabled.unwrap_or(false) && configuration_error.is_none();
     let app_state = AppState::new(cfg_path, config);
-
-    if service_enabled {
-        let _ = commands::settings::internal_start_service(&app_state);
-    }
+    *app_state
+        .configuration_error
+        .lock()
+        .expect("new configuration state") = configuration_error;
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -76,12 +100,13 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--minimized"]),
-        ))
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
+            commands::preview_organization,
+            commands::undo_last_batch,
+            commands::set_download_dir,
+            commands::export_rules,
+            commands::import_rules,
             // Rules commands
             commands::get_rules,
             commands::create_rule,
@@ -129,6 +154,13 @@ fn main() {
             }
         })
         .setup(move |app| {
+            // Setup runs only after the single-instance plugin accepted this process.
+            if service_enabled {
+                let state: tauri::State<AppState> = app.state();
+                if let Err(error) = commands::settings::internal_start_service(&state) {
+                    *state.scan_error.lock().map_err(|e| e.to_string())? = Some(error);
+                }
+            }
             use tauri::image::Image;
             use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder};
             #[cfg(target_os = "macos")]
@@ -239,7 +271,7 @@ fn main() {
             #[cfg(target_os = "windows")]
             let icon_bytes = include_bytes!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../assets/icon_h.ico"
+                "/icons/icon.ico"
             ));
             #[cfg(target_os = "linux")]
             let icon_bytes = include_bytes!(concat!(
@@ -391,8 +423,10 @@ fn main() {
                     }
                     "service_off" => {
                         let state: tauri::State<AppState> = app.state();
-                        let _ = commands::settings::persist_service_state(&state, false);
                         let _ = commands::settings::internal_stop_service(&state);
+                        if let Err(error) = commands::settings::persist_service_state(&state, false) {
+                            *state.scan_error.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("Monitoring stopped, but its setting could not be saved: {error}"));
+                        }
                         let _ = commands::settings::emit_lifecycle_status_for_app(app, &state);
                         let _ = status_on.set_checked(false);
                         let _ = status_off.set_checked(true);
@@ -561,23 +595,33 @@ fn main() {
                 tauri::RunEvent::ExitRequested { api, .. } => {
                     let state: tauri::State<AppState> = app_handle.state();
 
-                    // Tray "Quit" bypasses double-press.
-                    if state.tray_quit_requested.swap(false, std::sync::atomic::Ordering::SeqCst) {
-                        // Allow exit immediately.
-                    } else {
-                        let mut last_close = state.last_close_request.lock().unwrap();
+                    if state.shutdown_complete.load(std::sync::atomic::Ordering::SeqCst) { return; }
+                    api.prevent_exit();
+                    let explicit = state.tray_quit_requested.swap(false, std::sync::atomic::Ordering::SeqCst);
+                    let confirmed = {
+                        let mut last = state.last_close_request.lock().unwrap_or_else(|e| e.into_inner());
                         let now = std::time::Instant::now();
-                        let should_quit = match *last_close {
-                            Some(t) => now.duration_since(t).as_secs() < 7,
-                            None => false,
-                        };
-                        if should_quit {
-                            // Allow exit (don't call prevent_exit).
-                        } else {
-                            *last_close = Some(now);
-                            api.prevent_exit();
-                            let _ = app_handle.emit("show-quit-popup", ());
+                        let confirmed = explicit || last.is_some_and(|t| now.duration_since(t).as_secs() < 7);
+                        *last = Some(now);
+                        confirmed
+                    };
+                    if confirmed {
+                        if !state.shutdown_requested.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                            state.work.closing.store(true, std::sync::atomic::Ordering::SeqCst);
+                            let handle = app_handle.clone();
+                            tauri::async_runtime::spawn_blocking(move || {
+                                let state: tauri::State<AppState> = handle.state();
+                                let _ = commands::settings::internal_stop_service(&state);
+                                while *state.watcher_join_pending.lock().unwrap_or_else(|e| e.into_inner()) {
+                                    std::thread::sleep(std::time::Duration::from_millis(100));
+                                }
+                                let _work = state.work.gate.lock().unwrap_or_else(|e| e.into_inner());
+                                state.shutdown_complete.store(true, std::sync::atomic::Ordering::SeqCst);
+                                handle.exit(0);
+                            });
                         }
+                    } else {
+                        let _ = app_handle.emit("show-quit-popup", ());
                     }
                 }
                 _ => {}

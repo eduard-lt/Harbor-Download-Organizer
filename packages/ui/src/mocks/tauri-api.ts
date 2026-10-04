@@ -125,3 +125,5 @@ export function requestPermission(): Promise<'granted' | 'denied'> {
 export function isPermissionGranted(): Promise<boolean> {
     return Promise.resolve(true);
 }
+
+export async function save(): Promise<string | null> { return null; }

@@ -1,7 +1,8 @@
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
+import { FileTools } from '../components/FileTools';
 import { useSettings } from '../hooks/useSettings';
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import { useState } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -31,7 +32,7 @@ export function SettingsPage() {
     setCheckForUpdates: toggleCheckUpdates, // We will wrap this to behave like toggle if needed, or update usage
     checkNow: refreshUpdateCheck,
     updateState
-  } = useUpdateCheck();
+  } = useUpdateContext();
 
   const {
     loading: updateLoading,
@@ -75,6 +76,9 @@ export function SettingsPage() {
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="max-w-4xl mx-auto p-12">
+          {serviceStatus.configuration_error && <p role="alert" className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">{serviceStatus.configuration_error}</p>}
+          {serviceStatus.scan_error && <p role="alert" className="mb-4 p-4 bg-amber-50 text-amber-800 rounded-lg">Monitoring needs attention: {serviceStatus.scan_error}</p>}
+          <FileTools />
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg">
               {error}

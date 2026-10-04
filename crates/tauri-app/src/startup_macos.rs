@@ -9,7 +9,8 @@ pub fn is_login_launch() -> bool {
         .currentAppleEvent()
         .is_some_and(|event| {
             event.eventID() == u32::from_be_bytes(*b"oapp")
-                && event.paramDescriptorForKeyword(u32::from_be_bytes(*b"prdt"))
+                && event
+                    .paramDescriptorForKeyword(u32::from_be_bytes(*b"prdt"))
                     .is_some_and(|value| value.enumCodeValue() == u32::from_be_bytes(*b"lgit"))
         })
 }

@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-shell';
 import { useSettings } from '../hooks/useSettings';
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -19,9 +19,10 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const { serviceStatus, toggleService, loading } = useSettings();
-  const { updateState, dismissNotification } = useUpdateCheck();
+  const { updateState, dismissNotification } = useUpdateContext();
   const { available, url } = updateState;
   const serviceEnabled = serviceStatus.running;
+  const healthError = serviceStatus.configuration_error || serviceStatus.scan_error;
   const [showCoachMark, setShowCoachMark] = useState(false);
 
   useEffect(() => {
@@ -113,6 +114,7 @@ export function Sidebar() {
           </div>
         )}
 
+        {healthError && <NavLink to="/settings" role="alert" title={healthError} className="block text-xs text-amber-700 dark:text-amber-300 mb-2">Monitoring needs attention</NavLink>}
         {/* Service Toggle */}
         <div id="sidebar-service-toggle" className={`rounded-xl p-3 flex items-center justify-center xl:justify-between group transition-all duration-300 ${serviceEnabled
           ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-2 border-emerald-500/20 shadow-lg shadow-emerald-500/10'
@@ -123,7 +125,7 @@ export function Sidebar() {
             <div className="flex flex-col min-w-0">
               <span className={`text-xs font-bold truncate transition-colors ${serviceEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'
                 }`}>
-                {serviceEnabled ? 'Active' : 'Stopped'}
+                {healthError ? 'Needs attention' : serviceEnabled ? 'Active' : 'Stopped'}
               </span>
               <span className="text-[10px] text-slate-500 truncate">
                 {serviceEnabled ? 'Monitoring' : 'Paused'}

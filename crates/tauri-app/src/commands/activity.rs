@@ -57,6 +57,20 @@ static LOG_LINE_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 fn parse_log_line(line: &str, id: usize) -> Option<ActivityLogDto> {
+    if let Ok(event) = serde_json::from_str::<serde_json::Value>(line) {
+        return Some(ActivityLogDto {
+            id: id.to_string(),
+            timestamp: event["timestamp"].as_str()?.into(),
+            filename: event["message"].as_str()?.into(),
+            icon: "info".into(),
+            icon_color: "amber".into(),
+            source_path: String::new(),
+            dest_path: String::new(),
+            rule_name: "Monitoring".into(),
+            status: event["status"].as_str()?.into(),
+            symlink_info: None,
+        });
+    }
     let caps = LOG_LINE_RE.captures(line)?;
 
     let timestamp = caps
@@ -123,6 +137,8 @@ pub async fn get_activity_logs(
     state: State<'_, AppState>,
     limit: Option<usize>,
     offset: Option<usize>,
+    search: Option<String>,
+    status: Option<String>,
 ) -> Result<ActivityLogsResponse, String> {
     let log_path = state.recent_log_path();
     let limit = limit.unwrap_or(50);
@@ -144,6 +160,20 @@ pub async fn get_activity_logs(
 
     // Reverse to show most recent first
     all_logs.reverse();
+    if let Some(query) = search.filter(|s| !s.trim().is_empty()) {
+        let query = query.to_lowercase();
+        all_logs.retain(|row| {
+            format!(
+                "{} {} {} {}",
+                row.filename, row.source_path, row.dest_path, row.rule_name
+            )
+            .to_lowercase()
+            .contains(&query)
+        });
+    }
+    if let Some(status) = status.filter(|s| !s.is_empty()) {
+        all_logs.retain(|row| row.status == status);
+    }
 
     let total = all_logs.len();
     let has_more = offset + limit < total;
@@ -174,7 +204,10 @@ pub async fn get_activity_stats(state: State<'_, AppState>) -> Result<ActivitySt
     let file = fs::File::open(&log_path).map_err(|e| format!("Failed to open log file: {}", e))?;
     let reader = BufReader::new(file);
 
-    let logs = read_log_entries(reader);
+    let logs: Vec<_> = read_log_entries(reader)
+        .into_iter()
+        .filter(|row| row.status == "success")
+        .collect();
     let total = logs.len();
     let mut rule_counts: std::collections::HashMap<String, usize> =
         std::collections::HashMap::new();
@@ -218,6 +251,7 @@ pub async fn get_activity_stats(state: State<'_, AppState>) -> Result<ActivitySt
 
 #[tauri::command]
 pub async fn clear_activity_logs(state: State<'_, AppState>) -> Result<(), String> {
+    let _work = state.work.gate.lock().map_err(|e| e.to_string())?;
     let log_path = state.recent_log_path();
 
     if log_path.exists() {
@@ -292,7 +326,10 @@ mod tests {
     fn test_read_log_entries() {
         let data = "Recent Moves Log\n----------------\n\nC:\\src\\a.txt -> C:\\dst\\a.txt (RuleA)\nC:\\src\\b.txt -> C:\\dst\\b.txt (RuleB)";
         let reader = std::io::Cursor::new(data);
-        let logs = read_log_entries(reader);
+        let logs: Vec<_> = read_log_entries(reader)
+            .into_iter()
+            .filter(|row| row.status == "success")
+            .collect();
         assert_eq!(logs.len(), 2);
         assert_eq!(logs[0].rule_name, "RuleA");
         assert_eq!(logs[1].rule_name, "RuleB");

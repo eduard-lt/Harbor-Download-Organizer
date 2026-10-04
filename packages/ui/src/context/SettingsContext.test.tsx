@@ -39,6 +39,16 @@ describe('SettingsContext', () => {
         vi.restoreAllMocks();
     });
 
+    it('keeps an action failure visible after a successful status refresh', async () => {
+        const { result } = renderHook(() => useSettingsContext(), { wrapper });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        vi.mocked(tauri.startService).mockRejectedValue(new Error('Configuration is read-only'));
+        await act(async () => { await result.current.toggleService(); });
+        expect(result.current.error).toBe('Configuration is read-only');
+        await act(async () => { await result.current.refresh(); });
+        expect(result.current.error).toBe('Configuration is read-only');
+    });
+
     it('loads initial settings on mount', async () => {
         const { result } = renderHook(() => useSettingsContext(), { wrapper });
         expect(result.current.loading).toBe(true);

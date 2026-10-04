@@ -342,8 +342,8 @@ fn ensure_dir(dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn unique_target(target: &Path) -> PathBuf {
-    if fs::symlink_metadata(target).is_err() {
+fn unique_target_reserved(target: &Path, reserved: &std::collections::HashSet<PathBuf>) -> PathBuf {
+    if fs::symlink_metadata(target).is_err() && !reserved.contains(target) {
         return target.to_path_buf();
     }
     let mut i = 1u32;
@@ -360,7 +360,7 @@ fn unique_target(target: &Path) -> PathBuf {
             format!("{} ({}).{}", stem, i, ext)
         };
         p.set_file_name(name);
-        if fs::symlink_metadata(&p).is_err() {
+        if fs::symlink_metadata(&p).is_err() && !reserved.contains(&p) {
             return p;
         }
         i += 1;
@@ -374,10 +374,13 @@ fn copy_without_replace(source: &Path, target: &Path) -> std::io::Result<()> {
     let staging = tempfile::NamedTempFile::new_in(target.parent().unwrap())?;
     let copied = fs::copy(source, staging.path())?;
     let after = input.metadata()?;
-    if copied != before.len() || before.len() != after.len()
+    if copied != before.len()
+        || before.len() != after.len()
         || before.modified()? != after.modified()?
     {
-        return Err(std::io::Error::other("Source changed while copying; retry when the download finishes"));
+        return Err(std::io::Error::other(
+            "Source changed while copying; retry when the download finishes",
+        ));
     }
     staging.as_file().set_permissions(before.permissions())?;
     staging.as_file().set_modified(before.modified()?)?;
@@ -398,7 +401,7 @@ fn remove_source_or_rollback(source: &Path, target: &Path) -> std::io::Result<()
     Ok(())
 }
 
-fn move_without_replace(source: &Path, target: &Path) -> std::io::Result<()> {
+pub fn move_without_replace(source: &Path, target: &Path) -> std::io::Result<()> {
     // Linking is atomic and refuses to replace an existing path. A completed
     // copy is used when the filesystem cannot link (including other volumes).
     match fs::hard_link(source, target) {
@@ -433,12 +436,35 @@ fn rule_priority(index: usize, total: usize, rule: &Rule) -> usize {
 }
 
 pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
+    organize(cfg, None, false)
+}
+
+pub fn preview(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
+    organize(cfg, None, true)
+}
+
+pub fn organize_cancellable(
+    cfg: &DownloadsConfig,
+    active: &std::sync::atomic::AtomicBool,
+) -> Result<OrganizeSummary> {
+    organize(cfg, Some(active), false)
+}
+
+fn organize(
+    cfg: &DownloadsConfig,
+    active: Option<&std::sync::atomic::AtomicBool>,
+    dry_run: bool,
+) -> Result<OrganizeSummary> {
     static ORGANIZE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    let _guard = ORGANIZE_LOCK.lock().map_err(|_| anyhow::anyhow!("Organizer lock poisoned"))?;
+    let _guard = ORGANIZE_LOCK
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Organizer lock poisoned"))?;
     let base = PathBuf::from(expand_env(&cfg.download_dir));
-    let canonical_base = fs::canonicalize(&base).with_context(|| format!("list {}", base.display()))?;
+    let canonical_base =
+        fs::canonicalize(&base).with_context(|| format!("list {}", base.display()))?;
     let min_age = Duration::from_secs(cfg.min_age_secs.unwrap_or(5));
     let mut summary = OrganizeSummary::default();
+    let mut reserved = std::collections::HashSet::new();
 
     // Pre-compile each rule's regex pattern once for this pass, then sort by priority.
     let mut compiled_rules: Vec<(usize, CompiledRule<'_>)> = cfg
@@ -450,7 +476,10 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
     for (_, compiled) in &compiled_rules {
         if compiled.rule.enabled {
             if let Some(Err(error)) = &compiled.compiled_pattern {
-                summary.errors.push(format!("Invalid pattern in rule '{}': {error}", compiled.rule.name));
+                summary.errors.push(format!(
+                    "Invalid pattern in rule '{}': {error}",
+                    compiled.rule.name
+                ));
             }
         }
     }
@@ -458,10 +487,15 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
     compiled_rules.sort_by_key(|(i, cr)| std::cmp::Reverse(rule_priority(*i, total, cr.rule)));
 
     for entry in fs::read_dir(&base).with_context(|| format!("list {}", base.display()))? {
+        if active.is_some_and(|flag| !flag.load(std::sync::atomic::Ordering::SeqCst)) {
+            break;
+        }
         let entry = match entry {
             Ok(entry) => entry,
             Err(error) => {
-                summary.errors.push(format!("Failed to read directory entry: {error}"));
+                summary
+                    .errors
+                    .push(format!("Failed to read directory entry: {error}"));
                 continue;
             }
         };
@@ -517,8 +551,16 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
             }
             if matches_rule(&path, &meta, compiled) {
                 let target_dir = PathBuf::from(expand_env(&compiled.rule.target_dir));
-                if let Err(error) = ensure_dir(&target_dir) {
-                    summary.errors.push(format!("Failed to move '{}' to '{}': {error:#}", path.display(), target_dir.display()));
+                if let Err(error) = if dry_run {
+                    Ok(())
+                } else {
+                    ensure_dir(&target_dir)
+                } {
+                    summary.errors.push(format!(
+                        "Failed to move '{}' to '{}': {error:#}",
+                        path.display(),
+                        target_dir.display()
+                    ));
                     break;
                 }
                 if fs::canonicalize(&target_dir).ok().as_ref() == Some(&canonical_base) {
@@ -529,13 +571,18 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
                         .map(|n| n.to_os_string())
                         .unwrap_or_default(),
                 );
-                let target = unique_target(&target);
+                let target = unique_target_reserved(&target, &reserved);
+                reserved.insert(target.clone());
                 applied = Some((compiled.rule, target));
                 break;
             }
         }
         if let Some((rule, target)) = applied {
-            if let Err(e) = move_without_replace(&path, &target) {
+            if let Err(e) = if dry_run {
+                Ok(())
+            } else {
+                move_without_replace(&path, &target)
+            } {
                 summary.errors.push(format!(
                     "Failed to move '{}' to '{}': {e}",
                     path.display(),
@@ -545,7 +592,7 @@ pub fn organize_once(cfg: &DownloadsConfig) -> Result<OrganizeSummary> {
             }
 
             let mut symlink_info = None;
-            if rule.create_symlink {
+            if rule.create_symlink && !dry_run {
                 #[cfg(windows)]
                 let res = std::os::windows::fs::symlink_file(&target, &path);
                 #[cfg(unix)]
@@ -723,60 +770,6 @@ pub fn expand_env(input: &str) -> String {
     result
 }
 
-/// Scans the download directory for old symlinks created by Harbor and removes them.
-///
-/// A symlink is considered "old" (and safe to remove) if:
-/// 1. It is a valid symbolic link.
-/// 2. It points to a file inside one of the configured `target_dirs`.
-///
-/// Returns the number of symlinks removed.
-pub fn cleanup_old_symlinks(cfg: &DownloadsConfig) -> Result<usize> {
-    let base = PathBuf::from(&cfg.download_dir);
-    if !base.exists() {
-        return Ok(0);
-    }
-
-    let mut count = 0;
-    // Collect target dirs to check against
-    let target_dirs: Vec<PathBuf> = cfg
-        .rules
-        .iter()
-        .map(|r| PathBuf::from(&r.target_dir))
-        .collect();
-
-    for entry in fs::read_dir(&base).with_context(|| format!("list {}", base.display()))? {
-        let entry = entry?;
-        let path = entry.path();
-
-        let meta = match fs::symlink_metadata(&path) {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
-
-        if meta.file_type().is_symlink() {
-            // Check if it points to one of our folders
-            if let Ok(target) = fs::read_link(&path) {
-                // If relative symlink, resolve it relative to base
-                let abs_target = if target.is_relative() {
-                    base.join(&target)
-                } else {
-                    target
-                };
-
-                let points_to_our_dir = target_dirs.iter().any(|d| abs_target.starts_with(d));
-
-                if points_to_our_dir {
-                    // It's one of ours, delete it
-                    if fs::remove_file(&path).is_ok() {
-                        count += 1;
-                    }
-                }
-            }
-        }
-    }
-    Ok(count)
-}
-
 /// Maximum number of lines kept in the activity log before it is trimmed.
 pub const LOG_MAX_LINES: usize = 10_000;
 
@@ -859,7 +852,8 @@ pub fn load_or_initialize_config(config_path: &Path) -> Result<DownloadsConfig> 
     if !config_path.exists() {
         let default_config_path = config_path.with_extension("yaml.default");
         if default_config_path.exists() {
-            let _ = fs::copy(&default_config_path, config_path);
+            let config = load_downloads_config(&default_config_path)?;
+            crate::config::save(config_path, &config)?;
         }
     }
 
@@ -905,11 +899,20 @@ mod tests {
         fs::create_dir(&source).unwrap();
         fs::write(source.join("one.txt"), b"one").unwrap();
         fs::write(source.join("two.txt"), b"two").unwrap();
-        let entries: Vec<_> = fs::read_dir(&source).unwrap().map(|e| e.unwrap().path()).collect();
+        let entries: Vec<_> = fs::read_dir(&source)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
         let mut cfg = config_for_move_test(&source, &tmp.path().join("good"));
-        cfg.rules[0].pattern = Some(format!("^{}$", regex::escape(entries[0].file_name().unwrap().to_str().unwrap())));
+        cfg.rules[0].pattern = Some(format!(
+            "^{}$",
+            regex::escape(entries[0].file_name().unwrap().to_str().unwrap())
+        ));
         let mut bad = cfg.rules[0].clone();
-        bad.pattern = Some(format!("^{}$", regex::escape(entries[1].file_name().unwrap().to_str().unwrap())));
+        bad.pattern = Some(format!(
+            "^{}$",
+            regex::escape(entries[1].file_name().unwrap().to_str().unwrap())
+        ));
         bad.target_dir = tmp.path().join("blocked").to_string_lossy().into_owned();
         fs::write(&bad.target_dir, b"not a directory").unwrap();
         cfg.rules.push(bad);
@@ -956,14 +959,21 @@ mod tests {
         fs::write(source.join("first.txt"), b"first").unwrap();
         let cfg = RefCell::new(config_for_move_test(&source, &tmp.path().join("first")));
         let running = AtomicBool::new(true);
-        watch_polling_with_config(|| cfg.borrow().clone(), 0, &running, |actions| {
-            if actions[0].source.ends_with("first.txt") {
-                cfg.borrow_mut().rules[0].target_dir = tmp.path().join("second").to_string_lossy().into_owned();
-                fs::write(source.join("second.txt"), b"second").unwrap();
-            } else {
-                running.store(false, Ordering::SeqCst);
-            }
-        }).unwrap();
+        watch_polling_with_config(
+            || cfg.borrow().clone(),
+            0,
+            &running,
+            |actions| {
+                if actions[0].source.ends_with("first.txt") {
+                    cfg.borrow_mut().rules[0].target_dir =
+                        tmp.path().join("second").to_string_lossy().into_owned();
+                    fs::write(source.join("second.txt"), b"second").unwrap();
+                } else {
+                    running.store(false, Ordering::SeqCst);
+                }
+            },
+        )
+        .unwrap();
         assert!(tmp.path().join("first/first.txt").exists());
         assert!(tmp.path().join("second/second.txt").exists());
     }
@@ -1137,17 +1147,26 @@ mod tests {
         let target = temp.path().join("file.txt");
 
         // 1. Doesn't exist
-        assert_eq!(unique_target(&target), target);
+        assert_eq!(
+            unique_target_reserved(&target, &std::collections::HashSet::new()),
+            target
+        );
 
         // 2. Exists
         fs::File::create(&target).unwrap();
         let expected = temp.path().join("file (1).txt");
-        assert_eq!(unique_target(&target), expected);
+        assert_eq!(
+            unique_target_reserved(&target, &std::collections::HashSet::new()),
+            expected
+        );
 
         // 3. (1) Exists
         fs::File::create(&expected).unwrap();
         let expected_2 = temp.path().join("file (2).txt");
-        assert_eq!(unique_target(&target), expected_2);
+        assert_eq!(
+            unique_target_reserved(&target, &std::collections::HashSet::new()),
+            expected_2
+        );
     }
 
     #[test]
@@ -1190,53 +1209,6 @@ mod tests {
         assert_eq!(summary.moved.len(), 1);
         assert!(!file_path.exists());
         assert!(target.join("test.png").exists());
-    }
-
-    #[test]
-    fn test_cleanup_old_symlinks() {
-        let root = TempDir::new().unwrap();
-        let dl = root.path().join("Downloads");
-        let target = root.path().join("Images");
-        fs::create_dir_all(&dl).unwrap();
-        fs::create_dir_all(&target).unwrap();
-
-        // Create a symlink in dl -> target
-        let symlink_path = dl.join("link.png");
-
-        #[cfg(windows)]
-        let res = std::os::windows::fs::symlink_file(&target, &symlink_path);
-        #[cfg(unix)]
-        let res = std::os::unix::fs::symlink(&target, &symlink_path);
-
-        // If we can't create symlinks (permissions), skip test
-        if res.is_err() {
-            return;
-        }
-
-        let cfg = DownloadsConfig {
-            download_dir: dl.to_str().unwrap().into(),
-            rules: vec![Rule {
-                id: "images-cleanup-rule".to_string(),
-                name: "Images".into(),
-                extensions: None,
-                pattern: None,
-                min_size_bytes: None,
-                max_size_bytes: None,
-                target_dir: target.to_str().unwrap().into(),
-                create_symlink: false,
-                enabled: true,
-            }],
-            min_age_secs: None,
-            tutorial_completed: None,
-            service_enabled: None,
-            check_updates: None,
-            last_notified_version: None,
-        };
-
-        // Clean up
-        let count = cleanup_old_symlinks(&cfg).unwrap();
-        assert_eq!(count, 1);
-        assert!(!symlink_path.exists());
     }
 
     #[test]

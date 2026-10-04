@@ -18,11 +18,11 @@ describe('ThemeContext', () => {
         document.documentElement.classList.remove('dark');
 
         // Default system preference to light
-        vi.spyOn(window, 'matchMedia').mockReturnValue({
+        vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
             matches: false,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-        } as unknown as MediaQueryList);
+        } as unknown as MediaQueryList));
     });
 
     it('synchronizes the native title bar and restores system appearance', async () => {
@@ -77,11 +77,11 @@ describe('ThemeContext', () => {
     });
 
     it('system theme uses matchMedia to determine dark mode', async () => {
-        vi.spyOn(window, 'matchMedia').mockReturnValue({
+        vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
             matches: true,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-        } as unknown as MediaQueryList);
+        } as unknown as MediaQueryList));
 
         const { result } = renderHook(() => useTheme(), { wrapper });
         await waitFor(() => expect(result.current.isDark).toBe(true));
@@ -99,24 +99,24 @@ describe('ThemeContext', () => {
 
     it('responds to system color scheme change events', async () => {
         let changeHandler: (() => void) | null = null;
-        vi.spyOn(window, 'matchMedia').mockReturnValue({
+        vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
             matches: false,
             addEventListener: (_: string, fn: EventListenerOrEventListenerObject) => {
                 changeHandler = fn as () => void;
             },
             removeEventListener: vi.fn(),
-        } as unknown as MediaQueryList);
+        } as unknown as MediaQueryList));
 
         const { result } = renderHook(() => useTheme(), { wrapper });
         // theme is 'system', matches is false so isDark is false
         await waitFor(() => expect(result.current.isDark).toBe(false));
 
         // Simulate system preference change
-        vi.spyOn(window, 'matchMedia').mockReturnValue({
+        vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
             matches: true,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
-        } as unknown as MediaQueryList);
+        } as unknown as MediaQueryList));
 
         if (changeHandler) {
             act(() => { (changeHandler as () => void)(); });

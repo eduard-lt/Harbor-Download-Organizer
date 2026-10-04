@@ -42,3 +42,21 @@ test('rule validation fits the minimum window and keeps actions reachable', asyn
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+test('file preview and undo errors remain usable in the minimum window', async ({ page }) => {
+    await page.setViewportSize({ width: 1000, height: 700 });
+    await setupMocks(page, { checkUpdates: false });
+    await page.goto('/settings');
+    await page.evaluate(() => {
+        window.__e2eMocks.invoke.preview_organization = () => ({ moves: [{ source: 'C:/Downloads/report.pdf', destination: 'C:/Documents/report.pdf', rule: 'Documents' }], errors: [] });
+        window.__e2eMocks.invoke.undo_last_batch = () => { throw new Error('Undo refused: report.pdf has changed'); };
+    });
+    await page.getByRole('button', { name: 'Preview moves' }).click();
+    await expect(page.getByText('1 planned moves.', { exact: false })).toBeVisible();
+    await expect(page.getByText('C:/Documents/report.pdf', { exact: false })).toBeVisible();
+    await page.screenshot({ path: '../../target/release-settings-preview.png', fullPage: true });
+    await page.getByRole('button', { name: 'Undo last batch' }).click();
+    await expect(page.getByRole('dialog')).toBeInViewport();
+    await page.getByRole('button', { name: 'Undo batch', exact: true }).click();
+    await expect(page.getByText('Undo refused: report.pdf has changed')).toBeVisible();
+});

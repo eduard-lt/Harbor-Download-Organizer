@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ActivityLog, ActivityStats } from '../lib/tauri';
 import { getActivityLogs, getActivityStats, clearActivityLogs } from '../lib/tauri';
 
-export function useActivity(pageSize = 20) {
+export function useActivity(pageSize = 20, search = '', status = '') {
     const requestRef = useRef(0);
     const busyRef = useRef(false);
     const pageRef = useRef(0);
@@ -21,7 +21,9 @@ export function useActivity(pageSize = 20) {
             setLoading(true);
             // Re-fetch the visible prefix so new moves cannot shift offsets and
             // duplicate rows while loading another page.
-            const data = await getActivityLogs((pageNum + 1) * pageSize, 0);
+            const data = search || status
+                ? await getActivityLogs((pageNum + 1) * pageSize, 0, search || undefined, status || undefined)
+                : await getActivityLogs((pageNum + 1) * pageSize, 0);
             if (request !== requestRef.current) return;
             setLogs(data.logs);
             setPage(pageNum);
@@ -39,7 +41,7 @@ export function useActivity(pageSize = 20) {
                 setLoading(false);
             }
         }
-    }, [pageSize]);
+    }, [pageSize, search, status]);
 
     const fetchStats = useCallback(async () => {
         try {

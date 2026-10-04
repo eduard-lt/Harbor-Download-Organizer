@@ -1,7 +1,7 @@
 import { open } from '@tauri-apps/plugin-shell';
 import { Header } from '../components/Header';
 import { useState } from 'react';
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import packageJson from '../../package.json';
 
 // ... inside component ...
@@ -24,7 +24,7 @@ import packageJson from '../../package.json';
 </div>
 
 export function InfoPage() {
-    const { updateState } = useUpdateCheck();
+    const { updateState } = useUpdateContext();
     const { available, version, url } = updateState;
     const [activeTab, setActiveTab] = useState<'guide' | 'about'>('guide');
 

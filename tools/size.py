@@ -61,10 +61,6 @@ def main() -> None:
     print("-" * 38)
 
     binaries = ["harbor-cli", "Harbor"]
-    # harbor-tray is Windows-only — check if it exists
-    if platform.system() == "Windows":
-        binaries.append("harbor-tray")
-
     for name in binaries:
         _, line = measure_binary(name)
         print(f"  {line}")
