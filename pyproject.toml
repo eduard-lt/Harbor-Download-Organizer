@@ -11,7 +11,7 @@ dependencies = []
 
 [tool.poe.tasks.build]
 help = "Build release binaries and installer (via Tauri)"
-shell = "npm run tauri:build --prefix packages/ui"
+shell = "CARGO_PROFILE_RELEASE_STRIP=none npm run tauri:build --prefix packages/ui"
 
 [tool.poe.tasks.build-debug]
 help = "Build debug binaries"
