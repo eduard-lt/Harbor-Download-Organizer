@@ -28,7 +28,7 @@ Download candidates from [GitHub Releases](https://github.com/eduard-lt/Harbor-D
 Windows uses one per-user NSIS `.exe` installer. MSI is discontinued; macOS packaging targets a universal
 Intel/Apple Silicon application with macOS 15 as the configured minimum.
 
-**2.2.1 is undergoing release validation.** Windows signing and
+**2.2.0 is undergoing release validation.** Windows signing and
 Apple Developer signing/notarization are not configured. Windows/macOS installed-app
 and upgrade testing remain separate from automated tests. See [release status](docs/RELEASE.md).
 No claim of verified macOS 15 compatibility is made until it is tested on that OS.

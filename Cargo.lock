@@ -1507,7 +1507,7 @@ dependencies = [
 
 [[package]]
 name = "harbor-cli"
-version = "2.2.1"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1519,7 +1519,7 @@ dependencies = [
 
 [[package]]
 name = "harbor-core"
-version = "2.2.1"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1535,7 +1535,7 @@ dependencies = [
 
 [[package]]
 name = "harbor-tauri-app"
-version = "2.2.1"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "chrono",
