@@ -10,7 +10,7 @@ Files updated by bump/set:
     crates/tauri-app/tauri.conf.json  app version
     packages/ui/package.json          npm package version
     pyproject.toml                    project version
-    packages/ui/src/pages/InfoPage.tsx display string
+    packages/ui/package-lock.json     root package metadata
 """
 
 import argparse
@@ -18,6 +18,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,9 +34,6 @@ FILES = [
     ("packages/ui/package.json", r'("version"\s*:\s*")[^"]+(")', r'\g<1>{version}\g<2>'),
     ("pyproject.toml", r'(?m)^(version\s*=\s*")[^"]+(")', r'\g<1>{version}\g<2>'),
 ]
-
-INFOPAGE_REL = "packages/ui/src/pages/InfoPage.tsx"
-INFOPAGE_RE = re.compile(r"Version \d+\.\d+\.\d+")
 
 
 def read_current_version() -> str:
@@ -69,22 +67,6 @@ def replace_in_file(path: Path, pattern: str, replacement: str) -> None:
     text = path.read_text(encoding="utf-8")
     new_text = re.sub(pattern, replacement, text)
     path.write_text(new_text, encoding="utf-8")
-
-
-def update_info_page(new_version: str) -> bool:
-    """Update Version X.Y.Z string in InfoPage.tsx. Returns True if found."""
-    info = ROOT / INFOPAGE_REL
-    if not info.exists():
-        print(f"  ! {INFOPAGE_REL} not found")
-        return False
-    text = info.read_text(encoding="utf-8")
-    if not INFOPAGE_RE.search(text):
-        print(f"  ! Version string not found in {INFOPAGE_REL}")
-        return False
-    new_text = INFOPAGE_RE.sub(f"Version {new_version}", text)
-    info.write_text(new_text, encoding="utf-8")
-    print(f"  - {INFOPAGE_REL}")
-    return True
 
 
 def update_poe_help_strings(_current: str, new_version: str) -> None:
@@ -127,8 +109,13 @@ def set_version(new_version: str) -> None:
         replace_in_file(target, pattern, replacement)
         print(f"  - {rel_path}")
 
-    update_info_page(new_version)
-    update_poe_help_strings(read_current_version() if False else "", new_version)
+    lock_path = ROOT / "packages/ui/package-lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["version"] = new_version
+    lock["packages"][""]["version"] = new_version
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+    subprocess.run(["cargo", "check", "--workspace"], cwd=ROOT, check=True)
+    update_poe_help_strings("", new_version)
 
     print(f"\nUpdated version to {new_version}")
     print("\nNext steps:")
@@ -142,6 +129,10 @@ def do_git_release() -> None:
     version = read_current_version()
     tag = f"v{version}"
 
+    dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True, check=True)
+    if dirty.stdout.strip():
+        sys.exit("ERROR: commit or stash changes before tagging a release")
+    check_versions()
     print(f"Creating git tag: {tag}")
     result = subprocess.run(["git", "tag", tag], capture_output=True, text=True)
     if result.returncode != 0:
@@ -157,6 +148,24 @@ def do_git_release() -> None:
         sys.exit(1)
 
 
+def check_versions() -> None:
+    expected = read_current_version()
+    for rel in ("crates/tauri-app/tauri.conf.json", "packages/ui/package.json", "packages/ui/package-lock.json"):
+        data = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+        if data["version"] != expected:
+            sys.exit(f"ERROR: {rel} version differs from {expected}")
+        if "packages" in data and data["packages"][""]["version"] != expected:
+            sys.exit("ERROR: npm root package version is stale")
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    if project["project"]["version"] != expected:
+        sys.exit("ERROR: Python project version is stale")
+    lock = tomllib.loads((ROOT / "Cargo.lock").read_text(encoding="utf-8"))
+    for package in lock["package"]:
+        if package["name"] in {"harbor-core", "harbor-cli", "harbor-tauri-app"} and package["version"] != expected:
+            sys.exit(f"ERROR: Cargo.lock version is stale for {package['name']}")
+    print(f"All release versions agree: {expected}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Harbor version management")
     sub = parser.add_subparsers(dest="command")
@@ -166,6 +175,7 @@ def main() -> None:
     bump_parser = sub.add_parser("bump", help="Bump version")
     bump_parser.add_argument("component", choices=["major", "minor", "patch"])
 
+    sub.add_parser("check", help="Validate release versions")
     sub.add_parser("git-release", help="Create and push git tag")
 
     args = parser.parse_args()
@@ -176,6 +186,8 @@ def main() -> None:
         current = read_current_version()
         new = bump_version(current, args.component)
         set_version(new)
+    elif args.command == "check":
+        check_versions()
     elif args.command == "git-release":
         do_git_release()
     else:

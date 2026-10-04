@@ -1,10 +1,5 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
-#[cfg(windows)]
-use winreg::enums::HKEY_CURRENT_USER;
-#[cfg(windows)]
-use winreg::RegKey;
 
 #[derive(Parser)]
 #[command(name = "harbor")]
@@ -16,25 +11,23 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    DownloadsInit {
+    #[command(name = "downloads-init")]
+    Init {
         #[arg(default_value = "harbor.downloads.yaml")]
         path: String,
     },
-    DownloadsOrganize {
+    #[command(name = "downloads-organize")]
+    Organize {
         #[arg(default_value = "harbor.downloads.yaml")]
         path: String,
     },
-    DownloadsWatch {
+    #[command(name = "downloads-watch")]
+    Watch {
         #[arg(default_value = "harbor.downloads.yaml")]
         path: String,
         #[arg(default_value_t = 5)]
         interval_secs: u64,
     },
-    TrayInstall {
-        #[arg(long)]
-        source: Option<String>,
-    },
-    TrayUninstall,
 }
 
 fn main() -> Result<()> {
@@ -47,11 +40,11 @@ fn execute_command(
     shutdown_signal: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
 ) -> Result<()> {
     match command {
-        Commands::DownloadsInit { path } => {
+        Commands::Init { path } => {
             init_downloads_config(&path)?;
             Ok(())
         }
-        Commands::DownloadsOrganize { path } => {
+        Commands::Organize { path } => {
             let cfg = harbor_core::downloads::load_downloads_config(&path)?;
             let summary = harbor_core::downloads::organize_once(&cfg)?;
             for err in &summary.errors {
@@ -69,7 +62,7 @@ fn execute_command(
             }
             Ok(())
         }
-        Commands::DownloadsWatch {
+        Commands::Watch {
             path,
             interval_secs,
         } => {
@@ -95,145 +88,14 @@ fn execute_command(
             )?;
             Ok(())
         }
-        Commands::TrayInstall { source } => tray_install(source, None, None),
-        Commands::TrayUninstall => tray_uninstall(None),
     }
-}
-
-#[cfg(windows)]
-fn tray_install(
-    source: Option<String>,
-    registry_path: Option<&str>,
-    install_dir_override: Option<PathBuf>,
-) -> Result<()> {
-    let src = if let Some(s) = source {
-        PathBuf::from(s)
-    } else {
-        // Try to find it next to the CLI executable first
-        let mut p = std::env::current_exe()
-            .ok()
-            .and_then(|path| path.parent().map(|d| d.join("harbor-tray.exe")))
-            .unwrap_or_else(|| PathBuf::from("harbor-tray.exe"));
-
-        if !p.exists() {
-            // Fallback to dev path
-            p = PathBuf::from("target/release/harbor-tray.exe");
-        }
-        p
-    };
-
-    // In tests (when registry_path is provided), we skip the existence check if source is implicit,
-    // or we check strictly if explicit.
-    // Use install_dir_override to determine if we are in a "full install" test mode
-    let is_test_registry = registry_path.is_some();
-    let is_test_files = install_dir_override.is_some();
-
-    // If we are testing files, we MUST have a valid source
-    if !src.exists() && !is_test_registry {
-        anyhow::bail!("source not found: {}", src.display());
-    }
-    if !src.exists() && is_test_files {
-        // For file tests, we create a dummy source if it doesn't exist?
-        // Or expect the caller to provide a valid source.
-        // Let's rely on caller providing valid source or it failing.
-        anyhow::bail!("source not found: {}", src.display());
-    }
-
-    let install_dir = if let Some(d) = install_dir_override {
-        d
-    } else {
-        std::env::var("LOCALAPPDATA")
-            .map(|p| PathBuf::from(p).join("Harbor"))
-            .unwrap_or(PathBuf::from("C:\\Harbor"))
-    };
-
-    if !is_test_registry || is_test_files {
-        std::fs::create_dir_all(&install_dir)?;
-        let dest = install_dir.join("harbor-tray.exe");
-        std::fs::copy(&src, &dest)?;
-
-        // Copy icons...
-        let exe_dir = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|d| d.to_path_buf()));
-        for name in ["icon_h.ico", "harbor-tray.ico", "harbor.ico"] {
-            if let Some(d) = &exe_dir {
-                let p = d.join(name);
-                if p.exists() {
-                    let _ = std::fs::copy(&p, install_dir.join(name));
-                    continue;
-                }
-            }
-            let p = PathBuf::from(format!("assets/{}", name));
-            if p.exists() {
-                let _ = std::fs::copy(&p, install_dir.join(name));
-            }
-        }
-    }
-
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let run_key = registry_path.unwrap_or("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-
-    // Ensure key exists for tests
-    let (key, _) = hkcu.create_subkey(run_key)?;
-
-    let val = format!("\"{}\"", install_dir.join("harbor-tray.exe").display());
-    key.set_value("HarborTray", &val)?;
-
-    println!(
-        "installed {}",
-        install_dir.join("harbor-tray.exe").display()
-    );
-    Ok(())
-}
-
-#[cfg(not(windows))]
-fn tray_install(
-    _source: Option<String>,
-    _registry_path: Option<&str>,
-    _install_dir_override: Option<PathBuf>,
-) -> Result<()> {
-    anyhow::bail!("windows only");
-}
-
-#[cfg(windows)]
-fn tray_uninstall(registry_path: Option<&str>) -> Result<()> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let run_key = registry_path.unwrap_or("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-
-    if let Ok(key) = hkcu.open_subkey_with_flags(run_key, winreg::enums::KEY_WRITE) {
-        let _ = key.delete_value("HarborTray");
-    }
-    println!("uninstalled");
-    Ok(())
-}
-
-#[cfg(not(windows))]
-fn tray_uninstall(_registry_path: Option<&str>) -> Result<()> {
-    anyhow::bail!("windows only");
 }
 
 fn init_downloads_config(path: &str) -> Result<()> {
-    let sample = r#"download_dir: "C:\\Users\\%USERNAME%\\Downloads"
-min_age_secs: 5
-rules:
-  - name: images
-    extensions: ["jpg", "jpeg", "png", "gif", "webp"]
-    target_dir: "C:\\Users\\%USERNAME%\\Downloads\\Images"
-  - name: videos
-    extensions: ["mp4", "mov", "mkv", "avi"]
-    target_dir: "C:\\Users\\%USERNAME%\\Downloads\\Videos"
-  - name: archives
-    extensions: ["zip", "rar", "7z", "tar", "gz"]
-    target_dir: "C:\\Users\\%USERNAME%\\Downloads\\Archives"
-  - name: docs
-    extensions: ["pdf", "docx", "xlsx", "pptx", "txt"]
-    target_dir: "C:\\Users\\%USERNAME%\\Downloads\\Documents"
-  - name: installers
-    extensions: ["exe", "msi"]
-    target_dir: "C:\\Users\\%USERNAME%\\Downloads\\Installers"
-"#;
-    std::fs::write(path, sample)?;
+    harbor_core::config::save(
+        std::path::Path::new(path),
+        &harbor_core::downloads::default_config(),
+    )?;
     println!("created {}", path);
     Ok(())
 }
@@ -243,14 +105,14 @@ mod tests {
     use super::*;
     use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
-    use tempfile::NamedTempFile;
 
     #[test]
     fn test_init_downloads_config() {
-        let file = NamedTempFile::new().unwrap();
-        let path = file.path().to_str().unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let file = directory.path().join("config.yaml");
+        let path = file.to_str().unwrap();
         execute_command(
-            Commands::DownloadsInit {
+            Commands::Init {
                 path: path.to_string(),
             },
             None,
@@ -291,7 +153,7 @@ rules:
         std::fs::write(dl_dir.join("test.txt"), "content").unwrap();
 
         assert!(execute_command(
-            Commands::DownloadsOrganize {
+            Commands::Organize {
                 path: cfg_path.to_str().unwrap().to_string()
             },
             None
@@ -318,59 +180,12 @@ rules:
 
         let signal = Arc::new(AtomicBool::new(false)); // Stop immediately
         assert!(execute_command(
-            Commands::DownloadsWatch {
+            Commands::Watch {
                 path: cfg_path.to_str().unwrap().to_string(),
                 interval_secs: 1
             },
             Some(signal)
         )
         .is_ok());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn test_tray_install_uninstall() {
-        let test_reg_path = "Software\\HarborTest";
-        // Install
-        assert!(tray_install(None, Some(test_reg_path), None).is_ok());
-
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let key = hkcu.open_subkey(test_reg_path).unwrap();
-        let val: String = key.get_value("HarborTray").unwrap();
-        assert!(val.contains("harbor-tray.exe"));
-
-        // Uninstall
-        assert!(tray_uninstall(Some(test_reg_path)).is_ok());
-        let val: Result<String, _> = key.get_value("HarborTray");
-        assert!(val.is_err());
-
-        // Cleanup
-        let _ = hkcu.delete_subkey(test_reg_path);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn test_tray_install_files() {
-        let temp = tempfile::TempDir::new().unwrap();
-        let install_dir = temp.path().join("Install");
-        let source_dir = temp.path().join("Source");
-        std::fs::create_dir(&source_dir).unwrap();
-        let source_exe = source_dir.join("harbor-tray.exe");
-        std::fs::write(&source_exe, "dummy content").unwrap();
-
-        let test_reg_path = "Software\\HarborTestFiles";
-
-        assert!(tray_install(
-            Some(source_exe.to_str().unwrap().to_string()),
-            Some(test_reg_path),
-            Some(install_dir.clone())
-        )
-        .is_ok());
-
-        assert!(install_dir.join("harbor-tray.exe").exists());
-
-        // Cleanup registry
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let _ = hkcu.delete_subkey(test_reg_path);
     }
 }

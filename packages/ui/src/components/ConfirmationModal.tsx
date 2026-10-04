@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useModalFocus } from '../hooks/useModalFocus';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -21,16 +21,7 @@ export function ConfirmationModal({
     onConfirm,
     onCancel,
 }: ConfirmationModalProps) {
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) {
-                onCancel();
-            }
-        };
-
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
-    }, [isOpen, onCancel]);
+    const dialogRef = useModalFocus(isOpen, onCancel);
 
     if (!isOpen) return null;
 
@@ -38,6 +29,8 @@ export function ConfirmationModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div
                 className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800"
+                ref={dialogRef}
+                tabIndex={-1}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"

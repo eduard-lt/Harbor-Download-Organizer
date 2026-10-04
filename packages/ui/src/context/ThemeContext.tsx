@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -13,8 +14,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem('harbor-theme') as Theme;
-    return stored || 'system';
+    const stored = localStorage.getItem('harbor-theme');
+    return stored === 'light' || stored === 'dark' ? stored : 'system';
   });
 
   const [isDark, setIsDark] = useState(false);
@@ -31,6 +32,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
 
       setIsDark(dark);
+      root.style.colorScheme = dark ? 'dark' : 'light';
+      if ('__TAURI_INTERNALS__' in window) {
+        void getCurrentWindow().setTheme(theme === 'system' ? null : theme)
+          .catch(error => console.error('Failed to update window theme:', error));
+      }
       if (dark) {
         root.classList.add('dark');
       } else {

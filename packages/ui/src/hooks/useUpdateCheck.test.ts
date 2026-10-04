@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useUpdateCheck } from './useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import { UpdateProvider } from '../context/UpdateContext';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as tauri from '../lib/tauri';
@@ -13,7 +13,7 @@ vi.mock('../../package.json', () => ({
 // Mock Tauri commands - Auto-mocking
 vi.mock('../lib/tauri');
 
-describe('useUpdateCheck', () => {
+describe('useUpdateContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         globalThis.fetch = vi.fn().mockResolvedValue({
@@ -38,7 +38,7 @@ describe('useUpdateCheck', () => {
         React.createElement(UpdateProvider, { children: children });
 
     it('should initialize with defaults', async () => {
-        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+        const { result } = renderHook(() => useUpdateContext(), { wrapper });
 
         // Wait for initial loadSettings to complete
         await waitFor(() => {
@@ -60,7 +60,7 @@ describe('useUpdateCheck', () => {
             json: async () => mockRelease,
         } as Response);
 
-        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+        const { result } = renderHook(() => useUpdateContext(), { wrapper });
 
         // Wait for initial load
         await waitFor(() => {
@@ -88,7 +88,7 @@ describe('useUpdateCheck', () => {
             json: async () => mockRelease,
         } as Response);
 
-        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+        const { result } = renderHook(() => useUpdateContext(), { wrapper });
 
         await waitFor(() => {
             expect(result.current.updateState.loading).toBe(false);
@@ -115,7 +115,7 @@ describe('useUpdateCheck', () => {
         // Set last notified to the version we're about to "find"
         vi.mocked(tauri.getLastNotifiedVersion).mockResolvedValue('1.2.1');
 
-        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+        const { result } = renderHook(() => useUpdateContext(), { wrapper });
 
         await waitFor(() => {
             expect(result.current.updateState.loading).toBe(false);
@@ -130,7 +130,7 @@ describe('useUpdateCheck', () => {
     });
 
     it('should toggle update checks', async () => {
-        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+        const { result } = renderHook(() => useUpdateContext(), { wrapper });
 
         await waitFor(() => {
             expect(result.current.updateState.loading).toBe(false);
@@ -149,7 +149,7 @@ describe('useUpdateCheck', () => {
     it('should set checked and error state on manual check failure', async () => {
         vi.mocked(globalThis.fetch).mockRejectedValue(new Error('Network error'));
 
-        const { result } = renderHook(() => useUpdateCheck(), { wrapper });
+        const { result } = renderHook(() => useUpdateContext(), { wrapper });
 
         await waitFor(() => {
             expect(result.current.updateState.loading).toBe(false);

@@ -1,10 +1,9 @@
-use crate::commands::settings::restart_service_if_running as restart_monitoring_if_running;
 use crate::state::AppState;
+#[cfg(test)]
 use harbor_core::downloads::DownloadsConfig;
 use harbor_core::types::Rule;
 
 use serde::{Deserialize, Serialize};
-use std::fs;
 use tauri::State;
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -133,13 +132,6 @@ impl From<&Rule> for RuleDto {
     }
 }
 
-fn save_config(state: &AppState, config: &DownloadsConfig) -> Result<(), String> {
-    let yaml =
-        serde_yaml::to_string(config).map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(&state.config_path, yaml).map_err(|e| format!("Failed to write config: {}", e))?;
-    Ok(())
-}
-
 #[derive(Serialize)]
 struct ValidationErrorResponse {
     code: &'static str,
@@ -158,8 +150,12 @@ fn validation_error(message: impl Into<String>, fields: Vec<&'static str>) -> St
     })
 }
 
-fn restart_service_if_running(state: &AppState) -> Result<(), String> {
-    restart_monitoring_if_running(state)
+fn validate_pattern(pattern: Option<&str>) -> Result<(), String> {
+    if let Some(pattern) = pattern {
+        regex::Regex::new(pattern)
+            .map_err(|error| validation_error(error.to_string(), vec!["pattern"]))?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -184,8 +180,17 @@ pub async fn impl_create_rule(
     state: &AppState,
     rule: CreateRuleRequest,
 ) -> Result<RuleDto, String> {
+    validate_pattern(rule.pattern.as_deref())?;
+    if let (Some(min), Some(max)) = (rule.min_size_bytes, rule.max_size_bytes) {
+        if min > max {
+            return Err(validation_error(
+                "Minimum size exceeds maximum size",
+                vec!["min_size_bytes", "max_size_bytes"],
+            ));
+        }
+    }
     let new_rule = {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
+        let mut config = state.begin_config_update()?;
 
         // Check if rule with this name already exists
         if config.rules.iter().any(|r| r.name == rule.name) {
@@ -211,17 +216,15 @@ pub async fn impl_create_rule(
             pattern: rule.pattern,
             min_size_bytes: rule.min_size_bytes,
             max_size_bytes: rule.max_size_bytes,
-            target_dir: rule.destination,
+            target_dir: harbor_core::downloads::expand_env(&rule.destination),
             create_symlink: rule.create_symlink.unwrap_or(false),
             enabled: rule.enabled.unwrap_or(true),
         };
 
         config.rules.push(new.clone());
-        save_config(state, &config)?;
+        config.commit()?;
         new
     };
-
-    restart_service_if_running(state)?;
 
     Ok(RuleDto::from(&new_rule))
 }
@@ -250,8 +253,11 @@ pub async fn impl_update_rule(
         enabled,
     } = rule;
 
+    if let NullableField::Value(value) = &pattern {
+        validate_pattern(Some(value))?;
+    }
     let updated = {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
+        let mut config = state.begin_config_update()?;
 
         let r = config
             .rules
@@ -301,7 +307,7 @@ pub async fn impl_update_rule(
             };
         }
         if let Some(dest) = destination {
-            r.target_dir = dest;
+            r.target_dir = harbor_core::downloads::expand_env(&dest);
         }
         if pattern.is_provided() {
             r.pattern = match pattern {
@@ -324,11 +330,9 @@ pub async fn impl_update_rule(
         }
 
         let updated = RuleDto::from(&*r);
-        save_config(state, &config)?;
+        config.commit()?;
         updated
     };
-
-    restart_service_if_running(state)?;
 
     Ok(updated)
 }
@@ -340,7 +344,7 @@ pub async fn delete_rule(state: State<'_, AppState>, rule_id: String) -> Result<
 
 pub async fn impl_delete_rule(state: &AppState, rule_id: String) -> Result<(), String> {
     {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
+        let mut config = state.begin_config_update()?;
 
         let original_len = config.rules.len();
         config.rules.retain(|r| r.id != rule_id);
@@ -349,9 +353,8 @@ pub async fn impl_delete_rule(state: &AppState, rule_id: String) -> Result<(), S
             return Err(format!("Rule '{}' not found", rule_id));
         }
 
-        save_config(state, &config)?;
+        config.commit()?;
     }
-    restart_service_if_running(state)?;
     Ok(())
 }
 
@@ -370,7 +373,7 @@ pub async fn impl_toggle_rule(
     enabled: bool,
 ) -> Result<(), String> {
     {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
+        let mut config = state.begin_config_update()?;
 
         let rule = config
             .rules
@@ -379,9 +382,8 @@ pub async fn impl_toggle_rule(
             .ok_or_else(|| format!("Rule '{}' not found", rule_id))?;
 
         rule.enabled = enabled;
-        save_config(state, &config)?;
+        config.commit()?;
     }
-    restart_service_if_running(state)?;
 
     Ok(())
 }
@@ -396,7 +398,7 @@ pub async fn reorder_rules(
 
 pub async fn impl_reorder_rules(state: &AppState, rule_ids: Vec<String>) -> Result<(), String> {
     {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
+        let mut config = state.begin_config_update()?;
 
         // Build a lookup map for O(1) access
         let rule_map: std::collections::HashMap<&str, &Rule> =
@@ -418,9 +420,8 @@ pub async fn impl_reorder_rules(state: &AppState, rule_ids: Vec<String>) -> Resu
         }
 
         config.rules = new_rules;
-        save_config(state, &config)?;
+        config.commit()?;
     }
-    restart_service_if_running(state)?;
 
     Ok(())
 }
@@ -434,7 +435,9 @@ pub async fn get_download_dir(state: State<'_, AppState>) -> Result<String, Stri
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::settings::{internal_start_service, internal_stop_service};
+    use crate::commands::settings::{
+        internal_start_service, internal_stop_service, restart_service_if_running,
+    };
     use serde_json::json;
 
     #[test]
@@ -665,7 +668,7 @@ mod tests {
         let (state, _tmp) = create_test_state();
 
         internal_start_service(&state).unwrap();
-        restart_monitoring_if_running(&state).unwrap();
+        restart_service_if_running(&state).unwrap();
         let after_first = state
             .service_start_time
             .lock()
@@ -674,7 +677,7 @@ mod tests {
             .copied()
             .unwrap();
 
-        restart_monitoring_if_running(&state).unwrap();
+        restart_service_if_running(&state).unwrap();
         let after_second = state
             .service_start_time
             .lock()

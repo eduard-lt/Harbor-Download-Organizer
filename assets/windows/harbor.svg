@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+      <defs>
+        <linearGradient id="light" x2="0" y2="1">
+          <stop stop-color="white" stop-opacity=".22"/>
+          <stop offset=".5" stop-color="white" stop-opacity="0"/>
+          <stop offset="1" stop-color="#06474d" stop-opacity=".22"/>
+        </linearGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+          <feDropShadow dx="0" dy="12" stdDeviation="10" flood-opacity=".22"/>
+        </filter>
+      </defs>
+      <rect x="32" y="32" width="960" height="960" rx="220" fill="#42b4ba"/>
+      <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#light)"/>
+      <g transform="translate(102.39999999999998 102.39999999999998) scale(0.8)" filter="url(#shadow)"><svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1056 992"><g transform="matrix(1.823885,0,0,1.823885,-409.341921,-384.922638)"><path d="M459.559,538.182L428.606,485.448L426.667,485.434L426.667,721.969L305.493,721.984L305.428,239.526L366.061,239.521L426.696,239.515L426.659,421.584L564.906,421.624L599.273,474.302L601.212,474.316L601.212,239.515L722.424,239.515L722.424,721.939L601.212,721.939L601.212,538.182L459.559,538.182Z" style="fill:rgb(253,254,253);"/></g></svg></g>
+    </svg>

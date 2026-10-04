@@ -1,21 +1,14 @@
 name: CI
-
 on:
   push:
-    branches: [ main, develop ]
+    branches: ['**']
   pull_request:
-    branches: [ main, develop ]
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  # ============================================================================
-  # Format Check
-  # ============================================================================
   format:
-    name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -23,265 +16,77 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all -- --check
-
-  # ============================================================================
-  # Build Frontend once — shared by downstream jobs
-  # ============================================================================
-  frontend-build:
-    name: Build Frontend
+      - run: python tools/version.py check
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-      - uses: actions/cache@v6
-        with:
-          path: packages/ui/node_modules
-          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
-      - run: npm install
+          cache: npm
+          cache-dependency-path: packages/ui/package-lock.json
+      - run: npm ci
         working-directory: packages/ui
-      - run: npm run build
-        working-directory: packages/ui
-      - uses: actions/upload-artifact@v7
-        with:
-          name: frontend-dist
-          path: packages/ui/dist
-          retention-days: 1
-
-  # ============================================================================
-  # Quality checks run in parallel
-  # ============================================================================
-  clippy:
-    name: Clippy
-    runs-on: windows-latest
-    needs: [frontend-build]
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: mozilla-actions/sccache-action@v0.0.10
-      - uses: actions/download-artifact@v8
-        with:
-          name: frontend-dist
-          path: packages/ui/dist
-      - run: cargo clippy --all-targets --all-features -- -D warnings
-
-  frontend-test:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    needs: [frontend-build]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - uses: actions/cache@v6
-        with:
-          path: packages/ui/node_modules
-          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
-      - run: npm install
-        working-directory: packages/ui
-      - run: npm run test -- --run
-        working-directory: packages/ui
-
-  test:
-    name: Rust Tests
-    runs-on: windows-latest
-    needs: [frontend-build]
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.10
-      - uses: actions/download-artifact@v8
-        with:
-          name: frontend-dist
-          path: packages/ui/dist
-      - run: cargo test --all --all-features --verbose
-
-  # ============================================================================
-  # Release build (Windows target)
-  # ============================================================================
-  build:
-    name: Release Build (Windows)
-    runs-on: windows-latest
-    needs: [clippy, frontend-test, test]
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.10
-      - uses: actions/download-artifact@v8
-        with:
-          name: frontend-dist
-          path: packages/ui/dist
-      - run: cargo build --all --release --verbose
-      - name: Check binary sizes
-        run: |
-          if (Test-Path target/release/harbor-cli.exe) {
-            $size = (Get-Item target/release/harbor-cli.exe).Length / 1MB
-            Write-Host "✓ harbor-cli.exe: $([math]::Round($size, 2)) MB"
-          }
-          if (Test-Path target/release/harbor-tray.exe) {
-            $size = (Get-Item target/release/harbor-tray.exe).Length / 1MB
-            Write-Host "✓ harbor-tray.exe: $([math]::Round($size, 2)) MB"
-          }
-
-  # ============================================================================
-  # Security Audit
-  # ============================================================================
-  audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    needs: [clippy, frontend-test, test]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-audit
-      - run: cargo audit
-
-  # ============================================================================
-  # Fuzz Regression
-  # ============================================================================
-  fuzz:
-    name: Fuzz Regression
-    runs-on: ubuntu-latest
-    needs: [clippy, frontend-test, test]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo install cargo-fuzz
-      - name: Fuzz config parser
-        run: cargo fuzz run config_yaml -- -max_total_time=15 -max_len=65536 -rss_limit_mb=1024
-        working-directory: crates/core/fuzz
-      - name: Fuzz rule deserialization
-        run: cargo fuzz run rule_yaml -- -max_total_time=15 -max_len=65536 -rss_limit_mb=1024
-        working-directory: crates/core/fuzz
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: fuzz-artifacts
-          path: crates/core/fuzz/artifacts/
-          retention-days: 7
-
-  # ============================================================================
-  # E2E Tests (Playwright)
-  # ============================================================================
-  e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [frontend-build]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - uses: actions/cache@v6
-        with:
-          path: packages/ui/node_modules
-          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
-      - run: npm install
+      - run: npm run lint && npm run build && npm run coverage
         working-directory: packages/ui
       - run: npx playwright install --with-deps chromium
         working-directory: packages/ui
       - run: npm run e2e
         working-directory: packages/ui
+      - run: npm audit --audit-level=moderate
+        working-directory: packages/ui
+      - uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
-          path: packages/ui/playwright-report/
-          retention-days: 7
-
-  # ============================================================================
-  # Coverage Gate
-  # ============================================================================
-  coverage:
-    name: Coverage (≥70%)
+          path: packages/ui/playwright-report
+  native:
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: packages/ui/dist
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - run: cargo test --workspace --all-features --locked
+  audit:
     runs-on: ubuntu-latest
-    needs: [frontend-build]
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/download-artifact@v8
-        with:
-          name: frontend-dist
-          path: packages/ui/dist
-      - run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - uses: actions/cache@v6
-        with:
-          path: packages/ui/node_modules
-          key: node-${{ hashFiles('packages/ui/package-lock.json') }}
-      - run: npm install
-        working-directory: packages/ui
-      - run: npm run coverage
-        working-directory: packages/ui
-
-  # ============================================================================
-  # macOS — compilation, tests, and coverage
-  # ============================================================================
-  macos-check:
-    name: macOS Check
-    runs-on: macos-latest
-    needs: [frontend-build]
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit --file Cargo.lock
+  fuzz:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.10
-      - uses: actions/download-artifact@v8
-        with:
-          name: frontend-dist
-          path: packages/ui/dist
-      - run: cargo check --workspace
-      - run: cargo test --workspace
-      - name: Install coverage tools
-        run: cargo install cargo-llvm-cov
-      - name: macOS coverage (informative)
-        # Reports coverage for macOS-specific code paths that the
-        # ubuntu coverage job cannot measure (e.g. platform/macos.rs).
-        # Non-blocking — informational only for now.
-        run: cargo llvm-cov --workspace --summary-only
-
-  # ============================================================================
-  # Final gate
-  # ============================================================================
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-fuzz --locked
+      - run: cargo fuzz run config_yaml -- -max_total_time=15 -max_len=65536 -rss_limit_mb=1024
+        working-directory: crates/core/fuzz
+      - run: cargo fuzz run rule_yaml -- -max_total_time=15 -max_len=65536 -rss_limit_mb=1024
+        working-directory: crates/core/fuzz
   ci-success:
-    name: CI Success
-    needs: [format, frontend-build, clippy, frontend-test, test, build, audit, fuzz, e2e, coverage, macos-check]
-    runs-on: ubuntu-latest
     if: always()
+    needs: [format, frontend, native, audit, fuzz]
+    runs-on: ubuntu-latest
     steps:
-      - name: Check all jobs
-        run: |
-          FAILED=""
-          [ "${{ needs.format.result }}" != "success" ] && FAILED="$FAILED format"
-          [ "${{ needs.frontend-build.result }}" != "success" ] && FAILED="$FAILED frontend-build"
-          [ "${{ needs.clippy.result }}" != "success" ] && FAILED="$FAILED clippy"
-          [ "${{ needs.frontend-test.result }}" != "success" ] && FAILED="$FAILED frontend-test"
-          [ "${{ needs.test.result }}" != "success" ] && FAILED="$FAILED test"
-          [ "${{ needs.build.result }}" != "success" ] && FAILED="$FAILED build"
-          [ "${{ needs.audit.result }}" != "success" ] && FAILED="$FAILED audit"
-          [ "${{ needs.fuzz.result }}" != "success" ] && FAILED="$FAILED fuzz"
-          [ "${{ needs.e2e.result }}" != "success" ] && FAILED="$FAILED e2e"
-          [ "${{ needs.coverage.result }}" != "success" ] && FAILED="$FAILED coverage"
-          [ "${{ needs.macos-check.result }}" != "success" ] && FAILED="$FAILED macos-check"
-          if [ -n "$FAILED" ]; then
-            echo "❌ Failed jobs:$FAILED"
-            exit 1
-          fi
-          echo "✅ All CI checks passed!"
+      - name: Require all checks
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS" | jq -e 'all(.[]; .result == "success")'

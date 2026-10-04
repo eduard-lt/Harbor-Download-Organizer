@@ -1,8 +1,8 @@
 use crate::commands::error_contract::{map_legacy_organize_error, AppError, AppErrorDto};
 use crate::state::{AppState, ServiceLifecycleState};
-use harbor_core::downloads::{
-    append_organize_results_to_log, load_downloads_config, organize_once, watch_polling,
-};
+#[cfg(test)]
+use harbor_core::downloads::append_organize_results_to_log;
+use harbor_core::downloads::load_downloads_config;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::atomic::Ordering;
@@ -11,18 +11,10 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
-use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_notification::NotificationExt;
 
 /// Coalescing window for rapid restart requests triggered by bursty rule edits.
 pub const RESTART_DEBOUNCE_WINDOW: Duration = Duration::from_millis(500);
-
-/// Serializes the current config state to disk.
-fn save_config_to_disk(state: &AppState) -> Result<(), String> {
-    let config = state.config.read().map_err(|e| e.to_string())?;
-    let yaml = serde_yaml::to_string(&*config).map_err(|e| e.to_string())?;
-    std::fs::write(&state.config_path, yaml).map_err(|e| e.to_string())
-}
 
 /// Service status information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +26,8 @@ pub struct ServiceStatus {
     pub stop_join_pending: bool,
     pub degraded: bool,
     pub degraded_reason: Option<String>,
+    pub scan_error: Option<String>,
+    pub configuration_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -180,6 +174,12 @@ fn build_service_status(state: &AppState) -> Result<ServiceStatus, String> {
         stop_join_pending,
         degraded: degraded_reason.is_some(),
         degraded_reason,
+        scan_error: state.scan_error.lock().map_err(|e| e.to_string())?.clone(),
+        configuration_error: state
+            .configuration_error
+            .lock()
+            .map_err(|e| e.to_string())?
+            .clone(),
     })
 }
 
@@ -243,6 +243,33 @@ fn wait_for_watcher_join(
 }
 
 pub fn internal_start_service(state: &AppState) -> Result<(), String> {
+    let _operation = state
+        .lifecycle_operation
+        .lock()
+        .map_err(|e| e.to_string())?;
+    start_locked(state)
+}
+
+fn start_locked(state: &AppState) -> Result<(), String> {
+    if state.shutdown_requested.load(Ordering::SeqCst) {
+        return Err("Harbor is shutting down".into());
+    }
+    if *state
+        .watcher_join_pending
+        .lock()
+        .map_err(|e| e.to_string())?
+    {
+        return Err("Previous stop is still finalizing. Retry shortly.".into());
+    }
+    if let Some(error) = state
+        .configuration_error
+        .lock()
+        .map_err(|e| e.to_string())?
+        .as_ref()
+    {
+        return Err(error.clone());
+    }
+    drop(state.config.read().map_err(|e| e.to_string())?);
     let mut flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
 
     // If already running, do nothing
@@ -256,15 +283,39 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
     let new_flag = Arc::new(std::sync::atomic::AtomicBool::new(true));
     *flag_guard = Some(new_flag.clone());
 
-    let config = state.config.read().map_err(|e| e.to_string())?.clone();
+    drop(state.config.read().map_err(|e| e.to_string())?);
+    let config = state.config.clone();
     let log_path = state.recent_log_path();
 
     // Use the *new* flag for the thread
     let thread_flag = new_flag.clone();
+    let scan_error = state.scan_error.clone();
+    let work = state.work.clone();
     let handle = thread::spawn(move || {
-        let _ = watch_polling(&config, 5, &thread_flag, |actions| {
-            append_organize_results_to_log(&log_path, actions);
-        });
+        while thread_flag.load(Ordering::SeqCst) {
+            let cfg = match config.read() {
+                Ok(cfg) => cfg.clone(),
+                Err(_) => break,
+            };
+            let outcome = crate::operations::run_batch(&work, &cfg, Some(&thread_flag));
+            let error = match outcome {
+                Ok(summary) if summary.errors.is_empty() => None,
+                Ok(summary) => Some(summary.errors.join("\n")),
+                Err(error) => Some(format!("{error:#}")),
+            };
+            if let Ok(mut previous) = scan_error.lock() {
+                if *previous != error {
+                    crate::operations::record_health(&log_path, error.as_deref());
+                    *previous = error;
+                }
+            }
+            for _ in 0..10 {
+                if !thread_flag.load(Ordering::SeqCst) {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(500));
+            }
+        }
     });
 
     let mut guard = state.watcher_handle.lock().map_err(|e| e.to_string())?;
@@ -287,6 +338,14 @@ pub fn internal_start_service(state: &AppState) -> Result<(), String> {
 }
 
 pub fn internal_stop_service(state: &AppState) -> Result<(), String> {
+    let _operation = state
+        .lifecycle_operation
+        .lock()
+        .map_err(|e| e.to_string())?;
+    stop_locked(state)
+}
+
+pub(super) fn stop_locked(state: &AppState) -> Result<(), String> {
     const STOP_JOIN_TIMEOUT: Duration = Duration::from_secs(10);
 
     let mut flag_guard = state.watcher_flag.lock().map_err(|e| e.to_string())?;
@@ -326,12 +385,6 @@ pub fn internal_stop_service(state: &AppState) -> Result<(), String> {
                 );
             }
         }
-    } else {
-        let mut pending = state
-            .watcher_join_pending
-            .lock()
-            .map_err(|e| e.to_string())?;
-        *pending = false;
     }
 
     let mut time_guard = state.service_start_time.lock().map_err(|e| e.to_string())?;
@@ -388,8 +441,12 @@ fn restart_service_if_running_internal(
 
     let restart_result = (|| -> Result<(), String> {
         set_lifecycle_state(state, ServiceLifecycleState::Restarting)?;
-        internal_stop_service(state)?;
-        internal_start_service(state)?;
+        let _operation = state
+            .lifecycle_operation
+            .lock()
+            .map_err(|e| e.to_string())?;
+        stop_locked(state)?;
+        start_locked(state)?;
         set_lifecycle_state(state, ServiceLifecycleState::Running)?;
         Ok(())
     })();
@@ -426,6 +483,10 @@ fn reload_config_impl(
         *config = new_config;
     }
 
+    *state
+        .configuration_error
+        .lock()
+        .map_err(|e| e.to_string())? = None;
     restart_service_if_running_internal(state, true)
 }
 
@@ -482,14 +543,14 @@ pub fn impl_retry_service_restart(state: &AppState) -> Result<(), String> {
 }
 
 pub fn persist_service_state(state: &AppState, enabled: bool) -> Result<(), String> {
-    {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
-        config.service_enabled = Some(enabled);
-    }
-    save_config_to_disk(state)
+    state.update_config(|config| config.service_enabled = Some(enabled))
 }
 
 pub fn impl_start_service_with_guards(state: &AppState) -> Result<(), String> {
+    let _operation = state
+        .lifecycle_operation
+        .lock()
+        .map_err(|e| e.to_string())?;
     if *state
         .watcher_join_pending
         .lock()
@@ -513,7 +574,7 @@ pub fn impl_start_service_with_guards(state: &AppState) -> Result<(), String> {
     }
 
     persist_service_state(state, true)?;
-    internal_start_service(state)
+    start_locked(state)
 }
 
 #[tauri::command]
@@ -522,12 +583,21 @@ pub async fn start_service(state: State<'_, AppState>, app: AppHandle) -> Result
     emit_service_status_event(&app, &state)
 }
 
+pub fn impl_stop_service(state: &AppState) -> Result<(), String> {
+    let _operation = state
+        .lifecycle_operation
+        .lock()
+        .map_err(|e| e.to_string())?;
+    let stop_result = stop_locked(state);
+    let persist_result = persist_service_state(state, false);
+    stop_result.and(persist_result)
+}
+
 #[tauri::command]
 pub async fn stop_service(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
-    persist_service_state(&state, false)?;
-    let stop_result = internal_stop_service(&state);
+    let result = impl_stop_service(&state);
     let _ = emit_service_status_event(&app, &state);
-    stop_result
+    result
 }
 
 #[tauri::command]
@@ -577,9 +647,21 @@ pub async fn impl_trigger_organize_now(state: &AppState) -> OrganizeNowResponse 
     }
 
     let download_dir = Path::new(&config.download_dir);
-    let log_path = state.recent_log_path();
-
-    let summary = match organize_once(&config) {
+    if let Some(error) = state
+        .configuration_error
+        .lock()
+        .ok()
+        .and_then(|e| e.clone())
+    {
+        return organize_now_failure_response(map_legacy_organize_error(&error), download_dir);
+    }
+    let work = state.work.clone();
+    let batch_config = config.clone();
+    let batch = tauri::async_runtime::spawn_blocking(move || {
+        crate::operations::run_batch(&work, &batch_config, None)
+    })
+    .await;
+    let summary = match batch.map_err(anyhow::Error::from).and_then(|result| result) {
         Ok(summary) => summary,
         Err(e) => {
             let legacy = format!("Organize failed: {}", e);
@@ -591,8 +673,6 @@ pub async fn impl_trigger_organize_now(state: &AppState) -> OrganizeNowResponse 
     for err in &summary.errors {
         eprintln!("[Harbor] {err}");
     }
-
-    append_organize_results_to_log(&log_path, &summary.moved);
 
     map_organize_summary_to_response(summary, download_dir)
 }
@@ -688,35 +768,59 @@ trait StartupAuthority {
 }
 
 struct AppStartupAuthority<'a> {
-    app: &'a AppHandle,
+    _app: &'a AppHandle,
 }
 
 impl<'a> AppStartupAuthority<'a> {
     fn new(app: &'a AppHandle) -> Self {
-        Self { app }
+        Self { _app: app }
     }
 }
 
 impl StartupAuthority for AppStartupAuthority<'_> {
     fn enable(&self) -> Result<(), String> {
-        self.app
-            .autolaunch()
-            .enable()
-            .map_err(|e| format!("Failed to update startup setting: {e}"))
+        #[cfg(target_os = "macos")]
+        {
+            crate::startup_macos::enable()
+        }
+        #[cfg(windows)]
+        {
+            crate::startup_windows::enable()
+        }
+        #[cfg(not(any(target_os = "macos", windows)))]
+        {
+            Err("Login startup is supported on Windows and macOS only".into())
+        }
     }
 
     fn disable(&self) -> Result<(), String> {
-        self.app
-            .autolaunch()
-            .disable()
-            .map_err(|e| format!("Failed to update startup setting: {e}"))
+        #[cfg(target_os = "macos")]
+        {
+            crate::startup_macos::disable()
+        }
+        #[cfg(windows)]
+        {
+            crate::startup_windows::disable()
+        }
+        #[cfg(not(any(target_os = "macos", windows)))]
+        {
+            Err("Login startup is supported on Windows and macOS only".into())
+        }
     }
 
     fn is_enabled(&self) -> Result<bool, String> {
-        self.app
-            .autolaunch()
-            .is_enabled()
-            .map_err(|e| format!("Failed to read startup state: {e}"))
+        #[cfg(target_os = "macos")]
+        {
+            Ok(crate::startup_macos::is_enabled())
+        }
+        #[cfg(windows)]
+        {
+            crate::startup_windows::is_enabled()
+        }
+        #[cfg(not(any(target_os = "macos", windows)))]
+        {
+            Err("Login startup is supported on Windows and macOS only".into())
+        }
     }
 }
 
@@ -751,7 +855,7 @@ fn apply_startup_enabled(
 
     if enabled && !authoritative {
         return Err(
-            "Startup remains disabled after update attempt. Retry from Settings.".to_string(),
+            "Startup is not enabled yet. Check Harbor's permissions in your operating system's login or startup settings, then retry.".to_string(),
         );
     }
 
@@ -760,7 +864,10 @@ fn apply_startup_enabled(
 
 pub fn reconcile_startup_authority(app: &AppHandle) -> Result<(), String> {
     let _authority = AppStartupAuthority::new(app);
-    // Auto-launch plugin manages the registry key; no separate cleanup needed.
+    #[cfg(target_os = "macos")]
+    crate::startup_macos::migrate_legacy()?;
+    #[cfg(windows)]
+    crate::startup_windows::reconcile()?;
     Ok(())
 }
 
@@ -851,19 +958,17 @@ pub async fn get_config_path(state: State<'_, AppState>) -> Result<String, Strin
 
 #[tauri::command]
 pub async fn reset_to_defaults(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
+    internal_stop_service(&state)?;
     let mut config = harbor_core::downloads::default_config();
-    // Leave the service stopped after reset so the user can review
-    // the fresh default rules before re-enabling.
     config.service_enabled = Some(false);
-
-    {
-        let mut state_config = state.config.write().map_err(|e| e.to_string())?;
-        *state_config = config;
-    }
-
-    save_config_to_disk(&state)?;
-
-    let _ = internal_stop_service(&state);
+    let mut live = state.config.write().map_err(|e| e.to_string())?;
+    harbor_core::config::save(&state.config_path, &config).map_err(|e| format!("{e:#}"))?;
+    *live = config;
+    drop(live);
+    *state
+        .configuration_error
+        .lock()
+        .map_err(|e| e.to_string())? = None;
     let _ = emit_service_status_event(&app, &state);
 
     Ok(())
@@ -883,11 +988,7 @@ pub async fn set_tutorial_completed(
     state: State<'_, AppState>,
     completed: bool,
 ) -> Result<(), String> {
-    {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
-        config.tutorial_completed = Some(completed);
-    }
-    save_config_to_disk(&state)
+    state.update_config(|config| config.tutorial_completed = Some(completed))
 }
 
 #[tauri::command]
@@ -899,11 +1000,7 @@ pub async fn get_check_updates(state: State<'_, AppState>) -> Result<bool, Strin
 
 #[tauri::command]
 pub async fn set_check_updates(state: State<'_, AppState>, enabled: bool) -> Result<(), String> {
-    {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
-        config.check_updates = Some(enabled);
-    }
-    save_config_to_disk(&state)
+    state.update_config(|config| config.check_updates = Some(enabled))
 }
 
 #[tauri::command]
@@ -919,11 +1016,7 @@ pub async fn set_last_notified_version(
     state: State<'_, AppState>,
     version: String,
 ) -> Result<(), String> {
-    {
-        let mut config = state.config.write().map_err(|e| e.to_string())?;
-        config.last_notified_version = Some(version);
-    }
-    save_config_to_disk(&state)
+    state.update_config(|config| config.last_notified_version = Some(version))
 }
 
 /// Notifies the user that an update is available via a system notification.
@@ -1705,6 +1798,19 @@ mod tests {
                 (true, "reconciled".to_string())
             ]
         );
+    }
+
+    #[test]
+    fn pending_startup_approval_preserves_registration() {
+        let authority = FakeStartupAuthority::new(Ok(()), Ok(()), Ok(false));
+        let mut events = Vec::new();
+        let result = apply_startup_enabled(&authority, true, &mut |enabled, phase| {
+            events.push((enabled, phase.to_string()));
+            Ok(())
+        });
+        assert!(result.unwrap_err().contains("permissions"));
+        assert_eq!(*authority.disable_calls.lock().unwrap(), 0);
+        assert_eq!(events.last(), Some(&(false, "reconciled".to_string())));
     }
 
     #[test]

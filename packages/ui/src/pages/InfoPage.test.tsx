@@ -3,17 +3,17 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { InfoPage } from './InfoPage';
 
 // Minimal mocks required:
-// - useUpdateCheck from hooks
+// - useUpdateContext from hooks
 // - open from @tauri-apps/plugin-shell (used in top-level code + inside component)
-vi.mock('../hooks/useUpdateCheck', () => ({
-    useUpdateCheck: vi.fn(),
+vi.mock('../context/UpdateContext', () => ({
+    useUpdateContext: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-shell', () => ({
     open: vi.fn(),
 }));
 
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import packageJson from '../../package.json';
 
 const baseUpdateState = {
@@ -33,7 +33,7 @@ describe('InfoPage', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(useUpdateCheck).mockReturnValue(mockUseUpdateCheck);
+        vi.mocked(useUpdateContext).mockReturnValue(mockUseUpdateCheck);
     });
 
     it('renders the header', () => {
@@ -61,7 +61,7 @@ describe('InfoPage', () => {
     });
 
     it('shows update banner when update is available', () => {
-        vi.mocked(useUpdateCheck).mockReturnValue({
+        vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUseUpdateCheck,
             updateState: {
                 ...baseUpdateState,
@@ -80,7 +80,7 @@ describe('InfoPage', () => {
     });
 
     it('does NOT show update banner when available is true but url is null', () => {
-        vi.mocked(useUpdateCheck).mockReturnValue({
+        vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUseUpdateCheck,
             updateState: { ...baseUpdateState, available: true, version: '1.5.0', url: null },
         });

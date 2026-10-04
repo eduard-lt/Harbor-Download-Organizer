@@ -11,8 +11,8 @@ vi.mock('../hooks/useSettings', () => ({
     useSettings: vi.fn(),
 }));
 
-vi.mock('../hooks/useUpdateCheck', () => ({
-    useUpdateCheck: vi.fn(),
+vi.mock('../context/UpdateContext', () => ({
+    useUpdateContext: vi.fn(),
 }));
 
 vi.mock('../hooks/useWindowSize', () => ({
@@ -26,7 +26,7 @@ vi.mock('@tauri-apps/api/window', () => ({
 
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../hooks/useSettings';
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import { useWindowSize } from '../hooks/useWindowSize';
 
 // Define the same presets that useWindowSize uses, locally to avoid mocked-module import issues
@@ -102,7 +102,7 @@ describe('SettingsPage', () => {
         vi.clearAllMocks();
         vi.mocked(useTheme).mockReturnValue(mockTheme);
         vi.mocked(useSettings).mockReturnValue(mockSettings);
-        vi.mocked(useUpdateCheck).mockReturnValue(mockUpdateCheck);
+        vi.mocked(useUpdateContext).mockReturnValue(mockUpdateCheck);
         vi.mocked(useWindowSize).mockReturnValue(mockWindowSize);
     });
 
@@ -218,7 +218,7 @@ describe('SettingsPage', () => {
     });
 
     it('shows update available text when update is available', () => {
-        vi.mocked(useUpdateCheck).mockReturnValue({
+        vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUpdateCheck,
             updateState: {
                 ...mockUpdateCheck.updateState,
@@ -233,7 +233,7 @@ describe('SettingsPage', () => {
     });
 
     it('shows update error when update check fails', () => {
-        vi.mocked(useUpdateCheck).mockReturnValue({
+        vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUpdateCheck,
             updateState: { ...mockUpdateCheck.updateState, error: 'Network error' },
         });
@@ -242,7 +242,7 @@ describe('SettingsPage', () => {
     });
 
     it('shows "You are up to date." when no update found', () => {
-        vi.mocked(useUpdateCheck).mockReturnValue({
+        vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUpdateCheck,
             updateState: { ...mockUpdateCheck.updateState, checked: true, hasUpdate: false },
         });

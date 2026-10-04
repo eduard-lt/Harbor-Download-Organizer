@@ -1,7 +1,8 @@
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
+import { FileTools } from '../components/FileTools';
 import { useSettings } from '../hooks/useSettings';
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import { useState } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -31,7 +32,7 @@ export function SettingsPage() {
     setCheckForUpdates: toggleCheckUpdates, // We will wrap this to behave like toggle if needed, or update usage
     checkNow: refreshUpdateCheck,
     updateState
-  } = useUpdateCheck();
+  } = useUpdateContext();
 
   const {
     loading: updateLoading,
@@ -75,6 +76,9 @@ export function SettingsPage() {
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="max-w-4xl mx-auto p-12">
+          {serviceStatus.configuration_error && <p role="alert" className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">{serviceStatus.configuration_error}</p>}
+          {serviceStatus.scan_error && <p role="alert" className="mb-4 p-4 bg-amber-50 text-amber-800 rounded-lg">Monitoring needs attention: {serviceStatus.scan_error}</p>}
+          <FileTools />
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg">
               {error}
@@ -88,15 +92,15 @@ export function SettingsPage() {
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     <span className={`inline-block w-2.5 h-2.5 rounded-full ${serviceEnabled ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                    <span className={`text-xs font-bold uppercase tracking-widest ${serviceEnabled ? 'text-emerald-600' : 'text-slate-500'}`}>
+                    <span className={`text-xs font-bold uppercase tracking-widest ${serviceEnabled ? 'text-emerald-600' : 'text-slate-500 dark:text-slate-400'}`}>
                       {loading ? 'Checking...' : (serviceEnabled ? 'Service is Running' : 'Service is Stopped')}
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 dark:text-white">Service Status</h3>
-                  <p className="text-slate-500 mt-1 max-w-md">
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-md">
                     Manage the background process that monitors your folders and organizes files in real-time.
                   </p>
-                  <p className="text-xs text-slate-500 mt-2 uppercase tracking-tight font-semibold">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-tight font-semibold">
                     Lifecycle: <span className="text-slate-800 dark:text-white font-mono ml-1">{lifecycleState}</span>
                   </p>
                 </div>
@@ -105,6 +109,7 @@ export function SettingsPage() {
                     <input
                       type="checkbox"
                       className="sr-only peer"
+                      aria-label="Active monitoring"
                       checked={serviceEnabled}
                       onChange={toggleService}
                       disabled={loading}
@@ -114,10 +119,10 @@ export function SettingsPage() {
                 </div>
               </div>
               <div className="px-8 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs text-slate-500 uppercase tracking-tight font-semibold">
+                <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-tight font-semibold">
                   Process ID: <span className="text-slate-800 dark:text-white font-mono ml-1">{serviceStatus.pid}</span>
                 </span>
-                <span className="text-xs text-slate-500 uppercase tracking-tight font-semibold">
+                <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-tight font-semibold">
                   Uptime: <span className="text-slate-800 dark:text-white font-mono ml-1">{serviceStatus.uptime_seconds ? `${Math.floor(serviceStatus.uptime_seconds / 60)}m` : 'N/A'}</span>
                 </span>
               </div>
@@ -145,8 +150,11 @@ export function SettingsPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Light Theme */}
-                <div
-                  className="group cursor-pointer"
+                <button
+                  type="button"
+                  aria-label="Use light theme"
+                  aria-pressed={theme === 'light'}
+                  className="group text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-primary rounded-lg"
                   onClick={() => setTheme('light')}
                 >
                   <div
@@ -171,14 +179,17 @@ export function SettingsPage() {
                       </div>
                     )}
                   </div>
-                  <p className={`text-center mt-2 text-sm font-medium ${theme === 'light' ? 'font-bold text-primary' : 'text-slate-600'}`}>
+                  <p className={`text-center mt-2 text-sm font-medium ${theme === 'light' ? 'font-bold text-primary' : 'text-slate-600 dark:text-slate-400'}`}>
                     Light
                   </p>
-                </div>
+                </button>
 
                 {/* Dark Theme */}
-                <div
-                  className="group cursor-pointer"
+                <button
+                  type="button"
+                  aria-label="Use dark theme"
+                  aria-pressed={theme === 'dark'}
+                  className="group text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-primary rounded-lg"
                   onClick={() => setTheme('dark')}
                 >
                   <div
@@ -206,11 +217,14 @@ export function SettingsPage() {
                   <p className={`text-center mt-2 text-sm font-medium ${theme === 'dark' ? 'font-bold text-primary' : 'text-slate-600 dark:text-slate-400'}`}>
                     Dark
                   </p>
-                </div>
+                </button>
 
                 {/* System Theme */}
-                <div
-                  className="group cursor-pointer"
+                <button
+                  type="button"
+                  aria-label="Use system theme"
+                  aria-pressed={theme === 'system'}
+                  className="group text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-primary rounded-lg"
                   onClick={() => setTheme('system')}
                 >
                   <div
@@ -235,7 +249,7 @@ export function SettingsPage() {
                   <p className={`text-center mt-2 text-sm font-medium ${theme === 'system' ? 'font-bold text-primary' : 'text-slate-600 dark:text-slate-400'}`}>
                     System
                   </p>
-                </div>
+                </button>
               </div>
             </section>
 
@@ -249,12 +263,13 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-white">Launch at Startup</p>
-                    <p className="text-xs text-slate-500">Start Harbor when you log in.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Start Harbor when you log in.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="sr-only peer"
+                      aria-label="Launch at startup"
                       checked={startupEnabled}
                       onChange={toggleStartup}
                     />
@@ -275,13 +290,14 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-white">Check for Updates</p>
-                    <p className="text-xs text-slate-500">Notify me when a new version is available.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Notify me when a new version is available.</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         className="sr-only peer"
+                        aria-label="Check for updates"
                         checked={checkUpdates}
                         onChange={(e) => toggleCheckUpdates(e.target.checked)}
                       />
@@ -293,7 +309,7 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-white">Manual Check</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {updateLoading ? 'Checking...' :
                         updateError ? 'Error checking updates' :
                           updateHasUpdate && updateVersion ? (
@@ -357,7 +373,7 @@ export function SettingsPage() {
                   {/* Notifications placeholder - not yet implemented in backend properly */}
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-white">Config Reload</p>
-                    <p className="text-xs text-slate-500">Force reload configuration from disk.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Force reload configuration from disk.</p>
                   </div>
                   <button
                     onClick={handleReload}
@@ -429,7 +445,7 @@ export function SettingsPage() {
                       <span className={`text-sm font-bold mb-1 ${isActive ? 'text-primary' : 'text-slate-700 dark:text-slate-300 group-hover:text-primary'}`}>
                         {size.label}
                       </span>
-                      <span className="text-xs text-slate-500 font-mono">{size.width} x {size.height}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{size.width} x {size.height}</span>
                       {isActive && (
                         <span className="mt-2 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                           Active

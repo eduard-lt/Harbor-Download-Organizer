@@ -4,7 +4,6 @@ dist
 **/*.rs.bk
 **/*.swp
 /.vscode
-Cargo.lock
 logs
 harbor_state.json
 TASKS.md

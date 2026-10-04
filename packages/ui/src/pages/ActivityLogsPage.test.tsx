@@ -45,7 +45,7 @@ describe('ActivityLogsPage', () => {
 
     it('shows total count in subtitle', () => {
         render(<ActivityLogsPage />);
-        expect(screen.getByText('2 moves recorded')).toBeInTheDocument();
+        expect(screen.getByText('2 events recorded')).toBeInTheDocument();
     });
 
     it('renders activity rows', () => {

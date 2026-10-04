@@ -15,6 +15,12 @@ pub enum ServiceLifecycleState {
 
 /// Application state managed by Tauri
 pub struct AppState {
+    pub work: Arc<crate::operations::Work>,
+    pub lifecycle_operation: Mutex<()>,
+    pub configuration_error: Mutex<Option<String>>,
+    pub scan_error: Arc<Mutex<Option<String>>>,
+    pub shutdown_requested: AtomicBool,
+    pub shutdown_complete: AtomicBool,
     /// Path to the configuration file
     pub config_path: PathBuf,
     /// Valid flag for the *current* watcher thread.
@@ -46,6 +52,14 @@ pub struct AppState {
 impl AppState {
     pub fn new(config_path: PathBuf, config: DownloadsConfig) -> Self {
         Self {
+            work: Arc::new(crate::operations::Work::new(
+                config_path.parent().unwrap_or(std::path::Path::new(".")),
+            )),
+            lifecycle_operation: Mutex::new(()),
+            configuration_error: Mutex::new(None),
+            scan_error: Arc::new(Mutex::new(None)),
+            shutdown_requested: AtomicBool::new(false),
+            shutdown_complete: AtomicBool::new(false),
             config_path,
             watcher_flag: Arc::new(Mutex::new(None)),
             config: Arc::new(RwLock::new(config)),
@@ -63,6 +77,56 @@ impl AppState {
 
     /// Get the path to the recent moves log
     pub fn recent_log_path(&self) -> PathBuf {
-        harbor_core::downloads::harbor_log_path()
+        self.config_path
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .join("recent_moves.log")
+    }
+
+    pub fn begin_config_update(&self) -> Result<ConfigUpdate<'_>, String> {
+        if let Some(error) = self
+            .configuration_error
+            .lock()
+            .map_err(|e| e.to_string())?
+            .as_ref()
+        {
+            return Err(format!("Configuration needs recovery: {error}. Reload a repaired file or reset explicitly."));
+        }
+        let live = self.config.write().map_err(|e| e.to_string())?;
+        Ok(ConfigUpdate {
+            candidate: live.clone(),
+            live,
+            path: &self.config_path,
+        })
+    }
+
+    pub fn update_config(&self, update: impl FnOnce(&mut DownloadsConfig)) -> Result<(), String> {
+        let mut transaction = self.begin_config_update()?;
+        update(&mut transaction);
+        transaction.commit()
+    }
+}
+
+pub struct ConfigUpdate<'a> {
+    live: std::sync::RwLockWriteGuard<'a, DownloadsConfig>,
+    candidate: DownloadsConfig,
+    path: &'a std::path::Path,
+}
+impl std::ops::Deref for ConfigUpdate<'_> {
+    type Target = DownloadsConfig;
+    fn deref(&self) -> &Self::Target {
+        &self.candidate
+    }
+}
+impl std::ops::DerefMut for ConfigUpdate<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.candidate
+    }
+}
+impl ConfigUpdate<'_> {
+    pub fn commit(mut self) -> Result<(), String> {
+        harbor_core::config::save(self.path, &self.candidate).map_err(|e| format!("{e:#}"))?;
+        *self.live = self.candidate;
+        Ok(())
     }
 }

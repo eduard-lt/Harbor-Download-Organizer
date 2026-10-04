@@ -11,6 +11,20 @@ pub fn app_data_dir() -> PathBuf {
 /// Returns the user's Downloads directory on Windows:
 /// `%USERPROFILE%\Downloads`
 pub fn downloads_dir() -> PathBuf {
+    use windows::Win32::{
+        System::Com::CoTaskMemFree,
+        UI::Shell::{FOLDERID_Downloads, SHGetKnownFolderPath, KF_FLAG_DEFAULT},
+    };
+    // The shell API accounts for redirected folders and returns a COM allocation.
+    unsafe {
+        if let Ok(path) = SHGetKnownFolderPath(&FOLDERID_Downloads, KF_FLAG_DEFAULT, None) {
+            let text = path.to_string();
+            CoTaskMemFree(Some(path.0.cast()));
+            if let Ok(text) = text {
+                return PathBuf::from(text);
+            }
+        }
+    }
     home_dir().join("Downloads")
 }
 
@@ -36,12 +50,12 @@ mod tests {
     }
 
     #[test]
-    fn downloads_dir_ends_with_downloads() {
+    fn downloads_dir_is_absolute() {
         let dir = downloads_dir();
         let dir_str = dir.to_string_lossy();
         assert!(
-            dir_str.ends_with("Downloads"),
-            "Expected path ending with 'Downloads', got: {dir_str}"
+            dir.is_absolute(),
+            "Expected absolute Known Folder path, got: {dir_str}"
         );
     }
 }

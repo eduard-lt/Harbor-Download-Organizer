@@ -5,11 +5,11 @@ import { Sidebar } from './Sidebar';
 
 // Mock all dependencies of Sidebar
 vi.mock('../hooks/useSettings', () => ({ useSettings: vi.fn() }));
-vi.mock('../hooks/useUpdateCheck', () => ({ useUpdateCheck: vi.fn() }));
+vi.mock('../context/UpdateContext', () => ({ useUpdateContext: vi.fn() }));
 vi.mock('@tauri-apps/plugin-shell', () => ({ open: vi.fn() }));
 
 import { useSettings } from '../hooks/useSettings';
-import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import { useUpdateContext } from '../context/UpdateContext';
 import { open } from '@tauri-apps/plugin-shell';
 
 const baseSettings = {
@@ -34,7 +34,7 @@ describe('Sidebar', () => {
         vi.clearAllMocks();
         localStorage.clear();
         vi.mocked(useSettings).mockReturnValue(baseSettings);
-        vi.mocked(useUpdateCheck).mockReturnValue(baseUpdateCheck);
+        vi.mocked(useUpdateContext).mockReturnValue(baseUpdateCheck);
     });
 
     it('renders navigation links', () => {
@@ -79,7 +79,7 @@ describe('Sidebar', () => {
     });
 
     it('shows update badge on GitHub link when update is available', () => {
-        vi.mocked(useUpdateCheck).mockReturnValue({
+        vi.mocked(useUpdateContext).mockReturnValue({
             ...baseUpdateCheck,
             updateState: { ...baseUpdateCheck.updateState, available: true, hasUpdate: true, version: '2.0.0' },
         });

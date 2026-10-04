@@ -46,6 +46,8 @@ export interface ActivityLogsResponse {
 }
 
 export interface ServiceStatus {
+    scan_error?: string | null;
+    configuration_error?: string | null;
     running: boolean;
     lifecycle_state?: 'stopped' | 'running' | 'restarting' | 'degraded' | string;
     uptime_seconds?: number;
@@ -139,7 +141,11 @@ export const getRules = async (): Promise<Rule[]> => {
 };
 
 export const createRule = async (rule: Omit<Rule, 'id' | 'icon' | 'icon_color'>): Promise<Rule> => {
-    return await invoke('create_rule', { rule });
+    try {
+        return await invoke('create_rule', { rule });
+    } catch (error) {
+        throw tryParseValidationError(error) ?? error;
+    }
 };
 
 function tryParseValidationError(error: unknown): RuleValidationError | null {
@@ -188,9 +194,16 @@ export async function resetToDefaults(): Promise<void> {
 }
 
 // Activity
-export const getActivityLogs = async (limit?: number, offset?: number): Promise<ActivityLogsResponse> => {
-    return await invoke('get_activity_logs', { limit, offset });
+export const getActivityLogs = async (limit?: number, offset?: number, search?: string, status?: string): Promise<ActivityLogsResponse> => {
+    return await invoke('get_activity_logs', { limit, offset, ...(search ? { search } : {}), ...(status ? { status } : {}) });
 };
+
+export interface OrganizationPreview { moves: { source: string; destination: string; rule: string }[]; errors: string[] }
+export const previewOrganization = (): Promise<OrganizationPreview> => invoke('preview_organization');
+export const undoLastBatch = (): Promise<number> => invoke('undo_last_batch');
+export const setDownloadDir = (directory: string): Promise<void> => invoke('set_download_dir', { directory });
+export const exportRules = (destination: string): Promise<void> => invoke('export_rules', { destination });
+export const importRules = (content: string): Promise<number> => invoke('import_rules', { content });
 
 export const getActivityStats = async (): Promise<ActivityStats> => {
     return await invoke('get_activity_stats');

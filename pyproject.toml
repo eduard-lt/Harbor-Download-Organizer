@@ -1,6 +1,6 @@
 [project]
 name = "harbor"
-version = "2.1.3"
+version = "2.2.1"
 description = "Harbor specific tasks"
 requires-python = ">=3.10"
 dependencies = []
@@ -17,21 +17,17 @@ shell = "npm run tauri:build --prefix packages/ui"
 help = "Build debug binaries"
 shell = "npm run tauri:build --prefix packages/ui -- --debug"
 
-[tool.poe.tasks.unquarantine]
-help = "Remove macOS quarantine attribute from built .app bundle"
-cmd = "xattr -d com.apple.quarantine crates/tauri-app/target/release/bundle/macos/Harbor.app || true"
+[tool.poe.tasks.icon-macos]
+help = "Compile the macOS Icon Composer source (requires Xcode 26+)"
+cmd = "uv run python tools/icon_macos.py"
+
+[tool.poe.tasks.icon-windows]
+help = "Export Windows ICO from the shared macOS icon artwork"
+cmd = "uv run --with resvg-py==0.5.0 --with pillow==12.3.0 python tools/icon_windows.py"
 
 [tool.poe.tasks.clean]
 help = "Remove build artifacts"
 cmd = "cargo clean"
-
-[tool.poe.tasks.clean-startup]
-help = "Remove ghost startup entries (e.g. from debug builds)"
-cmd = "uv run python tools/cleanup_startup.py"
-
-# ============================================================================
-# DEVELOPMENT TASKS
-# ============================================================================
 
 [tool.poe.tasks.dev]
 help = "Start development server (Hot Reload)"
@@ -39,7 +35,7 @@ shell = "npm run tauri:dev --prefix packages/ui"
 
 [tool.poe.tasks.test]
 help = "Run unit tests"
-cmd = "cargo test"
+cmd = "cargo test --workspace --locked"
 
 [tool.poe.tasks.test-ui]
 help = "Run frontend unit tests"
@@ -111,32 +107,20 @@ cd ../../.. && cd crates/core/fuzz && cargo fuzz run rule_yaml -- -max_total_tim
 # LEGACY / ALIAS TASKS
 # ============================================================================
 
-[tool.poe.tasks.msi]
-help = "Alias for build"
-sequence = ["build"]
-
-[tool.poe.tasks.release]
-help = "Alias for build"
-sequence = ["build"]
-
-# ============================================================================
-# VERSION MANAGEMENT TASKS
-# ============================================================================
-
 [tool.poe.tasks.version]
 help = "Show current version"
 cmd = "uv run python tools/version.py show"
 
 [tool.poe.tasks.bump-patch]
-help = "Bump patch version (2.1.3 -> 2.1.4)"
+help = "Bump patch version (2.2.1 -> 2.2.2)"
 cmd = "uv run python tools/version.py bump patch"
 
 [tool.poe.tasks.bump-minor]
-help = "Bump minor version (2.1.3 -> 2.2.0)"
+help = "Bump minor version (2.2.1 -> 2.3.0)"
 cmd = "uv run python tools/version.py bump minor"
 
 [tool.poe.tasks.bump-major]
-help = "Bump major version (2.1.3 -> 3.0.0)"
+help = "Bump major version (2.2.1 -> 3.0.0)"
 cmd = "uv run python tools/version.py bump major"
 
 [tool.poe.tasks.git-release]

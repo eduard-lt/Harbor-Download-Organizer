@@ -135,8 +135,7 @@ export function RulesPage() {
       const tr = el.closest('tr');
       if (!tr || !tr.closest('tbody')) return;
 
-      const rows = Array.from(tr.closest('tbody')!.querySelectorAll('tr'));
-      const rowIndex = rows.indexOf(tr as HTMLTableRowElement);
+      const rowIndex = rulesRef.current.findIndex(rule => rule.id === tr.dataset.ruleId);
 
       if (rowIndex >= 0 && dragStateRef.current) {
         dragStateRef.current.targetIndex = rowIndex;
@@ -214,6 +213,7 @@ export function RulesPage() {
           </span>
           <input
             className="bg-slate-100 dark:bg-background-card border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg pl-10 pr-4 py-2 w-64 focus:ring-primary focus:border-primary transition-all outline-none"
+            aria-label="Search rules"
             placeholder="Search rules..."
             type="text"
             value={searchTerm}
@@ -229,7 +229,7 @@ export function RulesPage() {
         </button>
       </Header>
 
-      <div className="p-12 max-w-7xl mx-auto w-full overflow-auto">
+      <div className="p-6 xl:p-8 max-w-7xl mx-auto w-full overflow-auto">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <StatCard
@@ -280,12 +280,13 @@ export function RulesPage() {
                     return (
                     <tr
                       key={rule.id}
+                      data-rule-id={rule.id}
                       className={`transition-colors group ${!rule.enabled ? 'opacity-50' : ''
                         } ${isDragging ? 'opacity-30 bg-slate-100 dark:bg-slate-800' : ''
                         } ${isDragOver ? 'border-t-2 border-primary' : ''
                         } hover:bg-slate-50 dark:hover:bg-slate-800/30`}
                     >
-                      <td className="px-3 py-5 text-center align-middle">
+                      <td className="px-3 py-3 text-center align-middle">
                         <div className="flex flex-col items-center gap-1">
                           <button
                             onClick={() => handleMoveUp(actualIndex)}
@@ -312,7 +313,7 @@ export function RulesPage() {
                           </button>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColorClassesLight[rule.icon_color] || iconColorClassesLight['slate']
@@ -339,7 +340,7 @@ export function RulesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {rule.extensions.map((ext) => (
                             <span
@@ -352,7 +353,7 @@ export function RulesPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 py-3">
                         <span className="font-mono text-sm text-slate-500 dark:text-slate-400 break-words allow-select">
                           {(() => {
                             const { parent, leaf } = formatPath(rule.destination);
@@ -370,26 +371,29 @@ export function RulesPage() {
                           })()}
                         </span>
                       </td>
-                      <td className="px-6 py-5 text-center">
+                      <td className="px-4 py-3 text-center">
                         <label className="relative inline-flex items-center cursor-pointer justify-center">
                           <input
                             type="checkbox"
                             className="sr-only peer"
+                            aria-label={`Enable ${rule.name}`}
                             checked={rule.enabled}
                             onChange={() => toggleRule(rule.id, !rule.enabled)}
                           />
                           <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                         </label>
                       </td>
-                      <td className="px-6 py-5 text-center">
+                      <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
                           <button
+                            aria-label={`Edit ${rule.name}`}
                             onClick={() => openEditModal(rule)}
                             className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors cursor-pointer"
                           >
                             <span className="material-icons-round text-xl">edit</span>
                           </button>
                           <button
+                            aria-label={`Delete ${rule.name}`}
                             onClick={() => handleDeleteClick(rule.id)}
                             className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors cursor-pointer"
                           >
