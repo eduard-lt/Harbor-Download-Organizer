@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
+
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn().mockResolvedValue(undefined) }));
 
 vi.mock('@tauri-apps/api/window', () => ({
     getCurrentWindow: vi.fn(() => ({ setTheme: vi.fn().mockResolvedValue(undefined) })),
@@ -49,8 +52,10 @@ describe('ThemeContext', () => {
             await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith('light'));
             act(() => result.current.setTheme('dark'));
             await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith('dark'));
+            await waitFor(() => expect(invoke).toHaveBeenLastCalledWith('set_window_appearance', { dark: true }));
             act(() => result.current.setTheme('system'));
             await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith(null));
+            await waitFor(() => expect(invoke).toHaveBeenLastCalledWith('set_window_appearance', { dark: false }));
         } finally {
             Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
         }

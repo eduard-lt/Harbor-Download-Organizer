@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-shell';
-import { SlidersHorizontal, History, Settings, CircleHelp, Code2, Heart, X } from 'lucide-react';
+import { SlidersHorizontal, History, Settings, CircleHelp, Code2, Coffee } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { useUpdateContext } from '../context/UpdateContext';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { setMonitoringCue, useMonitoringCue } from '../lib/monitoringCue';
 
 const navItems = [
   { to: '/', icon: SlidersHorizontal, label: 'Rules' },
@@ -17,23 +18,12 @@ export function Sidebar() {
   const { updateState, dismissNotification } = useUpdateContext();
   const { available, url } = updateState;
   const healthError = serviceStatus.configuration_error || serviceStatus.scan_error || serviceStatus.degraded_reason;
-  const [showCoachMark, setShowCoachMark] = useState(false);
+  const cuePending = useMonitoringCue();
+  const showCue = cuePending && !loading && !serviceStatus.running && !healthError;
 
   useEffect(() => {
-    if (serviceStatus.running) {
-      localStorage.setItem('hasSeenServiceCoachMark', 'true');
-      return;
-    }
-    if (!localStorage.getItem('hasSeenServiceCoachMark')) {
-      const timer = setTimeout(() => setShowCoachMark(true), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [serviceStatus.running]);
-
-  const dismissCoachMark = () => {
-    setShowCoachMark(false);
-    localStorage.setItem('hasSeenServiceCoachMark', 'true');
-  };
+    if (cuePending && !loading && serviceStatus.running) setMonitoringCue(false);
+  }, [cuePending, loading, serviceStatus.running]);
 
   return (
     <aside className="harbor-navigation harbor-glass">
@@ -52,15 +42,19 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="harbor-nav-status">
-        <div id="sidebar-service-toggle" className="harbor-monitor">
-          <div>
-            {healthError ? <NavLink to="/settings" role="alert" className="harbor-health-warning">Needs attention</NavLink> :
-              <span className="harbor-monitor-label"><span className={`harbor-status-dot ${serviceStatus.running ? 'is-running' : ''}`} />{loading ? 'Checking…' : serviceStatus.running ? 'Active' : 'Stopped'}</span>}
+        <div id="sidebar-service-toggle" className={`harbor-monitor ${showCue ? 'harbor-monitor-cue' : ''}`}>
+          <div className="harbor-monitor-status">
+            <span aria-hidden="true" className={`harbor-status-dot ${serviceStatus.running ? 'is-running' : ''}`} />
+            <div>
+            {healthError ? <NavLink to="/settings" role="alert" className="harbor-health-warning">Needs attention</NavLink> : showCue ?
+              <button className="harbor-monitor-start" onClick={() => void toggleService()}>Start monitoring</button> :
+              <span className="harbor-monitor-label">{loading ? 'Checking…' : serviceStatus.running ? 'Active' : 'Stopped'}</span>}
             <span className="harbor-monitor-caption">{serviceStatus.running ? 'Monitoring' : 'Paused'}</span>
+            </div>
           </div>
           <label className="harbor-switch">
             <input type="checkbox" aria-label="Active monitoring" checked={serviceStatus.running} disabled={loading}
-              onChange={async () => { dismissCoachMark(); await toggleService(); }} />
+              onChange={() => void toggleService()} />
             <span aria-hidden="true" />
           </label>
         </div>
@@ -69,12 +63,8 @@ export function Sidebar() {
             if (available && url) { void open(url); dismissNotification(); }
             else void open('https://github.com/eduard-lt/Harbor-Download-Organizer');
           }}><Code2 size={17} aria-hidden="true" /></button>
-        <button className="harbor-icon-button" aria-label="Donate" title="Support Harbor"
-          onClick={() => void open('https://ko-fi.com/eduardolteanu')}><Heart size={17} aria-hidden="true" /></button>
-        {showCoachMark && !serviceStatus.running && <div className="harbor-coach" role="status">
-          <span>Turn on monitoring to organize incoming files automatically.</span>
-          <button className="harbor-icon-button" aria-label="Dismiss monitoring tip" onClick={dismissCoachMark}><X size={16} /></button>
-        </div>}
+        <button className="harbor-icon-button" aria-label="Buy me a coffee" title="Buy me a coffee"
+          onClick={() => void open('https://ko-fi.com/eduardolteanu')}><Coffee size={17} aria-hidden="true" /></button>
       </div>
     </aside>
   );

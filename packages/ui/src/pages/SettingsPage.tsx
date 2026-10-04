@@ -9,6 +9,9 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useWindowSize } from '../hooks/useWindowSize';
 import { ActivityTable } from '../components/ActivityTable';
 import type { OrganizeNowResponse } from '../lib/tauri';
+import { setTutorialCompleted } from '../lib/tauri';
+import { TutorialModal } from '../components/TutorialModal';
+import { setMonitoringCue } from '../lib/monitoringCue';
 
 export function SettingsPage() {
   const { theme, setTheme, reduceTransparency, setReduceTransparency } = useTheme();
@@ -43,6 +46,7 @@ export function SettingsPage() {
   } = updateState;
 
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showResetTutorial, setShowResetTutorial] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [organizeResult, setOrganizeResult] = useState<OrganizeNowResponse | null>(null);
 
@@ -54,7 +58,9 @@ export function SettingsPage() {
 
   const handleReset = async () => {
     await reset();
+    setMonitoringCue(false);
     setShowResetModal(false);
+    setShowResetTutorial(true);
     setFeedbackMessage('Settings have been reset to defaults.');
     setTimeout(() => setFeedbackMessage(null), 3000);
   };
@@ -506,6 +512,10 @@ export function SettingsPage() {
         onConfirm={handleReset}
         onCancel={() => setShowResetModal(false)}
       />
+      <TutorialModal isOpen={showResetTutorial} onClose={() => {
+        setShowResetTutorial(false);
+        void setTutorialCompleted(true).catch(error => setFeedbackMessage(`Could not save onboarding: ${String(error)}`));
+      }} />
     </>
   );
 }

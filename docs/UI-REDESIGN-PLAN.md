@@ -1,6 +1,6 @@
 # Harbor Control Deck redesign
 
-Status: first implementation checkpoint completed on `codex/control-deck-redesign`; remaining stages are pending.
+Status: first implementation checkpoint completed on `control-deck-redesign` (renamed by the user); remaining stages are pending.
 
 ## Implementation progress
 
@@ -8,17 +8,25 @@ Status: first implementation checkpoint completed on `codex/control-deck-redesig
 - Activity, Settings, and Info now use the shared shell and page spacing; their detailed redesign and the dialog/icon migration remain pending.
 - The web logo is now an output of the existing shared icon export script. Remaining native compatibility assets, docs branding, and installer checks are pending.
 - Validation: frontend build and lint passed; 236 unit tests passed with coverage above the repository gates. All 25 existing Chromium E2E cases passed; the new compact-window appearance/persistence test also passed after correcting its accessible-name selector. Light/dark Rules screenshots were visually inspected at 1000×700. Follow-up Layout/Sidebar tests passed after fixing retained page scroll.
-- Native Windows packaging/smoke checks, WebKit coverage, and native macOS checks have not been performed. This checkpoint is not full-plan completion.
+- The user confirmed the first checkpoint builds on macOS. Native Windows packaging/smoke checks, WebKit coverage, and visual verification of subsequent native title-bar changes remain pending. This checkpoint is not full-plan completion.
+
+### First feedback pass
+
+- Replace brown accents and amber illumination with blue-teal accents and cool sky illumination. Enabled switches use a brighter blue-teal fill.
+- Support actions use a coffee mug; the toolbar explicitly labels the action “Buy me a coffee.”
+- Match native title-bar color to the app canvas while preserving native controls: transparent macOS title-bar styling with an opaque window background; custom Windows caption/text/border colors on supported systems, with native theme fallback on older Windows.
+- Keep a rounded focus ring on the visible switch and suppress the hidden input's rectangular outline. Preserve keyboard accessibility.
+- Native appearance follows explicit and system theme changes. Rust workspace tests, Clippy, and formatting pass on Windows; native macOS visual verification is still required for this change.
 
 ## Approved direction
 
-Use the approved Control Deck glass concept across the existing desktop app: compact horizontal navigation, frosted chrome, restrained teal/amber ambient light, fine highlights, calm data surfaces, and Manrope typography. Keep all existing capabilities and persisted settings. The concept's sample data and decorative anchor are not production content or branding.
+Use the approved Control Deck glass concept across the existing desktop app: compact horizontal navigation, frosted chrome, restrained teal/blue ambient light, fine highlights, calm data surfaces, and Manrope typography. Keep all existing capabilities and persisted settings. The concept's sample data and decorative anchor are not production content or branding.
 
 ## Design decisions
 
 - Bundle Manrope WOFF2 and its license locally. Use weights 400–700, with system sans-serif fallback. Keep monospace for exact paths, regex, and diagnostics only. No runtime font CDN or CSP relaxation.
 - Define semantic light/dark tokens for canvas, glass, solid surfaces, text, borders, focus, brand, success, warning, and danger. Preserve Light/Dark/System selection and native title-bar theme synchronization.
-- Use static teal/amber background illumination under a few blurred surfaces. Keep repeated rows and reading/form surfaces substantially opaque. Avoid blur on each row, animated background blobs, or animated blur.
+- Use static teal/blue background illumination under a few blurred surfaces. Keep repeated rows and reading/form surfaces substantially opaque. Avoid blur on each row, animated background blobs, or animated blur.
 - Provide opaque CSS fallback when backdrop filtering is unavailable. Offer a persisted Reduce transparency setting; honor reduced motion and platform transparency preferences where exposed. Keep controls and focus indicators legible in every mode.
 - Use one consistent bundled SVG icon family for interface actions, separate from Harbor's app logo. Do not keep mixed Material icon fonts and SVG conventions.
 - Retain native Windows and macOS window decorations. This pass uses in-app frosted glass; desktop wallpaper transparency/native vibrancy is outside this pass.

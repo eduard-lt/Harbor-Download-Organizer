@@ -18,7 +18,7 @@ import packageJson from '../../package.json';
         onClick={() => open('https://ko-fi.com/eduardolteanu')}
         className="flex items-center gap-2 px-6 py-3 bg-[#FF5E5B] text-white rounded-lg hover:bg-[#ff4f4c] transition-colors cursor-pointer"
     >
-        <span className="material-icons-round text-lg">favorite</span>
+        <span className="material-icons-round text-lg">local_cafe</span>
         Support
     </button>
 </div>
@@ -154,7 +154,7 @@ export function InfoPage() {
                                 GitHub
                             </a>
                             <a href="https://ko-fi.com/eduardolteanu" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-6 py-3 bg-[#FF5E5B] text-white rounded-lg hover:bg-[#ff4f4c] transition-colors">
-                                <span className="material-icons-round text-lg">favorite</span>
+                                <span className="material-icons-round text-lg">local_cafe</span>
                                 Support
                             </a>
                         </div>

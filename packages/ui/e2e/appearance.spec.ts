@@ -10,6 +10,14 @@ test('compact navigation and appearance preferences survive reload', async ({ pa
     await expect(link).toBeInViewport();
   }
   await expect(page.getByRole('checkbox', { name: 'Active monitoring' })).toBeInViewport();
+  const monitoring = page.getByRole('checkbox', { name: 'Active monitoring' });
+  await monitoring.focus();
+  await expect(monitoring).toHaveCSS('outline-style', 'none');
+  await expect(monitoring.locator('+ span')).toHaveCSS('border-radius', '20px');
+  await expect(monitoring.locator('+ span')).not.toHaveCSS('box-shadow', 'none');
+  await expect(page.getByRole('button', { name: 'Buy me a coffee' })).toBeVisible();
+  await monitoring.check();
+  await expect(monitoring.locator('+ span')).toHaveCSS('background-color', 'rgb(35, 140, 163)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('rules-light.png') });
   await navigateTo(page, 'Settings');

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { setMonitoringCue } from '../lib/monitoringCue';
 
 interface TutorialModalProps {
     isOpen: boolean;
@@ -15,15 +16,8 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
     }, [isOpen]);
 
     const handleFinish = () => {
+        setMonitoringCue(true);
         onClose();
-        // Highlight the sidebar toggle briefly?
-        const toggle = document.getElementById('sidebar-service-toggle');
-        if (toggle) {
-            toggle.classList.add('ring-4', 'ring-primary', 'ring-opacity-50', 'transition-all', 'duration-500');
-            setTimeout(() => {
-                toggle.classList.remove('ring-4', 'ring-primary', 'ring-opacity-50');
-            }, 2000);
-        }
     };
 
 
@@ -73,14 +67,14 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
                                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                                     The background service is currently <strong className="text-slate-800 dark:text-white">Stopped</strong> so you can review your rules first.
                                     <br /><br />
-                                    When you're ready, simply flip the switch in the sidebar to start organizing!
+                                    When you're ready, turn on monitoring in the top bar to start organizing!
                                 </p>
                             </div>
 
                             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
                                 <span className="material-icons-round text-slate-400">info</span>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    You can find the toggle button at the bottom of the sidebar on the left.
+                                    Look for the glowing Start monitoring text beside the switch in the top bar.
                                 </p>
                             </div>
 

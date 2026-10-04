@@ -23,7 +23,7 @@
         "fullscreen": false,
         "decorations": true,
         "transparent": false,
-        "titleBarStyle": "Visible"
+        "titleBarStyle": "Transparent"
       }
     ],
     "security": {
