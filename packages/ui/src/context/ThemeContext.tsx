@@ -8,6 +8,8 @@ interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   isDark: boolean;
+  reduceTransparency: boolean;
+  setReduceTransparency: (reduce: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,6 +21,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const [isDark, setIsDark] = useState(false);
+  const [reduceTransparency, setReduceTransparency] = useState(() => localStorage.getItem('harbor-reduce-transparency') === 'true');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('reduce-transparency', reduceTransparency);
+    localStorage.setItem('harbor-reduce-transparency', String(reduceTransparency));
+  }, [reduceTransparency]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -58,7 +66,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isDark }}>
+    <ThemeContext.Provider value={{ theme, setTheme, isDark, reduceTransparency, setReduceTransparency }}>
       {children}
     </ThemeContext.Provider>
   );

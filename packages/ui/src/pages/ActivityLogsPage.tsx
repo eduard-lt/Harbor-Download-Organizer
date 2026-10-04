@@ -28,7 +28,7 @@ export function ActivityLogsPage() {
           Refresh
         </button>
       </Header>
-      <div className="flex-1 p-12 overflow-auto">
+      <div className="harbor-content">
         <div className="flex flex-wrap gap-3 mb-4">
           <input aria-label="Search activity" placeholder="Search files, folders or rules" value={search} onChange={event => setSearch(event.target.value)} className="border rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
           <select aria-label="Filter activity status" value={status} onChange={event => setStatus(event.target.value)} className="border rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">

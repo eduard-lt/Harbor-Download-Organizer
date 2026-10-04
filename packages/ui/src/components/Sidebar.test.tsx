@@ -98,23 +98,13 @@ describe('Sidebar', () => {
 
     it('opens GitHub link when GitHub button is clicked', () => {
         renderSidebar();
-        const githubBtn = screen.getAllByRole('button').find(b =>
-            b.querySelector('.material-icons-round')?.textContent === 'code'
-        );
-        if (githubBtn) {
-            fireEvent.click(githubBtn);
-            expect(open).toHaveBeenCalledWith(expect.stringContaining('github.com'));
-        }
+        fireEvent.click(screen.getByRole('button', { name: 'GitHub' }));
+        expect(open).toHaveBeenCalledWith(expect.stringContaining('github.com'));
     });
 
     it('opens Ko-fi link when support button is clicked', () => {
         renderSidebar();
-        const kofiBtn = screen.getAllByRole('button').find(b =>
-            b.querySelector('.material-icons-round')?.textContent === 'favorite'
-        );
-        if (kofiBtn) {
-            fireEvent.click(kofiBtn);
-            expect(open).toHaveBeenCalledWith(expect.stringContaining('ko-fi'));
-        }
+        fireEvent.click(screen.getByRole('button', { name: 'Donate' }));
+        expect(open).toHaveBeenCalledWith(expect.stringContaining('ko-fi'));
     });
 });

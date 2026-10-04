@@ -37,7 +37,7 @@ const PRESET_SIZES = [
 ];
 
 describe('SettingsPage', () => {
-    const mockTheme = { theme: 'system' as const, setTheme: vi.fn(), isDark: false };
+    const mockTheme = { theme: 'system' as const, setTheme: vi.fn(), isDark: false, reduceTransparency: false, setReduceTransparency: vi.fn() };
     const mockSettings = {
         serviceStatus: { running: false, lifecycle_state: 'stopped', pid: 12345, degraded: false, degraded_reason: null },
         startupEnabled: false,
@@ -160,19 +160,8 @@ describe('SettingsPage', () => {
 
     it('calls toggleStartup when startup toggle is changed', () => {
         render(<SettingsPage />);
-        // Find the "Launch at Startup" text and click the toggle label near it
-        const startupText = screen.getByText('Launch at Startup');
-        const label = startupText.closest('div')?.querySelector('label');
-        if (label) {
-            fireEvent.click(label);
-            expect(mockSettings.toggleStartup).toHaveBeenCalled();
-        } else {
-            // Fallback: look for any checkbox
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            // startup checkbox is the 3rd one (service, check-updates, startup)
-            fireEvent.click(checkboxes[1]);
-            expect(mockSettings.toggleStartup).toHaveBeenCalled();
-        }
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Launch at startup' }));
+        expect(mockSettings.toggleStartup).toHaveBeenCalled();
     });
 
     it('calls setSize when a window preset is clicked', () => {

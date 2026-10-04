@@ -1,7 +1,7 @@
 {
   "name": "ui",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--no-deprecation vite",
@@ -20,6 +20,7 @@
     "@tauri-apps/plugin-dialog": "~2.7.0",
     "@tauri-apps/plugin-notification": "~2.3.3",
     "@tauri-apps/plugin-shell": "^2.3.5",
+    "lucide-react": "^1.52.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0"

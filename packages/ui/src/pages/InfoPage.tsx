@@ -32,7 +32,7 @@ export function InfoPage() {
         <>
             <Header title="Info & Guide" subtitle="Learn how to get the most out of Harbor." />
 
-            <div className="p-12 max-w-4xl mx-auto w-full overflow-y-auto custom-scrollbar">
+            <div className="py-4 max-w-4xl mx-auto w-full">
                 {/* Update Banner */}
                 {available && url && (
                     <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4">

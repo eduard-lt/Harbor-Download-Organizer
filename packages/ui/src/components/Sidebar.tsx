@@ -1,51 +1,34 @@
 import { NavLink } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-shell';
+import { SlidersHorizontal, History, Settings, CircleHelp, Code2, Heart, X } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { useUpdateContext } from '../context/UpdateContext';
 import { useState, useEffect } from 'react';
 
-interface NavItem {
-  to: string;
-  icon: string;
-  label: string;
-}
-
-const navItems: NavItem[] = [
-  { to: '/', icon: 'rule', label: 'Rules' },
-  { to: '/activity', icon: 'history', label: 'Activity Logs' },
-  { to: '/settings', icon: 'settings', label: 'Settings' },
-  { to: '/info', icon: 'info', label: 'Info & Guide' },
+const navItems = [
+  { to: '/', icon: SlidersHorizontal, label: 'Rules' },
+  { to: '/activity', icon: History, label: 'Activity Logs' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/info', icon: CircleHelp, label: 'Info & Guide' },
 ];
 
 export function Sidebar() {
   const { serviceStatus, toggleService, loading } = useSettings();
   const { updateState, dismissNotification } = useUpdateContext();
   const { available, url } = updateState;
-  const serviceEnabled = serviceStatus.running;
-  const healthError = serviceStatus.configuration_error || serviceStatus.scan_error;
+  const healthError = serviceStatus.configuration_error || serviceStatus.scan_error || serviceStatus.degraded_reason;
   const [showCoachMark, setShowCoachMark] = useState(false);
 
   useEffect(() => {
-    const hasSeen = localStorage.getItem('hasSeenServiceCoachMark');
-    // Show only if not seen and service is NOT running (to encourage starting it)
-    if (!hasSeen && !serviceEnabled) {
-      // Small delay for entrance
+    if (serviceStatus.running) {
+      localStorage.setItem('hasSeenServiceCoachMark', 'true');
+      return;
+    }
+    if (!localStorage.getItem('hasSeenServiceCoachMark')) {
       const timer = setTimeout(() => setShowCoachMark(true), 1000);
       return () => clearTimeout(timer);
-    } else if (serviceEnabled) {
-      // If service is enabled, we can consider it "seen" or just hide it
-      if (showCoachMark) setShowCoachMark(false);
-      if (!hasSeen) localStorage.setItem('hasSeenServiceCoachMark', 'true');
     }
-  }, [serviceEnabled, showCoachMark]);
-
-  const handleToggle = async () => {
-    if (showCoachMark) {
-      setShowCoachMark(false);
-      localStorage.setItem('hasSeenServiceCoachMark', 'true');
-    }
-    await toggleService();
-  };
+  }, [serviceStatus.running]);
 
   const dismissCoachMark = () => {
     setShowCoachMark(false);
@@ -53,138 +36,45 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-20 xl:w-64 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-all duration-300 relative z-20 select-none">
-      {/* Logo */}
-      <div className="p-6 pt-10 flex items-center gap-3">
-        <img src="/harbor.svg" alt="Harbor" className="w-10 h-10 object-contain" draggable="false" />
-        <span className="text-xl font-bold tracking-tight hidden xl:block dark:text-white">Harbor</span>
+    <aside className="harbor-navigation harbor-glass">
+      <a className="harbor-skip-link" href="#main-content">Skip to content</a>
+      <div className="harbor-brand">
+        <img src="/harbor.svg" alt="" width="36" height="36" draggable="false" />
+        <span>Harbor</span>
       </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => {
-          const showUpdateBadge = available && item.to === '/info';
-          return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            aria-label={item.label}
-            className={({ isActive }) =>
-              `flex items-center gap-4 px-4 py-3 rounded-lg transition-colors group ${isActive
-                ? 'bg-primary/10 text-primary'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`
-            }
-          >
-            <span className="material-icons-round group-hover:text-primary relative">{item.icon}
-              {showUpdateBadge && (
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white dark:border-slate-900"></span>
-                </span>
-              )}
-            </span>
-            <span className="font-medium hidden xl:block">{item.label}</span>
+      <nav aria-label="Main navigation" className="harbor-nav-links">
+        {navItems.map(({ to, icon: Icon, label }) => (
+          <NavLink key={to} to={to} end={to === '/'} aria-label={label}
+            className={({ isActive }) => `harbor-nav-link ${isActive ? 'is-active' : ''}`}>
+            <Icon size={17} aria-hidden="true" /><span>{label}</span>
+            {available && to === '/info' && <span className="harbor-update-dot bg-red-500" aria-label="Update available" />}
           </NavLink>
-        )})}
+        ))}
       </nav>
-
-      {/* Service Toggle & Footer Links */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-4 relative">
-
-        {/* Coach Mark Badge */}
-        {showCoachMark && (
-          <div className="absolute -top-16 left-4 right-4 bg-primary text-white p-3 rounded-xl shadow-xl shadow-primary/20 animate-in slide-in-from-bottom-2 fade-in duration-500 z-50">
-            <div className="relative">
-              <div className="flex items-start gap-2">
-                <span className="material-icons-round text-sm mt-0.5">auto_awesome</span>
-                <p className="text-xs font-bold leading-tight">
-                  Start the app from here & forget about it!
-                </p>
-                <button
-                  onClick={dismissCoachMark}
-                  className="ml-auto -mt-1 -mr-1 text-white/70 hover:text-white"
-                >
-                  <span className="material-icons-round text-sm">close</span>
-                </button>
-              </div>
-              {/* Arrow pointing down */}
-              <div className="absolute -bottom-[20px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-primary border-r-[8px] border-r-transparent"></div>
-            </div>
+      <div className="harbor-nav-status">
+        <div id="sidebar-service-toggle" className="harbor-monitor">
+          <div>
+            {healthError ? <NavLink to="/settings" role="alert" className="harbor-health-warning">Needs attention</NavLink> :
+              <span className="harbor-monitor-label"><span className={`harbor-status-dot ${serviceStatus.running ? 'is-running' : ''}`} />{loading ? 'Checking…' : serviceStatus.running ? 'Active' : 'Stopped'}</span>}
+            <span className="harbor-monitor-caption">{serviceStatus.running ? 'Monitoring' : 'Paused'}</span>
           </div>
-        )}
-
-        {healthError && <NavLink to="/settings" role="alert" title={healthError} className="block text-xs text-amber-700 dark:text-amber-300 mb-2">Monitoring needs attention</NavLink>}
-        {/* Service Toggle */}
-        <div id="sidebar-service-toggle" className={`rounded-xl p-3 flex items-center justify-center xl:justify-between group transition-all duration-300 ${serviceEnabled
-          ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-2 border-emerald-500/20 shadow-lg shadow-emerald-500/10'
-          : 'bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-          }`}>
-          <div className="hidden xl:flex items-center gap-2 overflow-hidden">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${serviceEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-400'}`}></div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-xs font-bold truncate transition-colors ${serviceEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                {healthError ? 'Needs attention' : serviceEnabled ? 'Active' : 'Stopped'}
-              </span>
-              <span className="text-[10px] text-slate-500 truncate">
-                {serviceEnabled ? 'Monitoring' : 'Paused'}
-              </span>
-            </div>
-          </div>
-
-          <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              aria-label="Active monitoring"
-              checked={serviceEnabled}
-              onChange={handleToggle}
-              disabled={loading}
-            />
-            <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+          <label className="harbor-switch">
+            <input type="checkbox" aria-label="Active monitoring" checked={serviceStatus.running} disabled={loading}
+              onChange={async () => { dismissCoachMark(); await toggleService(); }} />
+            <span aria-hidden="true" />
           </label>
         </div>
-
-        {/* Separator Line */}
-        <div className="h-px bg-slate-200 dark:bg-slate-800 my-2"></div>
-
-        {/* External Links */}
-        <div className="space-y-2">
-          <button
-            onClick={() => {
-              if (available && url) {
-                open(url);
-                dismissNotification();
-              } else {
-                open('https://github.com/eduard-lt/Harbor-Download-Organizer');
-              }
-            }}
-            className="w-full flex items-center gap-4 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer relative"
-            title={available ? "Update Available!" : "GitHub Repository"}
-          >
-            <div className="relative inline-flex items-center justify-center w-fit">
-              <span className={`material-icons-round text-xl leading-none transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>code</span>
-              {available && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white dark:border-slate-900"></span>
-                </span>
-              )}
-            </div>
-            <span className={`text-sm font-medium hidden xl:block whitespace-nowrap transition-colors ${available ? 'text-slate-800 dark:text-white group-hover:text-primary' : 'group-hover:text-primary'}`}>
-              {available ? 'Update Available' : 'GitHub'}
-            </span>
-          </button>
-          <button
-            onClick={() => open('https://ko-fi.com/eduardolteanu')}
-            className="w-full flex items-center gap-4 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
-            title="Buy me a coffee"
-          >
-            <span className="material-icons-round text-xl text-slate-400 group-hover:text-[#FF5E5B] transition-colors">favorite</span>
-            <span className="text-sm font-medium hidden xl:block group-hover:text-[#FF5E5B] transition-colors">Donate</span>
-          </button>
-        </div>
+        <button className="harbor-icon-button" aria-label={available ? 'Update Available' : 'GitHub'}
+          title={available ? 'Update Available' : 'GitHub'} onClick={() => {
+            if (available && url) { void open(url); dismissNotification(); }
+            else void open('https://github.com/eduard-lt/Harbor-Download-Organizer');
+          }}><Code2 size={17} aria-hidden="true" /></button>
+        <button className="harbor-icon-button" aria-label="Donate" title="Support Harbor"
+          onClick={() => void open('https://ko-fi.com/eduardolteanu')}><Heart size={17} aria-hidden="true" /></button>
+        {showCoachMark && !serviceStatus.running && <div className="harbor-coach" role="status">
+          <span>Turn on monitoring to organize incoming files automatically.</span>
+          <button className="harbor-icon-button" aria-label="Dismiss monitoring tip" onClick={dismissCoachMark}><X size={16} /></button>
+        </div>}
       </div>
     </aside>
   );

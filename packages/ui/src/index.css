@@ -2,15 +2,15 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #0e9b94;
-  --color-primary-dark: #0a7a74;
-  --color-background-light: #f8fafc;
-  --color-background-dark: #0f172a;
-  --color-background-card: #1e293b;
+  --color-primary: #a45225;
+  --color-primary-dark: #843c17;
+  --color-background-light: #edf2f3;
+  --color-background-dark: #111b24;
+  --color-background-card: #1b2a35;
   --color-nautical-teal: #0d9488;
   --color-nautical-deep: #1e293b;
 
-  --font-family-display: "Inter", sans-serif;
+  --font-family-display: "Manrope", "Segoe UI", sans-serif;
 
   --radius-DEFAULT: 0.25rem;
   --radius-lg: 0.5rem;
@@ -21,7 +21,7 @@
 @layer base {
   html {
     overscroll-behavior: none;
-    background-color: #0f172a; /* match dark theme — prevents white flash on macOS overscroll */
+    background-color: var(--harbor-canvas);
   }
 
   body {
@@ -71,4 +71,124 @@
   .dark ::-webkit-scrollbar-thumb:hover {
     background: #475569;
   }
+}
+
+:root {
+  --harbor-canvas: #edf2f3;
+  --harbor-surface: #f9fcfd;
+  --harbor-glass: #ffffffa8;
+  --harbor-ink: #243b49;
+  --harbor-muted: #526878;
+  --harbor-border: #d6e1e5;
+  --harbor-edge: #ffffffc9;
+  --harbor-selected: #ffffffb8;
+  --harbor-teal: #b4d7d5;
+  --harbor-amber: #eed1b5;
+  --harbor-shadow: #182d3e0d;
+  --harbor-focus: #a45225;
+}
+.dark {
+  --harbor-canvas: #111b24;
+  --harbor-surface: #1b2a35;
+  --harbor-glass: #1c2a38b8;
+  --harbor-ink: #edf3f6;
+  --harbor-muted: #afc0cc;
+  --harbor-border: #354650;
+  --harbor-edge: #d4ecff24;
+  --harbor-selected: #ffffff14;
+  --harbor-teal: #23444d;
+  --harbor-amber: #4a3b32;
+  --harbor-shadow: #00000026;
+  --harbor-focus: #f6b584;
+}
+
+.harbor-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 24px 0;
+  color: var(--harbor-ink);
+  background: radial-gradient(ellipse at 95% 0%, var(--harbor-amber), transparent 53%),
+    radial-gradient(ellipse at 0% 55%, var(--harbor-teal), transparent 60%), var(--harbor-canvas);
+}
+.harbor-glass {
+  background: var(--harbor-surface);
+  border: 1px solid var(--harbor-edge);
+  box-shadow: inset 0 1px 0 var(--harbor-edge), 0 8px 28px var(--harbor-shadow);
+}
+@supports (backdrop-filter: blur(24px)) {
+  .harbor-glass { background: var(--harbor-glass); backdrop-filter: blur(24px) saturate(130%); }
+}
+.harbor-navigation {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-shrink: 0;
+  padding: 14px 20px;
+  border-radius: 18px;
+}
+.harbor-brand { display: flex; align-items: center; gap: 9px; font-size: 24px; font-weight: 700; letter-spacing: -1px; }
+.harbor-nav-links { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.harbor-nav-link { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px; font-size: 13px; font-weight: 600; color: var(--harbor-muted); }
+.harbor-nav-link:hover, .harbor-nav-link.is-active { background: var(--harbor-selected); color: var(--harbor-ink); }
+.harbor-nav-link.is-active { box-shadow: inset 0 1px 0 var(--harbor-edge), 0 2px 5px var(--harbor-shadow); }
+.harbor-nav-status { margin-left: auto; display: flex; align-items: center; gap: 8px; position: relative; }
+.harbor-monitor { display: flex; align-items: center; gap: 14px; margin-right: 5px; }
+.harbor-monitor-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.harbor-monitor-caption { display: block; color: var(--harbor-muted); font-size: 11px; }
+.harbor-status-dot, .harbor-update-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--harbor-muted); }
+.harbor-status-dot.is-running { background: #169783; }
+.harbor-health-warning { font-size: 12px; color: var(--color-primary); text-decoration: underline; }
+.dark .harbor-health-warning { color: #f6b584; }
+.harbor-icon-button { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; border-radius: 9px; color: var(--harbor-muted); }
+.harbor-icon-button:hover { background: var(--harbor-selected); color: var(--harbor-ink); }
+.harbor-switch { display: inline-flex; align-items: center; position: relative; cursor: pointer; }
+.harbor-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: inherit; }
+.harbor-switch > span { width: 36px; height: 21px; border-radius: 20px; padding: 3px; background: var(--harbor-border); pointer-events: none; }
+.harbor-switch > span::after { content: ''; display: block; height: 15px; width: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0003; transition: transform .15s ease; }
+.harbor-switch input:checked + span { background: var(--color-primary); }
+.harbor-switch input:checked + span::after { transform: translateX(15px); }
+.harbor-switch input:disabled + span { opacity: .5; }
+.harbor-switch input:focus-visible + span, :focus-visible { outline: 2px solid var(--harbor-focus); outline-offset: 4px; }
+.peer:focus-visible + div { outline: 2px solid var(--harbor-focus); outline-offset: 4px; }
+.harbor-skip-link { position: absolute; top: -100px; left: 10px; padding: 10px; background: var(--harbor-surface); border-radius: 8px; }
+.harbor-skip-link:focus { top: 5px; z-index: 50; }
+.harbor-coach { position: absolute; right: 0; top: calc(100% + 20px); width: 280px; display: flex; align-items: start; gap: 8px; padding: 16px; background: var(--harbor-surface); border: 1px solid var(--harbor-border); border-radius: 12px; font-size: 13px; box-shadow: 0 12px 30px var(--harbor-shadow); }
+.harbor-main { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; padding: 0 12px 24px; }
+.harbor-page-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; padding: 32px 0 24px; max-width: 1280px; margin: auto; }
+.harbor-page-header h1 { font-size: 30px; line-height: 1.25; font-weight: 600; letter-spacing: -1px; }
+.harbor-page-subtitle { margin-top: 8px; font-size: 13px; color: var(--harbor-muted); }
+.harbor-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.harbor-content { max-width: 1280px; margin-inline: auto; width: 100%; padding-bottom: 24px; }
+.harbor-rule-summary { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; color: var(--harbor-muted); font-size: 12px; }
+.harbor-rule-summary strong { color: var(--harbor-ink); font-size: 14px; margin-left: 6px; }
+.harbor-rule-summary p { margin-left: auto; }
+.harbor-rules-panel { background: var(--harbor-surface); border: 1px solid var(--harbor-edge); border-radius: 18px; overflow: hidden; box-shadow: 0 15px 30px var(--harbor-shadow); }
+.harbor-rules-panel thead { text-transform: none; letter-spacing: 0; background: var(--harbor-selected); }
+.harbor-rules-panel th { font-weight: 500; }
+.harbor-rules-panel td { padding-block: 10px; font-size: 13px; }
+.harbor-rule-path { display: flex; flex-direction: column; gap: 5px; overflow-wrap: anywhere; font-size: 12px; color: var(--harbor-muted); }
+.harbor-rule-path strong { color: var(--harbor-ink); font-weight: 500; font-family: var(--font-family-display); }
+.harbor-rule-path summary { cursor: pointer; }
+.harbor-rule-path code { font-size: 11px; }
+.harbor-extension { display: inline-block; padding: 2px 6px; border-radius: 5px; background: var(--harbor-selected); color: var(--harbor-muted); font-size: 11px; }
+.harbor-appearance-option { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 20px; padding: 16px; border: 1px solid var(--harbor-border); border-radius: 12px; background: var(--harbor-surface); }
+.harbor-appearance-option p { color: var(--harbor-muted); font-size: 12px; margin-top: 4px; }
+.reduce-transparency .harbor-glass { background: var(--harbor-surface); backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) { .harbor-glass { background: var(--harbor-surface); backdrop-filter: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+@media (max-width: 1100px) {
+  .harbor-shell { padding: 12px 16px 0; }
+  .harbor-navigation { gap: 15px; padding: 12px; }
+  .harbor-nav-link { padding: 9px; }
+  .harbor-nav-status { gap: 3px; }
+  .harbor-brand { font-size: 21px; }
+}
+@media (max-width: 800px) {
+  .harbor-navigation { flex-wrap: wrap; }
+  .harbor-nav-links { order: 3; width: 100%; }
+  .harbor-main { padding-inline: 0; }
 }

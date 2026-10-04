@@ -11,7 +11,7 @@ import { ActivityTable } from '../components/ActivityTable';
 import type { OrganizeNowResponse } from '../lib/tauri';
 
 export function SettingsPage() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, reduceTransparency, setReduceTransparency } = useTheme();
   const { currentSize, setSize, presets } = useWindowSize();
   const {
     serviceStatus,
@@ -74,8 +74,8 @@ export function SettingsPage() {
     <>
       <Header title="Settings" subtitle="Configure how Harbor manages your automated workflows and environment." />
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="max-w-4xl mx-auto p-12">
+      <div className="harbor-content">
+        <div className="max-w-4xl mx-auto py-4">
           {serviceStatus.configuration_error && <p role="alert" className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">{serviceStatus.configuration_error}</p>}
           {serviceStatus.scan_error && <p role="alert" className="mb-4 p-4 bg-amber-50 text-amber-800 rounded-lg">Monitoring needs attention: {serviceStatus.scan_error}</p>}
           <FileTools />
@@ -251,6 +251,14 @@ export function SettingsPage() {
                   </p>
                 </button>
               </div>
+            </section>
+
+            <section className="harbor-appearance-option" aria-label="Transparency">
+              <div><h3 className="font-semibold">Reduce transparency</h3><p>Use solid surfaces for a quieter, higher-contrast appearance.</p></div>
+              <label className="harbor-switch">
+                <input type="checkbox" aria-label="Reduce transparency" checked={reduceTransparency ?? false} onChange={event => setReduceTransparency(event.target.checked)} />
+                <span aria-hidden="true" />
+              </label>
             </section>
 
             {/* System Preferences */}

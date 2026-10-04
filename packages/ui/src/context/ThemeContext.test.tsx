@@ -13,6 +13,20 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(ThemeProvider, { children });
 
 describe('ThemeContext', () => {
+    it('persists and restores reduced transparency independently of theme', () => {
+        localStorage.setItem('harbor-reduce-transparency', 'true');
+        const { result, unmount } = renderHook(() => useTheme(), { wrapper });
+        expect(result.current.reduceTransparency).toBe(true);
+        expect(document.documentElement).toHaveClass('reduce-transparency');
+        act(() => result.current.setTheme('dark'));
+        expect(result.current.reduceTransparency).toBe(true);
+        act(() => result.current.setReduceTransparency(false));
+        expect(localStorage.getItem('harbor-reduce-transparency')).toBe('false');
+        expect(document.documentElement).not.toHaveClass('reduce-transparency');
+        unmount();
+        const restored = renderHook(() => useTheme(), { wrapper });
+        expect(restored.result.current.reduceTransparency).toBe(false);
+    });
     beforeEach(() => {
         localStorage.clear();
         document.documentElement.classList.remove('dark');
