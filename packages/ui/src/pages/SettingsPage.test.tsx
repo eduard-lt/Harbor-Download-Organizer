@@ -22,7 +22,7 @@ vi.mock('../hooks/useWindowSize', () => ({
 const notify = vi.hoisted(() => vi.fn());
 vi.mock('../context/ToastContext', () => ({ useToast: () => ({ notify }) }));
 const fileActions = vi.hoisted(() => ({
-    busy: false, organizing: false, chooseFolder: vi.fn(), previewMoves: vi.fn(), organizeNow: vi.fn(),
+    busy: false, organizing: false, lastBatch: { count: 3, recorded_at: '2024-01-02 14:32:00' } as { count: number; recorded_at: string } | null, chooseFolder: vi.fn(), previewMoves: vi.fn(), organizeNow: vi.fn(),
     requestUndo: vi.fn(), exportRules: vi.fn(), requestImport: vi.fn(),
 }));
 vi.mock('../context/FileActionsContext', () => ({ useFileActions: () => fileActions }));

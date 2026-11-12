@@ -20,7 +20,7 @@ vi.mock('../lib/tauri', async (importOriginal) => {
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn() }));
 vi.mock('../hooks/useSettings', () => ({ useSettings: () => ({ downloadDir: 'C:\\Users\\you\\Downloads' }) }));
 const fileActions = vi.hoisted(() => ({
-    busy: false, organizing: false, chooseFolder: vi.fn(), previewMoves: vi.fn(), organizeNow: vi.fn(),
+    busy: false, organizing: false, lastBatch: { count: 3, recorded_at: '2024-01-02 14:32:00' } as { count: number; recorded_at: string } | null, chooseFolder: vi.fn(), previewMoves: vi.fn(), organizeNow: vi.fn(),
     requestUndo: vi.fn(), exportRules: vi.fn(), requestImport: vi.fn(),
 }));
 vi.mock('../context/FileActionsContext', () => ({ useFileActions: () => fileActions }));
@@ -70,6 +70,17 @@ describe('RulesPage', () => {
         expect(fileActions.previewMoves).toHaveBeenCalled();
         expect(fileActions.organizeNow).toHaveBeenCalled();
         expect(fileActions.requestUndo).toHaveBeenCalled();
+    });
+
+    it('shows the last batch beside Undo and disables Undo when there is none', () => {
+        const { rerender } = render(<RulesPage />);
+        expect(screen.getByText(/Last batch: 3 files, Tue, Jan 2, 2024 at 14:32/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Undo last batch' })).toBeEnabled();
+        fileActions.lastBatch = null;
+        rerender(<RulesPage />);
+        expect(screen.getByText('Nothing to undo')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Undo last batch' })).toBeDisabled();
+        fileActions.lastBatch = { count: 3, recorded_at: '2024-01-02 14:32:00' };
     });
 
     it('shows loading state', () => {

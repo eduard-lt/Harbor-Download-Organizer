@@ -1,10 +1,10 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { ArrowRight, CircleAlert } from 'lucide-react';
 import {
-  exportRules as exportRulesApi, importRules, previewOrganization, setDownloadDir, undoLastBatch,
-  type OrganizationPreview, type OrganizeNowResponse,
+  exportRules as exportRulesApi, getLastBatch, importRules, previewOrganization, setDownloadDir, undoLastBatch,
+  type BatchSummary, type OrganizationPreview, type OrganizeNowResponse,
 } from '../lib/tauri';
 import { useSettings } from '../hooks/useSettings';
 import { useToast } from './ToastContext';
@@ -17,6 +17,8 @@ export const ORGANIZE_EVENT = 'harbor:organize-result';
 
 interface FileActions {
   busy: boolean;
+  /** The undoable batch; null when there is none, undefined while unknown. */
+  lastBatch: BatchSummary | null | undefined;
   organizing: boolean;
   chooseFolder: () => void;
   previewMoves: () => void;
@@ -40,13 +42,28 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   const [pendingImport, setPendingImport] = useState<string | null>(null);
   const [confirmUndo, setConfirmUndo] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const [lastBatch, setLastBatch] = useState<BatchSummary | null | undefined>(undefined);
+
+  const refreshLastBatch = useCallback(async () => {
+    // Unknown stays undefined so Undo stays available; the backend still refuses safely.
+    try { setLastBatch(await getLastBatch()); } catch { setLastBatch(undefined); }
+  }, []);
+
+  useEffect(() => {
+    void refreshLastBatch();
+    // Background monitoring records batches too, so keep the footer current.
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'hidden') void refreshLastBatch();
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [refreshLastBatch]);
 
   const run = useCallback(async (action: () => Promise<void>) => {
     setBusy(true);
     try { await action(); await refresh(); }
     catch (e) { notify({ tone: 'danger', message: message(e) }); }
-    finally { setBusy(false); }
-  }, [refresh, notify]);
+    finally { setBusy(false); void refreshLastBatch(); }
+  }, [refresh, notify, refreshLastBatch]);
 
   const chooseFolder = useCallback(() => void run(async () => {
     const path = await open({ directory: true, multiple: false, title: 'Choose the folder Harbor watches' });
@@ -70,6 +87,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       catch (e) { notify({ tone: 'danger', message: `Organize failed: ${message(e)}` }); return; }
       try { window.sessionStorage.setItem(LAST_ORGANIZE_KEY, JSON.stringify(result)); } catch { /* storage unavailable */ }
       window.dispatchEvent(new Event(ORGANIZE_EVENT));
+      void refreshLastBatch();
       const failed = result.total_failures > 0;
       notify({
         tone: failed ? 'danger' : 'ok',
@@ -78,7 +96,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
         action: failed ? { label: 'See failures in Activity', onClick: () => navigate('/activity') } : undefined,
       });
     })();
-  }, [runOrganize, notify, navigate]);
+  }, [runOrganize, notify, navigate, refreshLastBatch]);
 
   const exportRules = useCallback(() => void run(async () => {
     const destination = await save({ defaultPath: 'harbor-rules.json', filters: [{ name: 'JSON rules', extensions: ['json'] }] });
@@ -88,7 +106,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   }), [run, notify]);
 
   const value: FileActions = {
-    busy, organizing, chooseFolder, previewMoves, organizeNow, exportRules,
+    busy, organizing, lastBatch, chooseFolder, previewMoves, organizeNow, exportRules,
     requestUndo: () => setConfirmUndo(true),
     requestImport: () => input.current?.click(),
   };

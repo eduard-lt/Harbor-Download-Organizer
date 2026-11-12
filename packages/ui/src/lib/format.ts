@@ -39,6 +39,15 @@ export function parseLogTimestamp(timestamp?: string): { day: string; time: stri
     return { day: `${match[1]}-${match[2]}-${match[3]}`, time: `${match[4]}:${match[5]}` };
 }
 
+/** "3 files, today at 14:32" for the undoable batch; time omitted when unknown. */
+export function batchLabel(count: number, recordedAt?: string | null, now = new Date()): string {
+    const files = `${count.toLocaleString()} ${count === 1 ? 'file' : 'files'}`;
+    const when = parseLogTimestamp(recordedAt ?? undefined);
+    if (!when) return files;
+    const day = dayLabel(when.day, now);
+    return `${files}, ${day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day} at ${when.time}`;
+}
+
 /** Labels a day key as Today, Yesterday, or a short local date. */
 export function dayLabel(day: string, now = new Date()): string {
     const [y, m, d] = day.split('-').map(Number);

@@ -14,6 +14,7 @@ import { setMonitoringCue } from '../lib/monitoringCue';
 import { useToast } from '../context/ToastContext';
 import { useFileActions } from '../context/FileActionsContext';
 import packageJson from '../../package.json';
+import { batchLabel } from '../lib/format';
 
 function formatUptime(seconds?: number) {
   if (!seconds) return 'Not running';
@@ -31,7 +32,7 @@ export function SettingsPage() {
   const { currentSize, setSize, presets } = useWindowSize();
   const { serviceStatus, startupEnabled, downloadDir, loading, error, toggleService, retryService, toggleStartup, reload, reset } = useSettings();
   const { checkForUpdates, setCheckForUpdates, checkNow, updateState } = useUpdateContext();
-  const { busy, organizing, chooseFolder, previewMoves, organizeNow, requestUndo, exportRules, requestImport } = useFileActions();
+  const { busy, organizing, lastBatch, chooseFolder, previewMoves, organizeNow, requestUndo, exportRules, requestImport } = useFileActions();
   const { notify } = useToast();
   const { loading: updateLoading, error: updateError, hasUpdate, version: updateVersion, url: updateUrl } = updateState;
 
@@ -121,9 +122,11 @@ export function SettingsPage() {
                 <div className="group-row">
                   <div className="text">
                     <div className="title">Undo last batch</div>
-                    <div className="desc">Puts the last batch back if the files are unchanged. Pauses monitoring.</div>
+                    <div className="desc">{lastBatch === null
+                      ? 'Nothing to undo. Batches Harbor moves show up here.'
+                      : `${lastBatch ? `${batchLabel(lastBatch.count, lastBatch.recorded_at)}. ` : ''}Puts the files back if they are unchanged. Pauses monitoring.`}</div>
                   </div>
-                  <div className="actions"><button type="button" className="btn btn-sm" disabled={busy} onClick={requestUndo}>Undo last batch</button></div>
+                  <div className="actions"><button type="button" className="btn btn-sm" disabled={busy || lastBatch === null} onClick={requestUndo}>Undo last batch</button></div>
                 </div>
                 <div className="group-row">
                   <div className="text">

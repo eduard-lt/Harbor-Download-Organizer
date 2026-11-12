@@ -8,6 +8,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn(), save: vi.fn() }));
 vi.mock('../lib/tauri', () => ({
     previewOrganization: vi.fn(),
     undoLastBatch: vi.fn(),
+    getLastBatch: vi.fn().mockResolvedValue(null),
     setDownloadDir: vi.fn(),
     exportRules: vi.fn(),
     importRules: vi.fn(),
@@ -20,7 +21,7 @@ const settings = vi.hoisted(() => ({
 vi.mock('../hooks/useSettings', () => ({ useSettings: () => settings }));
 
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { previewOrganization, undoLastBatch, setDownloadDir, exportRules, importRules } from '../lib/tauri';
+import { previewOrganization, undoLastBatch, setDownloadDir, exportRules, importRules, getLastBatch } from '../lib/tauri';
 
 function Buttons() {
     const a = useFileActions();
@@ -32,6 +33,7 @@ function Buttons() {
             <button onClick={a.requestUndo}>undo</button>
             <button onClick={a.exportRules}>export</button>
             <button onClick={a.requestImport}>import</button>
+            <output>{a.lastBatch === undefined ? 'unknown' : a.lastBatch ? `batch ${a.lastBatch.count}` : 'none'}</output>
         </div>
     );
 }
@@ -53,6 +55,23 @@ describe('FileActionsProvider', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         window.sessionStorage.clear();
+    });
+
+    it('loads the undoable batch and refreshes it after undo', async () => {
+        vi.mocked(getLastBatch).mockResolvedValueOnce({ count: 2, recorded_at: null }).mockResolvedValue(null);
+        vi.mocked(undoLastBatch).mockResolvedValue(2);
+        renderProvider();
+        expect(await screen.findByText('batch 2')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('undo'));
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Undo batch' })); });
+        expect(await screen.findByText('none')).toBeInTheDocument();
+    });
+
+    it('treats an unreadable batch as unknown', async () => {
+        vi.mocked(getLastBatch).mockRejectedValueOnce(new Error('no handler'));
+        renderProvider();
+        await waitFor(() => expect(getLastBatch).toHaveBeenCalled());
+        expect(screen.getByText('unknown')).toBeInTheDocument();
     });
 
     it('requires a provider', () => {

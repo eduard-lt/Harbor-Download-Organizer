@@ -201,6 +201,9 @@ export const getActivityLogs = async (limit?: number, offset?: number, search?: 
 export interface OrganizationPreview { moves: { source: string; destination: string; rule: string }[]; errors: string[] }
 export const previewOrganization = (): Promise<OrganizationPreview> => invoke('preview_organization');
 export const undoLastBatch = (): Promise<number> => invoke('undo_last_batch');
+/** The batch Undo would restore; null when there is nothing to undo. */
+export interface BatchSummary { count: number; recorded_at?: string | null }
+export const getLastBatch = (): Promise<BatchSummary | null> => invoke('get_last_batch');
 export const setDownloadDir = (directory: string): Promise<void> => invoke('set_download_dir', { directory });
 export const exportRules = (destination: string): Promise<void> => invoke('export_rules', { destination });
 export const importRules = (content: string): Promise<number> => invoke('import_rules', { content });

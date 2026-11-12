@@ -10,7 +10,7 @@ import { TutorialModal } from '../components/TutorialModal';
 import { Switch } from '../components/Switch';
 import type { Rule, UpdateRuleRequest } from '../lib/tauri';
 import { getTutorialCompleted, setTutorialCompleted } from '../lib/tauri';
-import { shortPath } from '../lib/format';
+import { batchLabel, shortPath } from '../lib/format';
 import { fileIcon } from '../lib/icons';
 import { useSettings } from '../hooks/useSettings';
 import { useFileActions } from '../context/FileActionsContext';
@@ -45,7 +45,7 @@ function WatchedFolderStrip() {
 
 export function RulesPage() {
   const { rules, loading, error, addRule, editRule, removeRule, toggleRule, reorderRules } = useRules();
-  const { busy, requestUndo } = useFileActions();
+  const { busy, requestUndo, lastBatch } = useFileActions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -291,7 +291,12 @@ export function RulesPage() {
 
       <footer className="page-foot">
         <span className="grow">First matching rule wins. Pattern and size rules are checked first.</span>
-        <button type="button" className="btn btn-sm" disabled={busy} onClick={requestUndo}>
+        {lastBatch !== undefined && (
+          <span className="num" role="status">
+            {lastBatch ? `Last batch: ${batchLabel(lastBatch.count, lastBatch.recorded_at)}` : 'Nothing to undo'}
+          </span>
+        )}
+        <button type="button" className="btn btn-sm" disabled={busy || lastBatch === null} onClick={requestUndo}>
           <Undo2 size={13} aria-hidden="true" />Undo last batch
         </button>
       </footer>
