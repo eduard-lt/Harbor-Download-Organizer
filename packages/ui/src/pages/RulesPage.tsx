@@ -160,7 +160,8 @@ export function RulesPage() {
   const filteredRules = rules.filter(r =>
     r.name.toLowerCase().includes(query) || r.extensions.some(e => e.toLowerCase().includes(query)));
   const enabledCount = rules.filter(r => r.enabled).length;
-  const countText = loading ? '' : `${rules.length} ${rules.length === 1 ? 'rule' : 'rules'}, ${enabledCount} enabled`;
+  const countText = loading ? '' : rules.length === 0 ? 'No rules'
+    : `${rules.length} ${rules.length === 1 ? 'rule' : 'rules'}, ${enabledCount} enabled`;
 
   return (
     <div className="page">
@@ -239,6 +240,7 @@ export function RulesPage() {
                       <span className="name" title={rule.name}>{rule.name}</span>
                       {rule.has_pattern && <span className="badge" data-tone="accent">Pattern</span>}
                       {rule.has_size_constraint && <span className="badge">Size</span>}
+                      {!rule.enabled && <span className="badge">Off</span>}
                     </div>
                   </td>
                   <td className="cell-trunc cell-muted" title={[rule.extensions.join(', '), rule.pattern].filter(Boolean).join(' · ')}>

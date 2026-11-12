@@ -12,6 +12,7 @@ type Tab = typeof tabs[number]['id'];
 
 function Guide() {
   return (
+    <div className="guide">
     <div className="prose">
       <section>
         <h2>How Harbor works</h2>
@@ -41,6 +42,12 @@ function Guide() {
       </section>
 
       <section>
+        <h2>Staying in control</h2>
+        <p><strong>Preview moves</strong> shows what would happen without moving anything. <strong>Undo last batch</strong> puts the last set of moved files back, as long as they haven’t changed. Changing the watched folder, importing rules, or undoing a batch pauses monitoring until you turn it back on.</p>
+      </section>
+    </div>
+    <aside className="guide-side" aria-label="Rule fields">
+      <section>
         <h2>What a rule can match</h2>
         <dl className="terms">
           <dt>Extensions</dt><dd>File types, such as <code>jpg, png</code>. Leave empty to match every type.</dd>
@@ -50,11 +57,7 @@ function Guide() {
           <dt>Shortcut</dt><dd>On Windows, Harbor can leave a hidden symlink where the file was.</dd>
         </dl>
       </section>
-
-      <section>
-        <h2>Staying in control</h2>
-        <p><strong>Preview moves</strong> shows what would happen without moving anything. <strong>Undo last batch</strong> puts the last set of moved files back, as long as they haven’t changed. Changing the watched folder, importing rules, or undoing a batch pauses monitoring until you turn it back on.</p>
-      </section>
+    </aside>
     </div>
   );
 }

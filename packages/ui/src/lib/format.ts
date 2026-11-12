@@ -47,7 +47,7 @@ export function dayLabel(day: string, now = new Date()): string {
     const diff = Math.round((today.getTime() - date.getTime()) / 86_400_000);
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Yesterday';
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString('en-US', {
         weekday: 'short', month: 'short', day: 'numeric',
         year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
     });

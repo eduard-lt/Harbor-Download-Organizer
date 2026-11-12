@@ -44,11 +44,18 @@ describe('ActivityTable', () => {
 
     it('renders a row with filename, destination, rule name and status', () => {
         render(<ActivityTable logs={[makeLog()]} />);
-        expect(screen.getByText('photo.jpg')).toBeInTheDocument();
+        const row = screen.getByRole('row', { name: /photo\.jpg/ });
+        expect(row.querySelector('.name')).toHaveTextContent('photo.jpg');
         expect(screen.getByText('From Downloads\\photo.jpg')).toBeInTheDocument();
-        expect(screen.getByText('Pictures\\photo.jpg')).toBeInTheDocument();
+        expect(row.querySelector('.split-path')).toHaveTextContent('Pictures\\photo.jpg');
         expect(screen.getByText('Images')).toBeInTheDocument();
         expect(screen.getByText('Moved')).toBeInTheDocument();
+    });
+
+    it('shows a failed file as not moved instead of a destination', () => {
+        render(<ActivityTable logs={[makeLog({ status: 'error' })]} />);
+        expect(screen.getByText('Not moved, still in Downloads')).toBeInTheDocument();
+        expect(document.querySelector('.split-path')).toBeNull();
     });
 
     it.each([
@@ -80,13 +87,13 @@ describe('ActivityTable', () => {
     it('renders multiple rows', () => {
         const logs = [makeLog({ id: '1' }), makeLog({ id: '2', filename: 'video.mp4', status: 'error' })];
         render(<ActivityTable logs={logs} />);
-        expect(screen.getByText('photo.jpg')).toBeInTheDocument();
+        expect(screen.getAllByText('photo.jpg').length).toBeGreaterThan(0);
         expect(screen.getByText('video.mp4')).toBeInTheDocument();
     });
 
     it('renders grouped failures with remediation hints', () => {
         render(<ActivityTable logs={[]} failureGroups={[makeFailureGroup()]} />);
-        expect(screen.getByText('filesystem_error')).toBeInTheDocument();
+        expect(screen.queryByText('filesystem_error')).not.toBeInTheDocument();
         expect(screen.getByText(/Access denied/)).toBeInTheDocument();
         expect(screen.getByText('Close applications locking the file and retry.')).toBeInTheDocument();
     });

@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { ArrowRight, CircleAlert, History, X } from 'lucide-react';
 import type { ActivityLog, OrganizeFailureGroup } from '../lib/tauri';
-import { dayLabel, parseLogTimestamp, shortPath } from '../lib/format';
+import { dayLabel, formatPath, parseLogTimestamp, shortPath } from '../lib/format';
 import { fileIcon } from '../lib/icons';
 
 interface ActivityTableProps {
@@ -33,6 +33,23 @@ function status(value: string) {
   return statusInfo[value] ?? { label: value.charAt(0).toUpperCase() + value.slice(1), tone: 'muted' };
 }
 
+/** Folder and file name as separate spans so a narrow column trims the folder, not the file name. */
+function SplitPath({ path }: { path: string }) {
+  const { parent, leaf } = formatPath(path);
+  const sep = path.includes('\\') ? '\\' : '/';
+  return (
+    <code className="split-path">
+      {parent && <span className="p-dir">{parent}{sep}</span>}
+      <span className="p-leaf">{leaf}</span>
+    </code>
+  );
+}
+
+function folderOf(path?: string) {
+  const parent = formatPath(path ?? '').parent;
+  return formatPath(parent).leaf || 'the watched folder';
+}
+
 export function FailureGroups({ groups, onDismiss }: { groups: OrganizeFailureGroup[]; onDismiss?: () => void }) {
   const total = groups.reduce((sum, g) => sum + g.count, 0);
   return (
@@ -41,9 +58,8 @@ export function FailureGroups({ groups, onDismiss }: { groups: OrganizeFailureGr
       <div className="grow">
         <strong>{total} {total === 1 ? 'file' : 'files'} couldn’t be moved in the last organize run</strong>
         {groups.map(group => (
-          <div key={group.code} style={{ marginTop: 8 }}>
-            <div style={{ color: 'var(--ink)' }}>{group.message} <code className="cell-muted">{group.code}</code></div>
-            <ul style={{ margin: '4px 0 0', paddingLeft: 0, listStyle: 'none' }}>
+          <div key={group.code} style={{ marginTop: 6 }}>
+            <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
               {group.failures.map((failure, index) => (
                 <li key={`${group.code}-${index}`} style={{ padding: '3px 0', color: 'var(--ink-2)' }}>
                   <span className="allow-select" style={{ color: 'var(--ink)', fontWeight: 500 }} title={failure.details.source_path}>
@@ -105,10 +121,16 @@ export function ActivityTable({ logs, failureGroups = [], onDismissFailures, fil
                       </div>
                     </td>
                     <td className="cell-trunc cell-muted" title={log.rule_name}>{log.rule_name}</td>
-                    <td className="cell-trunc allow-select" title={log.dest_path}>
+                    <td className="allow-select" title={log.dest_path}>
                       <span className="sr-only">From {sanitizePathForUi(log.source_path)} </span>
-                      <ArrowRight size={12} aria-hidden="true" style={{ display: 'inline', marginRight: 6, color: 'var(--ink-3)' }} />
-                      <code>{sanitizePathForUi(log.dest_path)}</code>
+                      {log.status === 'error' ? (
+                        <span className="path-cell cell-muted">Not moved, still in {folderOf(log.source_path)}</span>
+                      ) : (
+                        <span className="path-cell">
+                          <ArrowRight size={12} aria-hidden="true" className="path-arrow" />
+                          <SplitPath path={sanitizePathForUi(log.dest_path)} />
+                        </span>
+                      )}
                     </td>
                     <td><span className="status" data-tone={s.tone === 'danger' ? 'danger' : undefined}>
                       <span className="dot" data-tone={s.tone} aria-hidden="true" />{s.label}

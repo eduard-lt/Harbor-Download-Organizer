@@ -20,7 +20,7 @@ test.describe('Navigation', () => {
     test('navigates to Activity', async ({ page }) => {
         await navigateTo(page, 'Activity');
         await expectHeading(page, 'Activity');
-        await expect(page.getByText('photo.jpg', { exact: true })).toBeVisible();
+        await expect(page.getByRole('row', { name: /photo.jpg/ }).first()).toBeVisible();
     });
 
     test('navigates to Settings', async ({ page }) => {
