@@ -788,8 +788,8 @@ kbd { padding: 1px 5px; border-radius: 4px; background: var(--fill-hover); borde
   .rules-table col.c-dest { width: 25%; }
   .rules-table col.c-order { width: 58px; }
   .rules-table col.c-end { width: 116px; }
-  .activity-table col.c-file { width: 27%; }
-  .activity-table col.c-rule { width: 13%; }
+  .activity-table col.c-file { width: 24%; }
+  .activity-table col.c-rule { width: 108px; }
   .activity-table col.c-status { width: 96px; }
   .guide { grid-template-columns: minmax(0, 1fr); }
 }
