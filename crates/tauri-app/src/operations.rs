@@ -37,7 +37,34 @@ struct MoveRecord {
 #[derive(Default, Serialize, Deserialize)]
 struct Journal {
     version: u32,
+    /// Local time the batch was recorded; absent in journals from older versions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    recorded_at: Option<String>,
     moves: Vec<MoveRecord>,
+}
+
+/// What the UI shows beside Undo: how many files the undoable batch holds and when it ran.
+#[derive(Debug, PartialEq, Serialize)]
+pub struct BatchSummary {
+    pub count: usize,
+    pub recorded_at: Option<String>,
+}
+
+/// The batch Undo would restore, or None when nothing is left to undo.
+pub fn last_batch(work: &Work) -> Result<Option<BatchSummary>> {
+    let bytes = match fs::read(work.directory.join("last-batch.json")) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
+    let journal: Journal = serde_json::from_slice(&bytes)?;
+    if journal.version != 1 || journal.moves.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(BatchSummary {
+        count: journal.moves.len(),
+        recorded_at: journal.recorded_at,
+    }))
 }
 
 fn digest(path: &Path) -> Result<String> {
@@ -98,7 +125,11 @@ pub fn run_batch(
                     hash: digest(&item.destination)?,
                 });
             }
-            Ok(Journal { version: 1, moves })
+            Ok(Journal {
+                version: 1,
+                recorded_at: Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+                moves,
+            })
         })();
         if let Err(error) = journal.and_then(|journal| save_journal(work, &journal)) {
             // Never offer the previous batch as if it were the newly moved batch.
@@ -197,6 +228,51 @@ pub fn record_health(path: &Path, error: Option<&str>) {
 mod tests {
     use super::*;
     #[test]
+    fn last_batch_reports_the_undoable_batch_and_clears_after_undo() {
+        let dir = tempfile::tempdir().unwrap();
+        let work = Work::new(dir.path());
+        assert_eq!(last_batch(&work).unwrap(), None);
+
+        let source = dir.path().join("downloads");
+        fs::create_dir(&source).unwrap();
+        fs::write(source.join("a.txt"), "a").unwrap();
+        fs::write(source.join("b.txt"), "b").unwrap();
+        let mut cfg = downloads::default_config();
+        cfg.download_dir = source.display().to_string();
+        cfg.min_age_secs = Some(0);
+        cfg.rules.truncate(1);
+        cfg.rules[0].extensions = Some(vec!["txt".into()]);
+        cfg.rules[0].pattern = None;
+        cfg.rules[0].target_dir = dir.path().join("out").display().to_string();
+        run_batch(&work, &cfg, None).unwrap();
+
+        let batch = last_batch(&work).unwrap().expect("a recorded batch");
+        assert_eq!(batch.count, 2);
+        assert!(batch.recorded_at.is_some());
+
+        undo(&work).unwrap();
+        assert_eq!(last_batch(&work).unwrap(), None);
+    }
+
+    #[test]
+    fn last_batch_reads_journals_without_a_timestamp() {
+        let dir = tempfile::tempdir().unwrap();
+        let work = Work::new(dir.path());
+        fs::write(
+            dir.path().join("last-batch.json"),
+            r#"{"version":1,"moves":[{"source":"a","destination":"b","hash":"x"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            last_batch(&work).unwrap(),
+            Some(BatchSummary {
+                count: 1,
+                recorded_at: None
+            })
+        );
+    }
+
+    #[test]
     fn undo_checks_content_and_collisions_then_restores() {
         let dir = tempfile::tempdir().unwrap();
         let work = Work::new(dir.path());
@@ -207,6 +283,7 @@ mod tests {
             &work,
             &Journal {
                 version: 1,
+                recorded_at: None,
                 moves: vec![MoveRecord {
                     source: source.clone(),
                     destination: destination.clone(),
