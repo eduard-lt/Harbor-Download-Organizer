@@ -1,70 +1,93 @@
 import { NavLink } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-shell';
-import { SlidersHorizontal, History, Settings, CircleHelp, Code2, Coffee } from 'lucide-react';
+import { ListFilter, History, Settings2, BookOpen, Code2, Coffee, ArrowDownToLine } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { useUpdateContext } from '../context/UpdateContext';
 import { useEffect } from 'react';
 import { setMonitoringCue, useMonitoringCue } from '../lib/monitoringCue';
+import { formatPath } from '../lib/format';
+
+const REPO_URL = 'https://github.com/eduard-lt/Harbor-Download-Organizer';
 
 const navItems = [
-  { to: '/', icon: SlidersHorizontal, label: 'Rules' },
-  { to: '/activity', icon: History, label: 'Activity Logs' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-  { to: '/info', icon: CircleHelp, label: 'Info & Guide' },
+  { to: '/', icon: ListFilter, label: 'Rules' },
+  { to: '/activity', icon: History, label: 'Activity' },
+  { to: '/settings', icon: Settings2, label: 'Settings' },
+  { to: '/info', icon: BookOpen, label: 'Info & Guide' },
 ];
 
 export function Sidebar() {
-  const { serviceStatus, toggleService, loading } = useSettings();
+  const { serviceStatus, toggleService, loading, downloadDir } = useSettings();
   const { updateState, dismissNotification } = useUpdateContext();
-  const { available, url } = updateState;
+  const { available, url, version } = updateState;
   const healthError = serviceStatus.configuration_error || serviceStatus.scan_error || serviceStatus.degraded_reason;
   const cuePending = useMonitoringCue();
-  const showCue = cuePending && !loading && !serviceStatus.running && !healthError;
+  const running = serviceStatus.running;
+  const showCue = cuePending && !loading && !running && !healthError;
+  const restarting = serviceStatus.lifecycle_state === 'restarting';
+  const folder = formatPath(downloadDir || '').leaf || 'your Downloads folder';
 
   useEffect(() => {
-    if (cuePending && !loading && serviceStatus.running) setMonitoringCue(false);
-  }, [cuePending, loading, serviceStatus.running]);
+    if (cuePending && !loading && running) setMonitoringCue(false);
+  }, [cuePending, loading, running]);
+
+  let tone = running ? 'ok' : 'warn';
+  let title = running ? 'Monitoring' : 'Paused';
+  let text = running
+    ? `Watching ${folder}. New files move as they arrive.`
+    : `New downloads stay in ${folder} until you turn monitoring on.`;
+  if (loading) { tone = 'muted'; title = 'Checking…'; text = 'Reading Harbor’s status.'; }
+  else if (healthError) { tone = 'danger'; title = 'Needs attention'; text = healthError; }
+  else if (restarting) { tone = 'warn'; title = 'Restarting'; text = 'Harbor is restarting the folder watcher.'; }
 
   return (
-    <aside className="harbor-navigation harbor-glass">
-      <a className="harbor-skip-link" href="#main-content">Skip to content</a>
-      <div className="harbor-brand">
-        <img src="/harbor.svg" alt="" width="36" height="36" draggable="false" />
+    <aside className="sidebar" aria-label="Harbor">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <div className="brand">
+        <img src="/harbor.svg" alt="" width="22" height="22" draggable="false" />
         <span>Harbor</span>
       </div>
-      <nav aria-label="Main navigation" className="harbor-nav-links">
+      <nav aria-label="Main navigation" className="nav">
         {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} end={to === '/'} aria-label={label}
-            className={({ isActive }) => `harbor-nav-link ${isActive ? 'is-active' : ''}`}>
-            <Icon size={17} aria-hidden="true" /><span>{label}</span>
-            {available && to === '/info' && <span className="harbor-update-dot bg-red-500" aria-label="Update available" />}
+          <NavLink key={to} to={to} end={to === '/'}
+            className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>
+            <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+            <span>{label}</span>
+            {available && to === '/info' && <span className="nav-badge" aria-label="Update available" />}
           </NavLink>
         ))}
       </nav>
-      <div className="harbor-nav-status">
-        <div id="sidebar-service-toggle" className={`harbor-monitor ${showCue ? 'harbor-monitor-cue' : ''}`}>
-          <div className="harbor-monitor-status">
-            <span aria-hidden="true" className={`harbor-status-dot ${serviceStatus.running ? 'is-running' : ''}`} />
-            <div>
-            {healthError ? <NavLink to="/settings" role="alert" className="harbor-health-warning">Needs attention</NavLink> : showCue ?
-              <button className="harbor-monitor-start" onClick={() => void toggleService()}>Start monitoring</button> :
-              <span className="harbor-monitor-label">{loading ? 'Checking…' : serviceStatus.running ? 'Active' : 'Stopped'}</span>}
-            <span className="harbor-monitor-caption">{serviceStatus.running ? 'Monitoring' : 'Paused'}</span>
-            </div>
-          </div>
-          <label className="harbor-switch">
-            <input type="checkbox" aria-label="Active monitoring" checked={serviceStatus.running} disabled={loading}
+
+      <section id="sidebar-service-toggle" className="monitor" aria-label="Monitoring"
+        data-health={healthError && !loading ? 'error' : undefined} data-cue={showCue ? '' : undefined}>
+        <div className="monitor-head">
+          <span className="dot" data-tone={tone} aria-hidden="true" />
+          <span className="monitor-title" role="status">{title}</span>
+          <label className="switch">
+            <input type="checkbox" role="switch" aria-label="Active monitoring" checked={running} disabled={loading}
               onChange={() => void toggleService()} />
-            <span aria-hidden="true" />
+            <span className="switch-track" aria-hidden="true" />
           </label>
         </div>
-        <button className="harbor-icon-button" aria-label={available ? 'Update Available' : 'GitHub'}
-          title={available ? 'Update Available' : 'GitHub'} onClick={() => {
-            if (available && url) { void open(url); dismissNotification(); }
-            else void open('https://github.com/eduard-lt/Harbor-Download-Organizer');
-          }}><Code2 size={17} aria-hidden="true" /></button>
-        <button className="harbor-icon-button" aria-label="Buy me a coffee" title="Buy me a coffee"
-          onClick={() => void open('https://ko-fi.com/eduardolteanu')}><Coffee size={17} aria-hidden="true" /></button>
+        <p className="monitor-text" role={healthError && !loading ? 'alert' : undefined}>{text}</p>
+        {healthError && !loading && <NavLink to="/settings" className="monitor-link">Review in Settings</NavLink>}
+        {showCue && <button type="button" className="monitor-start" onClick={() => void toggleService()}>Start monitoring</button>}
+      </section>
+
+      <div className="side-links">
+        {available && url && (
+          <button type="button" className="side-link" data-emphasis=""
+            onClick={() => { void open(url); dismissNotification(); }}>
+            <ArrowDownToLine size={15} aria-hidden="true" />
+            <span>Update available{version ? ` · ${version}` : ''}</span>
+          </button>
+        )}
+        <button type="button" className="side-link" onClick={() => void open(REPO_URL)}>
+          <Code2 size={15} aria-hidden="true" /><span>Source on GitHub</span>
+        </button>
+        <button type="button" className="side-link" onClick={() => void open('https://ko-fi.com/eduardolteanu')}>
+          <Coffee size={15} aria-hidden="true" /><span>Buy me a coffee</span>
+        </button>
       </div>
     </aside>
   );

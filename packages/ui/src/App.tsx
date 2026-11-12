@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { UpdateProvider } from './context/UpdateContext';
+import { ToastProvider } from './context/ToastContext';
+import { FileActionsProvider } from './context/FileActionsContext';
 import { Layout } from './components/Layout';
 import { QuitToast } from './components/QuitToast';
 import { ActivityLogsPage } from './pages/ActivityLogsPage';
@@ -59,6 +61,8 @@ function App() {
           <GlobalNavigationListener />
           <GlobalContextMenuListener />
           <UpdateProvider>
+            <ToastProvider>
+            <FileActionsProvider>
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<RulesPage />} />
@@ -67,6 +71,8 @@ function App() {
                 <Route path="info" element={<InfoPage />} />
               </Route>
             </Routes>
+            </FileActionsProvider>
+            </ToastProvider>
             <QuitToast />
           </UpdateProvider>
         </BrowserRouter>
