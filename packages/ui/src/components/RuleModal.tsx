@@ -1,5 +1,6 @@
 import { useState, useEffect, useId, useRef } from 'react';
-import { useModalFocus } from '../hooks/useModalFocus';
+import { ChevronRight, CircleAlert, FolderOpen } from 'lucide-react';
+import { Dialog } from './Dialog';
 import type { Rule } from '../lib/tauri';
 import { open } from '@tauri-apps/plugin-dialog';
 
@@ -8,8 +9,8 @@ const destinationPlaceholder = isMac
   ? '~/Downloads/Images'
   : 'C:\\Users\\Name\\Pictures';
 const destinationHint = isMac
-  ? 'Absolute path to move files to. Supports $HOME, ~/ and ${VAR}.'
-  : 'Absolute path to move files to. Supports %USERPROFILE%.';
+  ? 'Full path of the folder files move to. You can use $HOME, ~/ and ${VAR}.'
+  : 'Full path of the folder files move to. You can use %USERPROFILE%.';
 
 export interface RuleFormData {
     name: string;
@@ -30,7 +31,6 @@ interface RuleModalProps {
 }
 
 export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalProps) {
-    const dialogRef = useModalFocus(isOpen, onClose);
     const formId = useId();
     const formRef = useRef<HTMLFormElement>(null);
     const [name, setName] = useState('');
@@ -152,217 +152,107 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
         }
     };
 
-    if (!isOpen) return null;
+    const editing = !!initialData;
+    const hasAdvanced = !!(initialData?.pattern || initialData?.min_size_bytes != null || initialData?.max_size_bytes != null);
+    const sizeError = fieldErrors.min_size_bytes || fieldErrors.max_size_bytes;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={`${formId}-title`} tabIndex={-1} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
-                <div className="p-6 shrink-0 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <h2 id={`${formId}-title`} className="text-xl font-bold text-slate-800 dark:text-white">
-                        {initialData ? 'Edit Rule' : 'New Rule'}
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        aria-label="Close rule editor"
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors"
-                    >
-                        <span className="material-icons-round">close</span>
-                    </button>
-                </div>
-
-                <form id={formId} ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto min-h-0">
+        <Dialog open={isOpen} title={editing ? 'Edit rule' : 'New rule'} onClose={onClose} closeLabel="Close rule editor" wide
+            footer={<>
+                <button type="button" className="btn" onClick={onClose}>Cancel</button>
+                <button type="submit" form={formId} disabled={loading} className="btn btn-primary">
+                    {loading ? 'Saving…' : 'Save rule'}
+                </button>
+            </>}>
+            <form id={formId} ref={formRef} onSubmit={handleSubmit} className="dialog-body">
+                <div className="stack">
                     {error && (
-                        <div role="alert" className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg">
-                            {error}
+                        <div role="alert" className="notice" data-tone="danger">
+                            <CircleAlert size={16} aria-hidden="true" /><span className="grow">{error}</span>
                         </div>
                     )}
 
-                    <div>
-                        <label htmlFor={`${formId}-name`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Rule Name
-                        </label>
-                        <input
-                            type="text"
-                            id={`${formId}-name`}
-                            aria-label="Rule Name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white"
-                            placeholder="e.g. Images"
-                            required
-                        />
+                    <div className="field">
+                        <label className="field-label" htmlFor={`${formId}-name`}>Rule name</label>
+                        <input type="text" id={`${formId}-name`} className="input" value={name}
+                            onChange={(e) => setName(e.target.value)} placeholder="e.g. Images" required />
                     </div>
 
-                    <div>
-                        <label htmlFor={`${formId}-extensions`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            File Extensions
-                        </label>
-                        <input
-                            type="text"
-                            id={`${formId}-extensions`}
-                            aria-label="File Extensions"
-                            value={extensions}
-                            onChange={(e) => setExtensions(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white"
-                            placeholder="e.g. jpg, png, gif"
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                            Comma separated extensions without dots. Leave blank to match all file types.
-                        </p>
+                    <div className="field">
+                        <label className="field-label" htmlFor={`${formId}-extensions`}>File extensions</label>
+                        <input type="text" id={`${formId}-extensions`} className="input" value={extensions}
+                            aria-describedby={`${formId}-extensions-hint`}
+                            onChange={(e) => setExtensions(e.target.value)} placeholder="e.g. jpg, png, gif" />
+                        <p className="field-hint" id={`${formId}-extensions-hint`}>Separate with commas, no dots. Leave empty to match every file type.</p>
                     </div>
 
-                    <div>
-                        <label htmlFor={`${formId}-destination`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Destination Folder
-                        </label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                id={`${formId}-destination`}
-                                aria-label="Destination Folder"
-                                value={destination}
-                                onChange={(e) => setDestination(e.target.value)}
-                                className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
-                                placeholder={destinationPlaceholder}
-                                required
-                            />
-                            <button
-                                type="button"
-                                onClick={handleBrowse}
-                                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                title="Browse Folder"
-                            >
-                                <span className="material-icons-round">folder_open</span>
+                    <div className="field">
+                        <label className="field-label" htmlFor={`${formId}-destination`}>Destination folder</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input type="text" id={`${formId}-destination`} className="input mono" value={destination}
+                                aria-describedby={`${formId}-destination-hint`}
+                                onChange={(e) => setDestination(e.target.value)} placeholder={destinationPlaceholder} required />
+                            <button type="button" onClick={handleBrowse} className="btn" title="Browse for folder">
+                                <FolderOpen size={15} aria-hidden="true" />Browse
                             </button>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                            {destinationHint}
-                        </p>
+                        <p className="field-hint" id={`${formId}-destination-hint`}>{destinationHint}</p>
                     </div>
 
-                    <div>
-                        <label htmlFor={`${formId}-pattern`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Regex Pattern (Optional)
-                        </label>
-                        <input
-                            type="text"
-                            id={`${formId}-pattern`}
-                            aria-label="Regex Pattern (Optional)"
-                            value={pattern}
-                            onChange={(e) => setPattern(e.target.value)}
-                            disabled={clearPattern}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
-                            placeholder="e.g. ^IMG_\d+"
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                            Rules with a regex pattern get higher matching priority than extension-only rules.
-                            This ensures specific filename patterns (e.g. "broll") are matched before broad extension rules.
-                        </p>
-                        <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                            <input
-                                type="checkbox"
-                                checked={clearPattern}
-                                onChange={(e) => setClearPattern(e.target.checked)}
-                            />
-                            Clear pattern
-                        </label>
-                    </div>
+                    <details className="disclosure" open={hasAdvanced || !!sizeError || undefined}>
+                        <summary><ChevronRight size={14} aria-hidden="true" />Advanced matching</summary>
+                        <div className="disclosure-body">
+                            <div className="field">
+                                <label className="field-label" htmlFor={`${formId}-pattern`}>Filename pattern</label>
+                                <input type="text" id={`${formId}-pattern`} className="input mono" value={pattern}
+                                    aria-describedby={`${formId}-pattern-hint`}
+                                    onChange={(e) => setPattern(e.target.value)} disabled={clearPattern} placeholder="e.g. ^IMG_\d+" />
+                                <p className="field-hint" id={`${formId}-pattern-hint`}>
+                                    A regular expression matched against the file name. Rules with a pattern are checked before extension-only rules, so a specific name such as “invoice” wins over a broad “pdf” rule.
+                                </p>
+                                {editing && (
+                                    <label className="check"><input type="checkbox" checked={clearPattern}
+                                        onChange={(e) => setClearPattern(e.target.checked)} />Clear pattern</label>
+                                )}
+                            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                Minimum Size (bytes)
-                            </label>
-                            <input
-                                type="number"
-                                min={0}
-                                id={`${formId}-minSizeBytes`}
-                            aria-label="Minimum Size (bytes)"
-                            value={minSizeBytes}
-                                onChange={(e) => setMinSizeBytes(e.target.value)}
-                                disabled={clearMinSize}
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
-                                placeholder="e.g. 1048576"
-                            />
-                            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                <input
-                                    type="checkbox"
-                                    checked={clearMinSize}
-                                    onChange={(e) => setClearMinSize(e.target.checked)}
-                                />
-                                Clear minimum size
-                            </label>
-                            {fieldErrors.min_size_bytes && (
-                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.min_size_bytes}</p>
-                            )}
+                            <div className="size-grid">
+                                <div className="field">
+                                    <label className="field-label" htmlFor={`${formId}-minSizeBytes`}>Minimum size (bytes)</label>
+                                    <input type="number" min={0} id={`${formId}-minSizeBytes`} className="input mono" value={minSizeBytes}
+                                        aria-invalid={!!fieldErrors.min_size_bytes || undefined}
+                                        onChange={(e) => setMinSizeBytes(e.target.value)} disabled={clearMinSize} placeholder="e.g. 1048576" />
+                                    {editing && (
+                                        <label className="check"><input type="checkbox" checked={clearMinSize}
+                                            onChange={(e) => setClearMinSize(e.target.checked)} />Clear minimum size</label>
+                                    )}
+                                    {fieldErrors.min_size_bytes && <p className="field-error" role="alert">{fieldErrors.min_size_bytes}</p>}
+                                </div>
+                                <div className="field">
+                                    <label className="field-label" htmlFor={`${formId}-maxSizeBytes`}>Maximum size (bytes)</label>
+                                    <input type="number" min={0} id={`${formId}-maxSizeBytes`} className="input mono" value={maxSizeBytes}
+                                        aria-invalid={!!fieldErrors.max_size_bytes || undefined}
+                                        onChange={(e) => setMaxSizeBytes(e.target.value)} disabled={clearMaxSize} placeholder="e.g. 1073741824" />
+                                    {editing && (
+                                        <label className="check"><input type="checkbox" checked={clearMaxSize}
+                                            onChange={(e) => setClearMaxSize(e.target.checked)} />Clear maximum size</label>
+                                    )}
+                                    {fieldErrors.max_size_bytes && fieldErrors.max_size_bytes !== fieldErrors.min_size_bytes &&
+                                        <p className="field-error" role="alert">{fieldErrors.max_size_bytes}</p>}
+                                </div>
+                            </div>
+                            <p className="field-hint">1 MB is 1048576 bytes. Leave a size empty for no limit.</p>
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                Maximum Size (bytes)
-                            </label>
-                            <input
-                                type="number"
-                                min={0}
-                                id={`${formId}-maxSizeBytes`}
-                            aria-label="Maximum Size (bytes)"
-                            value={maxSizeBytes}
-                                onChange={(e) => setMaxSizeBytes(e.target.value)}
-                                disabled={clearMaxSize}
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all dark:text-white font-mono text-sm"
-                                placeholder="e.g. 1073741824"
-                            />
-                            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                <input
-                                    type="checkbox"
-                                    checked={clearMaxSize}
-                                    onChange={(e) => setClearMaxSize(e.target.checked)}
-                                />
-                                Clear maximum size
-                            </label>
-                            {fieldErrors.max_size_bytes && (
-                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.max_size_bytes}</p>
-                            )}
-                        </div>
-                    </div>
+                    </details>
 
                     {!isMac && (
-                    <div className="flex items-center gap-3 pt-2">
-                        <input
-                            type="checkbox"
-                            id="symlink"
-                            checked={createSymlink}
-                            onChange={(e) => setCreateSymlink(e.target.checked)}
-                            className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary"
-                        />
-                        <label
-                            htmlFor="symlink"
-                            className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
-                        >
-                            Create hidden symlink in original location?
+                        <label className="check" style={{ color: 'var(--ink)' }}>
+                            <input type="checkbox" id="symlink" checked={createSymlink} onChange={(e) => setCreateSymlink(e.target.checked)} />
+                            Leave a hidden shortcut (symlink) where the file was
                         </label>
-                    </div>
                     )}
-
-                </form>
-                <div className="flex justify-end gap-3 p-4 shrink-0 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        form={formId}
-                        disabled={loading}
-                        className="px-6 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? 'Saving...' : 'Save Rule'}
-                    </button>
                 </div>
-            </div>
-        </div>
+            </form>
+        </Dialog>
     );
 }

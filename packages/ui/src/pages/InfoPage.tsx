@@ -1,166 +1,118 @@
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
+import { ArrowDownToLine, Code2, Coffee, Download, FolderInput, ListFilter } from 'lucide-react';
 import { Header } from '../components/Header';
-import { useState } from 'react';
 import { useUpdateContext } from '../context/UpdateContext';
 import packageJson from '../../package.json';
 
-// ... inside component ...
+const REPO_URL = 'https://github.com/eduard-lt/Harbor-Download-Organizer';
+const SUPPORT_URL = 'https://ko-fi.com/eduardolteanu';
+const tabs = [{ id: 'guide', label: 'User Guide' }, { id: 'about', label: 'About' }] as const;
+type Tab = typeof tabs[number]['id'];
 
-<div className="flex justify-center gap-4">
-    <button
-        onClick={() => open('https://github.com/eduard-lt/Harbor-Download-Organizer')}
-        className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-    >
-        <span className="material-icons-round text-lg">code</span>
-        GitHub
-    </button>
-    <button
-        onClick={() => open('https://ko-fi.com/eduardolteanu')}
-        className="flex items-center gap-2 px-6 py-3 bg-[#FF5E5B] text-white rounded-lg hover:bg-[#ff4f4c] transition-colors cursor-pointer"
-    >
-        <span className="material-icons-round text-lg">local_cafe</span>
-        Support
-    </button>
-</div>
+function Guide() {
+  return (
+    <div className="prose">
+      <section>
+        <h2>How Harbor works</h2>
+        <p>Harbor watches one folder, normally <strong>Downloads</strong>. When a new file finishes downloading, Harbor checks your rules and moves the file to the folder the first matching rule names.</p>
+        <ol className="flow" aria-label="What happens to a new file">
+          <li className="flow-step">
+            <div className="marker"><Download size={16} aria-hidden="true" /></div>
+            <h3>A file arrives</h3>
+            <p>You save a file to the watched folder as usual. Partial downloads are skipped until they finish.</p>
+          </li>
+          <li className="flow-step">
+            <div className="marker"><ListFilter size={16} aria-hidden="true" /></div>
+            <h3>A rule matches</h3>
+            <p>Harbor compares the file with your rules and picks the first one that fits.</p>
+          </li>
+          <li className="flow-step">
+            <div className="marker"><FolderInput size={16} aria-hidden="true" /></div>
+            <h3>The file moves</h3>
+            <p>It goes to the rule’s destination. An existing file there is never overwritten.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Which rule wins</h2>
+        <p>Rules with a filename pattern or a size limit are checked first, because they are more specific. Among the rest, the order on the Rules page decides: the higher rule wins. Drag a rule by its handle, or use the arrows beside its number, to change the order.</p>
+      </section>
+
+      <section>
+        <h2>What a rule can match</h2>
+        <dl className="terms">
+          <dt>Extensions</dt><dd>File types, such as <code>jpg, png</code>. Leave empty to match every type.</dd>
+          <dt>Filename pattern</dt><dd>A regular expression for the file name, such as <code>^invoice</code>. For precise rules.</dd>
+          <dt>Size</dt><dd>A minimum or maximum size in bytes, for example to send large videos elsewhere.</dd>
+          <dt>Destination</dt><dd>Any folder on your computer. Harbor creates it if it doesn’t exist.</dd>
+          <dt>Shortcut</dt><dd>On Windows, Harbor can leave a hidden symlink where the file was.</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Staying in control</h2>
+        <p><strong>Preview moves</strong> shows what would happen without moving anything. <strong>Undo last batch</strong> puts the last set of moved files back, as long as they haven’t changed. Changing the watched folder, importing rules, or undoing a batch pauses monitoring until you turn it back on.</p>
+      </section>
+    </div>
+  );
+}
+
+function About() {
+  const { updateState } = useUpdateContext();
+  const { available, version, url } = updateState;
+  return (
+    <div className="about">
+      <img src="/harbor.svg" alt="" />
+      <h2>Harbor</h2>
+      <p className="cell-muted">Version {packageJson.version}</p>
+      <p style={{ color: 'var(--ink-2)', lineHeight: 1.55 }}>
+        A free, open-source download organizer for Windows and macOS. No account, no tracking of your files, MIT licensed.
+      </p>
+      {available && url && (
+        <div className="notice" style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+          <ArrowDownToLine size={16} aria-hidden="true" />
+          <span className="grow">Version {version} is ready to download.</span>
+          <button type="button" className="btn btn-sm btn-primary" onClick={() => void open(url)}>Download</button>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+        <button type="button" className="btn" onClick={() => void open(REPO_URL)}><Code2 size={14} aria-hidden="true" />Source on GitHub</button>
+        <button type="button" className="btn" onClick={() => void open(SUPPORT_URL)}><Coffee size={14} aria-hidden="true" />Buy me a coffee</button>
+      </div>
+    </div>
+  );
+}
 
 export function InfoPage() {
-    const { updateState } = useUpdateContext();
-    const { available, version, url } = updateState;
-    const [activeTab, setActiveTab] = useState<'guide' | 'about'>('guide');
+  const [activeTab, setActiveTab] = useState<Tab>('guide');
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-    return (
-        <>
-            <Header title="Info & Guide" subtitle="Learn how to get the most out of Harbor." />
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const next = activeTab === 'guide' ? 'about' : 'guide';
+    setActiveTab(next);
+    refs.current[next]?.focus();
+  };
 
-            <div className="py-4 max-w-4xl mx-auto w-full">
-                {/* Update Banner */}
-                {available && url && (
-                    <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4">
-                        <div className="flex items-center gap-4">
-                            <span className="material-icons-round text-primary text-2xl">new_releases</span>
-                            <div>
-                                <h3 className="font-bold text-slate-800 dark:text-white">Update Available!</h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">Version {version} is ready to download.</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => open(url)}
-                            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-2"
-                        >
-                            <span className="material-icons-round text-sm">open_in_new</span>
-                            Download
-                        </button>
-                    </div>
-                )}
-
-                {/* Tabs */}
-                <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-8 w-fit">
-                    <button
-                        onClick={() => setActiveTab('guide')}
-                        className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'guide'
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                    >
-                        User Guide
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('about')}
-                        className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'about'
-                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                            }`}
-                    >
-                        About
-                    </button>
-                </div>
-
-                {activeTab === 'guide' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <section>
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">How it Works</h2>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-                                Harbor watches your <strong>Downloads</strong> folder in the background. When a new file arrives, it checks your <strong>Rules</strong> to decide where to move it.
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center mb-4">
-                                        <span className="material-icons-round">download</span>
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white mb-2">1. Download</h3>
-                                    <p className="text-sm text-slate-500">You save a file to your Downloads folder as usual.</p>
-                                </div>
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg flex items-center justify-center mb-4">
-                                        <span className="material-icons-round">rule</span>
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white mb-2">2. Match</h3>
-                                    <p className="text-sm text-slate-500">Harbor checks the file extension against your Rules.</p>
-                                </div>
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center mb-4">
-                                        <span className="material-icons-round">folder_open</span>
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 dark:text-white mb-2">3. Organize</h3>
-                                    <p className="text-sm text-slate-500">The file is instantly moved to the correct folder.</p>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section>
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Managing Rules</h2>
-                            <ul className="space-y-3">
-                                <li className="flex gap-4 items-start">
-                                    <span className="material-icons-round text-primary mt-0.5">check_circle</span>
-                                    <div>
-                                        <strong className="block text-slate-800 dark:text-white">File Extensions</strong>
-                                        <p className="text-sm text-slate-500">Group files by type (e.g., <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">jpg, png</code> for Images).</p>
-                                    </div>
-                                </li>
-                                <li className="flex gap-4 items-start">
-                                    <span className="material-icons-round text-primary mt-0.5">check_circle</span>
-                                    <div>
-                                        <strong className="block text-slate-800 dark:text-white">Destination</strong>
-                                        <p className="text-sm text-slate-500">Choose any folder on your computer as the target.</p>
-                                    </div>
-                                </li>
-                                <li className="flex gap-4 items-start">
-                                    <span className="material-icons-round text-primary mt-0.5">check_circle</span>
-                                    <div>
-                                        <strong className="block text-slate-800 dark:text-white">Regex Patterns</strong>
-                                        <p className="text-sm text-slate-500">Advanced users can match filenames using Regular Expressions.</p>
-                                    </div>
-                                </li>
-                            </ul>
-                        </section>
-                    </div>
-                )}
-
-                {activeTab === 'about' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-12">
-                        <img src="/harbor.svg" alt="Logo" className="w-24 h-24 mx-auto mb-6" />
-                        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Harbor</h2>
-                        <p className="text-slate-500 mb-8">Version {packageJson.version}</p>
-
-                        <p className="max-w-lg mx-auto text-slate-600 dark:text-slate-400 mb-8">
-                            Harbor is a free, open-source utility designed to keep your digital life organized.
-                            It was built with performance and simplicity in mind.
-                        </p>
-
-                        <div className="flex justify-center gap-4">
-                            <a href="https://github.com/eduard-lt/Harbor-Download-Organizer" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
-                                <span className="material-icons-round text-lg">code</span>
-                                GitHub
-                            </a>
-                            <a href="https://ko-fi.com/eduardolteanu" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-6 py-3 bg-[#FF5E5B] text-white rounded-lg hover:bg-[#ff4f4c] transition-colors">
-                                <span className="material-icons-round text-lg">local_cafe</span>
-                                Support
-                            </a>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </>
-    );
+  return (
+    <div className="page">
+      <Header title="Info & Guide">
+        <div className="seg" role="tablist" aria-label="Info sections" onKeyDown={onKeyDown}>
+          {tabs.map(tab => (
+            <button key={tab.id} ref={el => { refs.current[tab.id] = el; }} type="button" role="tab" id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id} aria-controls={`panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1}
+              onClick={() => setActiveTab(tab.id)}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </Header>
+      <div className="page-body" role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
+        {activeTab === 'guide' ? <Guide /> : <About />}
+      </div>
+    </div>
+  );
 }

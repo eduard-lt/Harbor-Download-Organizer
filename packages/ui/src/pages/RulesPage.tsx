@@ -1,70 +1,78 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  Search, Plus, GripVertical, ChevronUp, ChevronDown, Pencil, Trash2, Folder, CircleAlert, ListFilter, Undo2,
+} from 'lucide-react';
 import { Header } from '../components/Header';
 import { useRules } from '../hooks/useRules';
 import { RuleModal, type RuleFormData } from '../components/RuleModal';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { TutorialModal } from '../components/TutorialModal';
+import { Switch } from '../components/Switch';
 import type { Rule, UpdateRuleRequest } from '../lib/tauri';
-import { formatPath } from '../lib/format';
-
-const iconColorClassesLight: Record<string, string> = {
-  indigo: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400',
-  amber: 'bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
-  slate: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500',
-  pink: 'bg-pink-100 text-pink-600 dark:bg-pink-900/20 dark:text-pink-400',
-  purple: 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400',
-  blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
-  green: 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400',
-  red: 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400',
-  orange: 'bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
-};
-
 import { getTutorialCompleted, setTutorialCompleted } from '../lib/tauri';
+import { shortPath } from '../lib/format';
+import { fileIcon } from '../lib/icons';
+import { useSettings } from '../hooks/useSettings';
+import { useFileActions } from '../context/FileActionsContext';
+
+function matchSummary(rule: Rule) {
+  const exts = rule.extensions.join(', ');
+  if (rule.pattern) {
+    return <>{exts && <span>{exts} · </span>}<code>{rule.pattern}</code></>;
+  }
+  return exts || 'Any file type';
+}
+
+function WatchedFolderStrip() {
+  const { downloadDir } = useSettings();
+  const { busy, organizing, chooseFolder, previewMoves, organizeNow } = useFileActions();
+  return (
+    <div className="strip" role="region" aria-label="Watched folder">
+      <Folder size={16} aria-hidden="true" />
+      <span className="strip-label">Watching</span>
+      <code className="strip-path allow-select" title={downloadDir}>{downloadDir || 'No folder set'}</code>
+      <button type="button" className="link-btn" disabled={busy} onClick={chooseFolder}>Change</button>
+      <span className="grow" />
+      <div className="strip-actions">
+        <button type="button" className="btn btn-sm" disabled={busy} onClick={previewMoves}>Preview moves</button>
+        <button type="button" className="btn btn-sm" disabled={busy || organizing} onClick={organizeNow}>
+          {organizing ? 'Organizing…' : 'Organize now'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function RulesPage() {
   const { rules, loading, error, addRule, editRule, removeRule, toggleRule, reorderRules } = useRules();
+  const { busy, requestUndo } = useFileActions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Rule | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const rulesRef = useRef(rules);
   rulesRef.current = rules;
-  const dragStateRef = useRef<{
-    startIndex: number;
-    targetIndex: number | null;
-    pointerId: number;
-  } | null>(null);
+  const dragStateRef = useRef<{ startIndex: number; targetIndex: number | null; pointerId: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-
     const checkTutorial = async () => {
       try {
         const completed = await getTutorialCompleted();
         if (cancelled) return;
-        if (!completed) {
-          timer = setTimeout(() => setShowTutorial(true), 600);
-        }
+        if (!completed) timer = setTimeout(() => setShowTutorial(true), 600);
       } catch (e) {
-        // If the backend isn't ready yet, default to showing the tutorial
-        // rather than silently skipping it.
-        console.error("Failed to check tutorial status, showing tutorial:", e);
-        if (!cancelled) {
-          timer = setTimeout(() => setShowTutorial(true), 800);
-        }
+        // If the backend isn't ready yet, show the tutorial rather than silently skipping it.
+        console.error('Failed to check tutorial status, showing tutorial:', e);
+        if (!cancelled) timer = setTimeout(() => setShowTutorial(true), 800);
       }
     };
-
     checkTutorial();
-
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, []);
 
   const handleCreate = async (ruleData: RuleFormData) => {
@@ -78,64 +86,39 @@ export function RulesPage() {
 
   const handleUpdate = async (ruleData: RuleFormData) => {
     if (!editingRule) return;
-    const payload: UpdateRuleRequest = {
-      ...ruleData,
-      id: editingRule.id,
-    };
+    const payload: UpdateRuleRequest = { ...ruleData, id: editingRule.id };
     await editRule(payload);
   };
 
-  const openCreateModal = () => {
-    setEditingRule(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (rule: Rule) => {
-    setEditingRule(rule);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteClick = (ruleId: string) => {
-    setDeleteTarget(ruleId);
-  };
+  const openCreateModal = () => { setEditingRule(null); setIsModalOpen(true); };
+  const openEditModal = (rule: Rule) => { setEditingRule(rule); setIsModalOpen(true); };
 
   const handleConfirmDelete = async () => {
     if (deleteTarget) {
-      await removeRule(deleteTarget);
+      await removeRule(deleteTarget.id);
       setDeleteTarget(null);
     }
   };
 
   const handleCloseTutorial = async () => {
     setShowTutorial(false);
-    try {
-      await setTutorialCompleted(true);
-    } catch (e) {
-      console.error("Failed to set tutorial status:", e);
-    }
+    try { await setTutorialCompleted(true); }
+    catch (e) { console.error('Failed to set tutorial status:', e); }
   };
 
-  // --- Drag & Drop handlers (pointer-based, more reliable than HTML5 DnD on <tr>) ---
+  // Pointer-based drag, more reliable than HTML5 DnD on table rows.
   const handleDragPointerDown = (e: React.PointerEvent, index: number) => {
-    // Only primary button
     if (e.button !== 0) return;
     e.preventDefault();
-
-    const pointerId = e.pointerId;
-    dragStateRef.current = { startIndex: index, targetIndex: null, pointerId };
+    dragStateRef.current = { startIndex: index, targetIndex: null, pointerId: e.pointerId };
     setDraggingIndex(index);
 
     const handlePointerMove = (ev: PointerEvent) => {
       ev.preventDefault();
-
       const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      if (!el) return;
-
-      const tr = el.closest('tr');
+      const tr = el?.closest('tr');
       if (!tr || !tr.closest('tbody')) return;
-
       const rowIndex = rulesRef.current.findIndex(rule => rule.id === tr.dataset.ruleId);
-
       if (rowIndex >= 0 && dragStateRef.current) {
         dragStateRef.current.targetIndex = rowIndex;
         setHoveredIndex(rowIndex);
@@ -145,25 +128,17 @@ export function RulesPage() {
     const handlePointerUp = async () => {
       const state = dragStateRef.current;
       if (!state) return;
-
       const { startIndex, targetIndex } = state;
-
       if (targetIndex !== null && startIndex !== targetIndex) {
         const reordered = [...rulesRef.current];
         const [moved] = reordered.splice(startIndex, 1);
         reordered.splice(targetIndex, 0, moved);
-
-        try {
-          await reorderRules(reordered.map(r => r.id));
-        } catch (err) {
-          console.error('Failed to reorder rules:', err);
-        }
+        try { await reorderRules(reordered.map(r => r.id)); }
+        catch (err) { console.error('Failed to reorder rules:', err); }
       }
-
       setDraggingIndex(null);
       setHoveredIndex(null);
       dragStateRef.current = null;
-
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
     };
@@ -172,256 +147,159 @@ export function RulesPage() {
     document.addEventListener('pointerup', handlePointerUp);
   };
 
-  // --- Move up/down handlers ---
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
+  const move = async (index: number, delta: -1 | 1) => {
+    const target = index + delta;
+    if (target < 0 || target >= rules.length) return;
     const reordered = [...rules];
-    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
-    try {
-      await reorderRules(reordered.map(r => r.id));
-    } catch (err) {
-      console.error('Failed to reorder rules:', err);
-    }
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    try { await reorderRules(reordered.map(r => r.id)); }
+    catch (err) { console.error('Failed to reorder rules:', err); }
   };
 
-  const handleMoveDown = async (index: number) => {
-    if (index === rules.length - 1) return;
-    const reordered = [...rules];
-    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
-    try {
-      await reorderRules(reordered.map(r => r.id));
-    } catch (err) {
-      console.error('Failed to reorder rules:', err);
-    }
-  };
-
+  const query = searchTerm.trim().toLowerCase();
   const filteredRules = rules.filter(r =>
-    r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.extensions.some(e => e.includes(searchTerm.toLowerCase()))
-  );
+    r.name.toLowerCase().includes(query) || r.extensions.some(e => e.toLowerCase().includes(query)));
+  const enabledCount = rules.filter(r => r.enabled).length;
+  const countText = loading ? '' : `${rules.length} ${rules.length === 1 ? 'rule' : 'rules'}, ${enabledCount} enabled`;
 
   return (
-    <>
-      <Header
-        title="Rules Management"
-        subtitle="A little order, on autopilot."
-      >
-        <div className="relative group">
-          <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
-            search
-          </span>
-          <input
-            className="bg-slate-100 dark:bg-background-card border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg pl-10 pr-4 py-2 w-64 focus:ring-primary focus:border-primary transition-all outline-none"
-            aria-label="Search rules"
-            placeholder="Search rules..."
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <button
-          onClick={openCreateModal}
-          className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-lg shadow-primary/10 cursor-pointer"
-        >
-          <span className="material-icons-round text-lg">add</span>
-          New Rule
+    <div className="page">
+      <Header title="Rules" subtitle={countText}>
+        <label className="search">
+          <Search size={14} aria-hidden="true" />
+          <input type="search" aria-label="Search rules" placeholder="Search rules" value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)} />
+        </label>
+        <button type="button" className="btn btn-primary" onClick={openCreateModal}>
+          <Plus size={14} strokeWidth={2.4} aria-hidden="true" />New rule
         </button>
       </Header>
 
-      <div className="harbor-content">
-        {/* Stats */}
-        <div className="harbor-rule-summary">
-          <div><span>Active Rules</span><strong>{rules.filter(r => r.enabled).length}</strong></div>
-          <div><span>Total Rules</span><strong>{rules.length}</strong></div>
-          <p>Runs from top to bottom · First matching rule wins</p>
-        </div>
+      <WatchedFolderStrip />
 
+      <div className="page-body" style={{ paddingTop: 10 }}>
         {error && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg">
-            Error: {error}
+          <div role="alert" className="notice" data-tone="danger" style={{ marginBottom: 10 }}>
+            <CircleAlert size={16} aria-hidden="true" /><span className="grow">Couldn’t load or save rules: {error}</span>
           </div>
         )}
 
-        {/* Rules Table */}
-        <div className="harbor-rules-panel">
-          {loading ? (
-            <div className="p-8 text-center text-slate-500">Loading rules...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold tracking-wider border-b border-slate-200 dark:border-slate-800">
-                  <tr>
-                    <th className="px-3 py-4 w-[5%] text-center">#</th>
-                    <th className="px-6 py-4 w-[15%]">Rule Name</th>
-                    <th className="px-6 py-4 w-[30%]">Extensions</th>
-                    <th className="px-6 py-4 w-[30%]">Destination</th>
-                    <th className="px-6 py-4 w-[10%] text-center">Status</th>
-                    <th className="px-6 py-4 w-[10%] text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                  {filteredRules.map((rule) => {
-                    const actualIndex = rules.findIndex(r => r.id === rule.id);
-                    const isDragging = draggingIndex === actualIndex;
-                    const isDragOver = hoveredIndex === actualIndex;
+        {(loading || rules.length > 0) && (
+        <table className="table rules-table" aria-label="Rules" aria-busy={loading}>
+          <colgroup>
+            <col className="c-order" /><col className="c-name" /><col /><col className="c-dest" /><col className="c-end" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col"><span className="sr-only">Order</span><span aria-hidden="true" style={{ paddingLeft: 20 }}>#</span></th>
+              <th scope="col">Name</th>
+              <th scope="col">Matches</th>
+              <th scope="col">Moves to</th>
+              <th scope="col" style={{ textAlign: 'right', paddingRight: 72 }}>On</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && [0, 1, 2, 3].map(i => (
+              <tr key={i} className="skeleton-row" aria-hidden="true">
+                <td /><td><span className="skeleton" style={{ width: '60%' }} /></td>
+                <td><span className="skeleton" style={{ width: '75%' }} /></td>
+                <td><span className="skeleton" style={{ width: '55%' }} /></td><td />
+              </tr>
+            ))}
+            {!loading && filteredRules.map((rule) => {
+              const index = rules.findIndex(r => r.id === rule.id);
+              const Icon = fileIcon(rule.icon);
+              return (
+                <tr key={rule.id} data-rule-id={rule.id}
+                  data-off={rule.enabled ? undefined : ''}
+                  data-dragging={draggingIndex === index ? '' : undefined}
+                  data-drop-target={hoveredIndex === index && draggingIndex !== index ? '' : undefined}>
+                  <td>
+                    <div className="order-cell">
+                      <span className="grip" title="Drag to reorder" aria-hidden="true"
+                        onPointerDown={(e) => handleDragPointerDown(e, index)}>
+                        <GripVertical size={14} />
+                      </span>
+                      <span className="idx">{index + 1}</span>
+                      <span className="movers">
+                        <button type="button" aria-label={`Move ${rule.name} up`} title="Move up"
+                          disabled={index === 0 || !!query} onClick={() => void move(index, -1)}>
+                          <ChevronUp size={13} aria-hidden="true" />
+                        </button>
+                        <button type="button" aria-label={`Move ${rule.name} down`} title="Move down"
+                          disabled={index === rules.length - 1 || !!query} onClick={() => void move(index, 1)}>
+                          <ChevronDown size={13} aria-hidden="true" />
+                        </button>
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="name-cell">
+                      <Icon size={16} strokeWidth={1.7} aria-hidden="true" />
+                      <span className="name" title={rule.name}>{rule.name}</span>
+                      {rule.has_pattern && <span className="badge" data-tone="accent">Pattern</span>}
+                      {rule.has_size_constraint && <span className="badge">Size</span>}
+                    </div>
+                  </td>
+                  <td className="cell-trunc cell-muted" title={[rule.extensions.join(', '), rule.pattern].filter(Boolean).join(' · ')}>
+                    {matchSummary(rule)}
+                  </td>
+                  <td className="cell-trunc allow-select" title={rule.destination}>
+                    <code>{shortPath(rule.destination, 2)}</code>
+                  </td>
+                  <td className="c-end-cell">
+                    <div className="end-cell">
+                      <Switch label={`Enable ${rule.name}`} checked={rule.enabled} onChange={(on) => void toggleRule(rule.id, on)} />
+                      <button type="button" className="icon-btn" aria-label={`Edit ${rule.name}`} title="Edit" onClick={() => openEditModal(rule)}>
+                        <Pencil size={14} aria-hidden="true" />
+                      </button>
+                      <button type="button" className="icon-btn" data-tone="danger" aria-label={`Delete ${rule.name}`} title="Delete"
+                        onClick={() => setDeleteTarget(rule)}>
+                        <Trash2 size={14} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        )}
+        {loading && <p className="sr-only" role="status">Loading rules…</p>}
 
-                    return (
-                    <tr
-                      key={rule.id}
-                      data-rule-id={rule.id}
-                      className={`transition-colors group ${!rule.enabled ? 'opacity-50' : ''
-                        } ${isDragging ? 'opacity-30 bg-slate-100 dark:bg-slate-800' : ''
-                        } ${isDragOver ? 'border-t-2 border-primary' : ''
-                        } hover:bg-slate-50 dark:hover:bg-slate-800/30`}
-                    >
-                      <td className="px-3 py-3 text-center align-middle">
-                        <div className="flex items-center justify-center gap-0.5">
-                          <button
-                            onClick={() => handleMoveUp(actualIndex)}
-                            disabled={actualIndex === 0}
-                            className="p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors cursor-pointer"
-                            title="Move up"
-                          >
-                            <span className="material-icons-round text-sm">arrow_drop_up</span>
-                          </button>
-                          <span
-                            onPointerDown={(e) => handleDragPointerDown(e, actualIndex)}
-                            className="material-icons-round text-slate-400 dark:text-slate-500 cursor-grab active:cursor-grabbing hover:text-slate-600 dark:hover:text-slate-300 text-lg select-none touch-none"
-                            title="Drag to reorder"
-                          >
-                            drag_indicator
-                          </span>
-                          <button
-                            onClick={() => handleMoveDown(actualIndex)}
-                            disabled={actualIndex === rules.length - 1}
-                            className="p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors cursor-pointer"
-                            title="Move down"
-                          >
-                            <span className="material-icons-round text-sm">arrow_drop_down</span>
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColorClassesLight[rule.icon_color] || iconColorClassesLight['slate']
-                              }`}
-                          >
-                            <span className="material-icons-round">{rule.icon}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-bold dark:text-white">{rule.name}</span>
-                            {(rule.has_pattern || rule.has_size_constraint) && (
-                              <div className="flex gap-1 mt-0.5">
-                                {rule.has_pattern && (
-                                  <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold leading-none">
-                                    regex
-                                  </span>
-                                )}
-                                {rule.has_size_constraint && (
-                                  <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded text-[10px] font-semibold leading-none">
-                                    size
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {rule.extensions.map((ext) => (
-                            <span
-                              key={ext}
-                              className="harbor-extension"
-                            >
-                              {ext}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="harbor-rule-path allow-select">
-                          {(() => {
-                            const { leaf } = formatPath(rule.destination);
-                            return (
-                              <>
-                                <strong>→ {leaf || rule.destination}</strong>
-                                <details><summary>Full path</summary><code>{rule.destination}</code></details>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <label className="relative inline-flex items-center cursor-pointer justify-center">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            aria-label={`Enable ${rule.name}`}
-                            checked={rule.enabled}
-                            onChange={() => toggleRule(rule.id, !rule.enabled)}
-                          />
-                          <div className="w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            aria-label={`Edit ${rule.name}`}
-                            onClick={() => openEditModal(rule)}
-                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors cursor-pointer"
-                          >
-                            <span className="material-icons-round text-xl">edit</span>
-                          </button>
-                          <button
-                            aria-label={`Delete ${rule.name}`}
-                            onClick={() => handleDeleteClick(rule.id)}
-                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors cursor-pointer"
-                          >
-                            <span className="material-icons-round text-xl">delete_outline</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                  })}
-                  {filteredRules.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                        No rules found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
+        {!loading && rules.length === 0 && (
+          <div className="empty">
+            <ListFilter size={22} aria-hidden="true" />
+            <h2>No rules yet</h2>
+            <p>Rules decide where new files go. Start with one for a file type you download often.</p>
+            <button type="button" className="btn btn-primary" onClick={openCreateModal}>
+              <Plus size={14} strokeWidth={2.4} aria-hidden="true" />New rule
+            </button>
+          </div>
+        )}
+        {!loading && rules.length > 0 && filteredRules.length === 0 && (
+          <div className="empty">
+            <Search size={22} aria-hidden="true" />
+            <h2>No rules match “{searchTerm.trim()}”</h2>
+            <p>Search looks at rule names and extensions.</p>
+            <button type="button" className="btn" onClick={() => setSearchTerm('')}>Clear search</button>
+          </div>
+        )}
       </div>
 
-      <RuleModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={editingRule ? handleUpdate : handleCreate}
-        initialData={editingRule}
-      />
+      <footer className="page-foot">
+        <span className="grow">First matching rule wins. Pattern and size rules are checked first.</span>
+        <button type="button" className="btn btn-sm" disabled={busy} onClick={requestUndo}>
+          <Undo2 size={13} aria-hidden="true" />Undo last batch
+        </button>
+      </footer>
 
-      <TutorialModal
-        isOpen={showTutorial}
-        onClose={handleCloseTutorial}
-      />
-
-      <ConfirmationModal
-        isOpen={!!deleteTarget}
-        title="Delete Rule"
-        message="Are you sure you want to delete this rule? This action cannot be undone."
-        confirmLabel="Delete"
-        isDestructive={true}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
-    </>
+      <RuleModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}
+        onSave={editingRule ? handleUpdate : handleCreate} initialData={editingRule} />
+      <TutorialModal isOpen={showTutorial} onClose={handleCloseTutorial} />
+      <ConfirmationModal isOpen={!!deleteTarget} title={`Delete “${deleteTarget?.name ?? ''}”?`}
+        message="The rule is removed. Files it already moved stay where they are."
+        confirmLabel="Delete rule" isDestructive onConfirm={handleConfirmDelete} onCancel={() => setDeleteTarget(null)} />
+    </div>
   );
 }
