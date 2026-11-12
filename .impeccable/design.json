@@ -1,0 +1,1238 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T22:58:41.587Z",
+  "title": "Design System: Harbor",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Harbor Ink",
+        "canonical": "#14232b",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.5)",
+          "oklch(26% 0.01 232.5)",
+          "oklch(37% 0.017 232.5)",
+          "oklch(48% 0.024 232.5)",
+          "oklch(60% 0.025 232.5)",
+          "oklch(72% 0.018 232.5)",
+          "oklch(84% 0.01 232.5)",
+          "oklch(95% 0.004 232.5)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Slate Ink",
+        "canonical": "#4a5c65",
+        "tonalRamp": [
+          "oklch(15% 0.004 229.7)",
+          "oklch(26% 0.011 229.7)",
+          "oklch(37% 0.018 229.7)",
+          "oklch(48% 0.025 229.7)",
+          "oklch(60% 0.026 229.7)",
+          "oklch(72% 0.019 229.7)",
+          "oklch(84% 0.011 229.7)",
+          "oklch(95% 0.004 229.7)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Mist Ink",
+        "canonical": "#5b6c74",
+        "tonalRamp": [
+          "oklch(15% 0.004 227.9)",
+          "oklch(26% 0.01 227.9)",
+          "oklch(37% 0.016 227.9)",
+          "oklch(48% 0.023 227.9)",
+          "oklch(60% 0.024 227.9)",
+          "oklch(72% 0.017 227.9)",
+          "oklch(84% 0.01 227.9)",
+          "oklch(95% 0.004 227.9)"
+        ]
+      },
+      "ink-on-accent": {
+        "role": "neutral",
+        "displayName": "On-Accent White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Sea-Teal",
+        "canonical": "#0b6a75",
+        "tonalRamp": [
+          "oklch(15% 0.012 207.7)",
+          "oklch(26% 0.032 207.7)",
+          "oklch(37% 0.054 207.7)",
+          "oklch(48% 0.076 207.7)",
+          "oklch(60% 0.08 207.7)",
+          "oklch(72% 0.056 207.7)",
+          "oklch(84% 0.032 207.7)",
+          "oklch(95% 0.012 207.7)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Sea-Teal",
+        "canonical": "#08575f",
+        "tonalRamp": [
+          "oklch(15% 0.01 206)",
+          "oklch(26% 0.028 206)",
+          "oklch(37% 0.047 206)",
+          "oklch(48% 0.066 206)",
+          "oklch(60% 0.069 206)",
+          "oklch(72% 0.048 206)",
+          "oklch(84% 0.028 206)",
+          "oklch(95% 0.01 206)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Teal Wash",
+        "canonical": "rgba(11, 106, 117, 0.11)",
+        "tonalRamp": [
+          "oklch(15% 0.012 207.7)",
+          "oklch(26% 0.032 207.7)",
+          "oklch(37% 0.054 207.7)",
+          "oklch(48% 0.076 207.7)",
+          "oklch(60% 0.08 207.7)",
+          "oklch(72% 0.056 207.7)",
+          "oklch(84% 0.032 207.7)",
+          "oklch(95% 0.012 207.7)"
+        ]
+      },
+      "accent-line": {
+        "role": "primary",
+        "displayName": "Teal Line",
+        "canonical": "rgba(11, 106, 117, 0.34)",
+        "tonalRamp": [
+          "oklch(15% 0.012 207.7)",
+          "oklch(26% 0.032 207.7)",
+          "oklch(37% 0.054 207.7)",
+          "oklch(48% 0.076 207.7)",
+          "oklch(60% 0.08 207.7)",
+          "oklch(72% 0.056 207.7)",
+          "oklch(84% 0.032 207.7)",
+          "oklch(95% 0.012 207.7)"
+        ]
+      },
+      "ok": {
+        "role": "tertiary",
+        "displayName": "Kelp Green",
+        "canonical": "#2f9e74",
+        "tonalRamp": [
+          "oklch(15% 0.018 163.5)",
+          "oklch(26% 0.047 163.5)",
+          "oklch(37% 0.08 163.5)",
+          "oklch(48% 0.112 163.5)",
+          "oklch(60% 0.118 163.5)",
+          "oklch(72% 0.083 163.5)",
+          "oklch(84% 0.047 163.5)",
+          "oklch(95% 0.018 163.5)"
+        ]
+      },
+      "ok-text": {
+        "role": "tertiary",
+        "displayName": "Kelp Green Text",
+        "canonical": "#1c6f50",
+        "tonalRamp": [
+          "oklch(15% 0.014 163.5)",
+          "oklch(26% 0.037 163.5)",
+          "oklch(37% 0.063 163.5)",
+          "oklch(48% 0.088 163.5)",
+          "oklch(60% 0.093 163.5)",
+          "oklch(72% 0.065 163.5)",
+          "oklch(84% 0.037 163.5)",
+          "oklch(95% 0.014 163.5)"
+        ]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Driftwood Amber",
+        "canonical": "#c4703e",
+        "tonalRamp": [
+          "oklch(15% 0.019 49.7)",
+          "oklch(26% 0.05 49.7)",
+          "oklch(37% 0.084 49.7)",
+          "oklch(48% 0.118 49.7)",
+          "oklch(60% 0.124 49.7)",
+          "oklch(72% 0.087 49.7)",
+          "oklch(84% 0.05 49.7)",
+          "oklch(95% 0.019 49.7)"
+        ]
+      },
+      "warn-text": {
+        "role": "tertiary",
+        "displayName": "Driftwood Amber Text",
+        "canonical": "#8f4a1f",
+        "tonalRamp": [
+          "oklch(15% 0.016 49.5)",
+          "oklch(26% 0.043 49.5)",
+          "oklch(37% 0.073 49.5)",
+          "oklch(48% 0.103 49.5)",
+          "oklch(60% 0.108 49.5)",
+          "oklch(72% 0.076 49.5)",
+          "oklch(84% 0.043 49.5)",
+          "oklch(95% 0.016 49.5)"
+        ]
+      },
+      "warn-soft": {
+        "role": "tertiary",
+        "displayName": "Driftwood Wash",
+        "canonical": "rgba(196, 112, 62, 0.12)",
+        "tonalRamp": [
+          "oklch(15% 0.019 49.7)",
+          "oklch(26% 0.05 49.7)",
+          "oklch(37% 0.084 49.7)",
+          "oklch(48% 0.118 49.7)",
+          "oklch(60% 0.124 49.7)",
+          "oklch(72% 0.087 49.7)",
+          "oklch(84% 0.05 49.7)",
+          "oklch(95% 0.019 49.7)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Brick",
+        "canonical": "#b23a3a",
+        "tonalRamp": [
+          "oklch(15% 0.023 24.3)",
+          "oklch(26% 0.062 24.3)",
+          "oklch(37% 0.105 24.3)",
+          "oklch(48% 0.148 24.3)",
+          "oklch(60% 0.156 24.3)",
+          "oklch(72% 0.109 24.3)",
+          "oklch(84% 0.062 24.3)",
+          "oklch(95% 0.023 24.3)"
+        ]
+      },
+      "danger-text": {
+        "role": "tertiary",
+        "displayName": "Brick Text",
+        "canonical": "#9c2626",
+        "tonalRamp": [
+          "oklch(15% 0.023 25.7)",
+          "oklch(26% 0.062 25.7)",
+          "oklch(37% 0.104 25.7)",
+          "oklch(48% 0.147 25.7)",
+          "oklch(60% 0.154 25.7)",
+          "oklch(72% 0.108 25.7)",
+          "oklch(84% 0.062 25.7)",
+          "oklch(95% 0.023 25.7)"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Brick Wash",
+        "canonical": "rgba(178, 58, 58, 0.09)",
+        "tonalRamp": [
+          "oklch(15% 0.023 24.3)",
+          "oklch(26% 0.062 24.3)",
+          "oklch(37% 0.105 24.3)",
+          "oklch(48% 0.148 24.3)",
+          "oklch(60% 0.156 24.3)",
+          "oklch(72% 0.109 24.3)",
+          "oklch(84% 0.062 24.3)",
+          "oklch(95% 0.023 24.3)"
+        ]
+      },
+      "danger-line": {
+        "role": "tertiary",
+        "displayName": "Brick Line",
+        "canonical": "rgba(178, 58, 58, 0.36)",
+        "tonalRamp": [
+          "oklch(15% 0.023 24.3)",
+          "oklch(26% 0.062 24.3)",
+          "oklch(37% 0.105 24.3)",
+          "oklch(48% 0.148 24.3)",
+          "oklch(60% 0.156 24.3)",
+          "oklch(72% 0.109 24.3)",
+          "oklch(84% 0.062 24.3)",
+          "oklch(95% 0.023 24.3)"
+        ]
+      },
+      "hair": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgba(20, 35, 43, 0.08)",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.5)",
+          "oklch(26% 0.01 232.5)",
+          "oklch(37% 0.017 232.5)",
+          "oklch(48% 0.024 232.5)",
+          "oklch(60% 0.025 232.5)",
+          "oklch(72% 0.018 232.5)",
+          "oklch(84% 0.01 232.5)",
+          "oklch(95% 0.004 232.5)"
+        ]
+      },
+      "hair-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "rgba(20, 35, 43, 0.14)",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.5)",
+          "oklch(26% 0.01 232.5)",
+          "oklch(37% 0.017 232.5)",
+          "oklch(48% 0.024 232.5)",
+          "oklch(60% 0.025 232.5)",
+          "oklch(72% 0.018 232.5)",
+          "oklch(84% 0.01 232.5)",
+          "oklch(95% 0.004 232.5)"
+        ]
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "Quiet Fill",
+        "canonical": "rgba(20, 35, 43, 0.045)",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.5)",
+          "oklch(26% 0.01 232.5)",
+          "oklch(37% 0.017 232.5)",
+          "oklch(48% 0.024 232.5)",
+          "oklch(60% 0.025 232.5)",
+          "oklch(72% 0.018 232.5)",
+          "oklch(84% 0.01 232.5)",
+          "oklch(95% 0.004 232.5)"
+        ]
+      },
+      "fill-hover": {
+        "role": "neutral",
+        "displayName": "Hover Fill",
+        "canonical": "rgba(20, 35, 43, 0.065)",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.5)",
+          "oklch(26% 0.01 232.5)",
+          "oklch(37% 0.017 232.5)",
+          "oklch(48% 0.024 232.5)",
+          "oklch(60% 0.025 232.5)",
+          "oklch(72% 0.018 232.5)",
+          "oklch(84% 0.01 232.5)",
+          "oklch(95% 0.004 232.5)"
+        ]
+      },
+      "row-hover": {
+        "role": "neutral",
+        "displayName": "Row Hover",
+        "canonical": "rgba(11, 106, 117, 0.045)",
+        "tonalRamp": [
+          "oklch(15% 0.012 207.7)",
+          "oklch(26% 0.032 207.7)",
+          "oklch(37% 0.054 207.7)",
+          "oklch(48% 0.076 207.7)",
+          "oklch(60% 0.08 207.7)",
+          "oklch(72% 0.056 207.7)",
+          "oklch(84% 0.032 207.7)",
+          "oklch(95% 0.012 207.7)"
+        ]
+      },
+      "track-off": {
+        "role": "neutral",
+        "displayName": "Switch Track Off",
+        "canonical": "rgba(20, 35, 43, 0.24)",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.5)",
+          "oklch(26% 0.01 232.5)",
+          "oklch(37% 0.017 232.5)",
+          "oklch(48% 0.024 232.5)",
+          "oklch(60% 0.025 232.5)",
+          "oklch(72% 0.018 232.5)",
+          "oklch(84% 0.01 232.5)",
+          "oklch(95% 0.004 232.5)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Sea-Glass Canvas",
+        "canonical": "#dde5e4",
+        "tonalRamp": [
+          "oklch(15% 0.001 188.1)",
+          "oklch(26% 0.003 188.1)",
+          "oklch(37% 0.006 188.1)",
+          "oklch(48% 0.008 188.1)",
+          "oklch(60% 0.009 188.1)",
+          "oklch(72% 0.006 188.1)",
+          "oklch(84% 0.003 188.1)",
+          "oklch(95% 0.001 188.1)"
+        ]
+      },
+      "side": {
+        "role": "neutral",
+        "displayName": "Sidebar Glass",
+        "canonical": "rgba(255, 255, 255, 0.36)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "side-edge": {
+        "role": "neutral",
+        "displayName": "Sidebar Edge",
+        "canonical": "rgba(255, 255, 255, 0.6)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "side-card": {
+        "role": "neutral",
+        "displayName": "Monitor Card Glass",
+        "canonical": "rgba(255, 255, 255, 0.5)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet Glass",
+        "canonical": "rgba(250, 251, 251, 0.76)",
+        "tonalRamp": [
+          "oklch(15% 0 197.1)",
+          "oklch(26% 0 197.1)",
+          "oklch(37% 0.001 197.1)",
+          "oklch(48% 0.001 197.1)",
+          "oklch(60% 0.001 197.1)",
+          "oklch(72% 0.001 197.1)",
+          "oklch(84% 0 197.1)",
+          "oklch(95% 0 197.1)"
+        ]
+      },
+      "sheet-edge": {
+        "role": "neutral",
+        "displayName": "Sheet Edge",
+        "canonical": "rgba(255, 255, 255, 0.72)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "solid": {
+        "role": "neutral",
+        "displayName": "Solid",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "control": {
+        "role": "neutral",
+        "displayName": "Control Fill",
+        "canonical": "rgba(255, 255, 255, 0.78)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "canonical": "rgba(18, 34, 42, 0.32)",
+        "tonalRamp": [
+          "oklch(15% 0.004 231)",
+          "oklch(26% 0.011 231)",
+          "oklch(37% 0.018 231)",
+          "oklch(48% 0.025 231)",
+          "oklch(60% 0.026 231)",
+          "oklch(72% 0.019 231)",
+          "oklch(84% 0.011 231)",
+          "oklch(95% 0.004 231)"
+        ]
+      },
+      "shore-sand": {
+        "role": "secondary",
+        "displayName": "Wet Sand",
+        "canonical": "#e8dcc6",
+        "tonalRamp": [
+          "oklch(15% 0.005 82.8)",
+          "oklch(26% 0.013 82.8)",
+          "oklch(37% 0.022 82.8)",
+          "oklch(48% 0.031 82.8)",
+          "oklch(60% 0.032 82.8)",
+          "oklch(72% 0.023 82.8)",
+          "oklch(84% 0.013 82.8)",
+          "oklch(95% 0.005 82.8)"
+        ]
+      },
+      "shore-foam": {
+        "role": "secondary",
+        "displayName": "Foam",
+        "canonical": "#eef3f1",
+        "tonalRamp": [
+          "oklch(15% 0.001 170.4)",
+          "oklch(26% 0.002 170.4)",
+          "oklch(37% 0.004 170.4)",
+          "oklch(48% 0.006 170.4)",
+          "oklch(60% 0.006 170.4)",
+          "oklch(72% 0.004 170.4)",
+          "oklch(84% 0.002 170.4)",
+          "oklch(95% 0.001 170.4)"
+        ]
+      },
+      "shore-shallows": {
+        "role": "secondary",
+        "displayName": "Turquoise Shallows",
+        "canonical": "#a9d6cf",
+        "tonalRamp": [
+          "oklch(15% 0.007 184.7)",
+          "oklch(26% 0.019 184.7)",
+          "oklch(37% 0.032 184.7)",
+          "oklch(48% 0.046 184.7)",
+          "oklch(60% 0.048 184.7)",
+          "oklch(72% 0.034 184.7)",
+          "oklch(84% 0.019 184.7)",
+          "oklch(95% 0.007 184.7)"
+        ]
+      },
+      "shore-sea": {
+        "role": "secondary",
+        "displayName": "Open Sea",
+        "canonical": "#6aa7b3",
+        "tonalRamp": [
+          "oklch(15% 0.01 211.4)",
+          "oklch(26% 0.026 211.4)",
+          "oklch(37% 0.044 211.4)",
+          "oklch(48% 0.062 211.4)",
+          "oklch(60% 0.065 211.4)",
+          "oklch(72% 0.046 211.4)",
+          "oklch(84% 0.026 211.4)",
+          "oklch(95% 0.01 211.4)"
+        ]
+      },
+      "shore-deep": {
+        "role": "secondary",
+        "displayName": "Deep Water",
+        "canonical": "#3f7f93",
+        "tonalRamp": [
+          "oklch(15% 0.011 220.8)",
+          "oklch(26% 0.029 220.8)",
+          "oklch(37% 0.049 220.8)",
+          "oklch(48% 0.069 220.8)",
+          "oklch(60% 0.072 220.8)",
+          "oklch(72% 0.051 220.8)",
+          "oklch(84% 0.029 220.8)",
+          "oklch(95% 0.011 220.8)"
+        ]
+      },
+      "shore-dry-foam": {
+        "role": "secondary",
+        "displayName": "Dry Foam",
+        "canonical": "#f1ece2",
+        "tonalRamp": [
+          "oklch(15% 0.002 84.6)",
+          "oklch(26% 0.006 84.6)",
+          "oklch(37% 0.01 84.6)",
+          "oklch(48% 0.014 84.6)",
+          "oklch(60% 0.014 84.6)",
+          "oklch(72% 0.01 84.6)",
+          "oklch(84% 0.006 84.6)",
+          "oklch(95% 0.002 84.6)"
+        ]
+      },
+      "shore-dry-shallows": {
+        "role": "secondary",
+        "displayName": "Dry Shallows",
+        "canonical": "#ece3d2",
+        "tonalRamp": [
+          "oklch(15% 0.004 83.4)",
+          "oklch(26% 0.01 83.4)",
+          "oklch(37% 0.017 83.4)",
+          "oklch(48% 0.023 83.4)",
+          "oklch(60% 0.025 83.4)",
+          "oklch(72% 0.017 83.4)",
+          "oklch(84% 0.01 83.4)",
+          "oklch(95% 0.004 83.4)"
+        ]
+      },
+      "shore-dry-sea": {
+        "role": "secondary",
+        "displayName": "Dry Sea",
+        "canonical": "#ddd3c1",
+        "tonalRamp": [
+          "oklch(15% 0.004 82.4)",
+          "oklch(26% 0.011 82.4)",
+          "oklch(37% 0.018 82.4)",
+          "oklch(48% 0.025 82.4)",
+          "oklch(60% 0.027 82.4)",
+          "oklch(72% 0.019 82.4)",
+          "oklch(84% 0.011 82.4)",
+          "oklch(95% 0.004 82.4)"
+        ]
+      },
+      "shore-dry-deep": {
+        "role": "secondary",
+        "displayName": "Dry Deep",
+        "canonical": "#cfc6b4",
+        "tonalRamp": [
+          "oklch(15% 0.004 84.6)",
+          "oklch(26% 0.011 84.6)",
+          "oklch(37% 0.018 84.6)",
+          "oklch(48% 0.025 84.6)",
+          "oklch(60% 0.027 84.6)",
+          "oklch(72% 0.019 84.6)",
+          "oklch(84% 0.011 84.6)",
+          "oklch(95% 0.004 84.6)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Harbor Ink (dark)",
+        "canonical": "#e4ecee",
+        "tonalRamp": [
+          "oklch(15% 0.001 214.3)",
+          "oklch(26% 0.004 214.3)",
+          "oklch(37% 0.006 214.3)",
+          "oklch(48% 0.009 214.3)",
+          "oklch(60% 0.009 214.3)",
+          "oklch(72% 0.006 214.3)",
+          "oklch(84% 0.004 214.3)",
+          "oklch(95% 0.001 214.3)"
+        ],
+        "theme": "dark"
+      },
+      "ink-2-dark": {
+        "role": "neutral",
+        "displayName": "Slate Ink (dark)",
+        "canonical": "#a3b5bb",
+        "tonalRamp": [
+          "oklch(15% 0.003 219.8)",
+          "oklch(26% 0.009 219.8)",
+          "oklch(37% 0.015 219.8)",
+          "oklch(48% 0.021 219.8)",
+          "oklch(60% 0.022 219.8)",
+          "oklch(72% 0.015 219.8)",
+          "oklch(84% 0.009 219.8)",
+          "oklch(95% 0.003 219.8)"
+        ],
+        "theme": "dark"
+      },
+      "ink-3-dark": {
+        "role": "neutral",
+        "displayName": "Mist Ink (dark)",
+        "canonical": "#8597a0",
+        "tonalRamp": [
+          "oklch(15% 0.004 229.3)",
+          "oklch(26% 0.01 229.3)",
+          "oklch(37% 0.017 229.3)",
+          "oklch(48% 0.023 229.3)",
+          "oklch(60% 0.025 229.3)",
+          "oklch(72% 0.017 229.3)",
+          "oklch(84% 0.01 229.3)",
+          "oklch(95% 0.004 229.3)"
+        ],
+        "theme": "dark"
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Sea-Teal (dark)",
+        "canonical": "#17777e",
+        "tonalRamp": [
+          "oklch(15% 0.012 202.6)",
+          "oklch(26% 0.033 202.6)",
+          "oklch(37% 0.056 202.6)",
+          "oklch(48% 0.079 202.6)",
+          "oklch(60% 0.083 202.6)",
+          "oklch(72% 0.058 202.6)",
+          "oklch(84% 0.033 202.6)",
+          "oklch(95% 0.012 202.6)"
+        ],
+        "theme": "dark"
+      },
+      "accent-hover-dark": {
+        "role": "primary",
+        "displayName": "Deep Sea-Teal (dark)",
+        "canonical": "#1d8890",
+        "tonalRamp": [
+          "oklch(15% 0.014 202.7)",
+          "oklch(26% 0.036 202.7)",
+          "oklch(37% 0.061 202.7)",
+          "oklch(48% 0.086 202.7)",
+          "oklch(60% 0.091 202.7)",
+          "oklch(72% 0.064 202.7)",
+          "oklch(84% 0.036 202.7)",
+          "oklch(95% 0.014 202.7)"
+        ],
+        "theme": "dark"
+      },
+      "accent-text-dark": {
+        "role": "primary",
+        "displayName": "Pale Lagoon (dark)",
+        "canonical": "#7fd0d2",
+        "tonalRamp": [
+          "oklch(15% 0.012 197.7)",
+          "oklch(26% 0.032 197.7)",
+          "oklch(37% 0.054 197.7)",
+          "oklch(48% 0.075 197.7)",
+          "oklch(60% 0.079 197.7)",
+          "oklch(72% 0.056 197.7)",
+          "oklch(84% 0.032 197.7)",
+          "oklch(95% 0.012 197.7)"
+        ],
+        "theme": "dark"
+      },
+      "danger-dark": {
+        "role": "tertiary",
+        "displayName": "Coral",
+        "canonical": "#f0a07a",
+        "tonalRamp": [
+          "oklch(15% 0.016 46.1)",
+          "oklch(26% 0.044 46.1)",
+          "oklch(37% 0.073 46.1)",
+          "oklch(48% 0.103 46.1)",
+          "oklch(60% 0.109 46.1)",
+          "oklch(72% 0.076 46.1)",
+          "oklch(84% 0.044 46.1)",
+          "oklch(95% 0.016 46.1)"
+        ],
+        "theme": "dark"
+      },
+      "danger-text-dark": {
+        "role": "tertiary",
+        "displayName": "Brick Text (dark)",
+        "canonical": "#f4b293",
+        "tonalRamp": [
+          "oklch(15% 0.013 46.2)",
+          "oklch(26% 0.035 46.2)",
+          "oklch(37% 0.06 46.2)",
+          "oklch(48% 0.084 46.2)",
+          "oklch(60% 0.088 46.2)",
+          "oklch(72% 0.062 46.2)",
+          "oklch(84% 0.035 46.2)",
+          "oklch(95% 0.013 46.2)"
+        ],
+        "theme": "dark"
+      },
+      "canvas-dark": {
+        "role": "neutral",
+        "displayName": "Sea-Glass Canvas (dark)",
+        "canonical": "#0a1418",
+        "tonalRamp": [
+          "oklch(15% 0.003 225)",
+          "oklch(26% 0.007 225)",
+          "oklch(37% 0.011 225)",
+          "oklch(48% 0.016 225)",
+          "oklch(60% 0.017 225)",
+          "oklch(72% 0.012 225)",
+          "oklch(84% 0.007 225)",
+          "oklch(95% 0.003 225)"
+        ],
+        "theme": "dark"
+      },
+      "side-dark": {
+        "role": "neutral",
+        "displayName": "Sidebar Glass (dark)",
+        "canonical": "rgba(18, 32, 40, 0.44)",
+        "tonalRamp": [
+          "oklch(15% 0.004 234.3)",
+          "oklch(26% 0.01 234.3)",
+          "oklch(37% 0.017 234.3)",
+          "oklch(48% 0.024 234.3)",
+          "oklch(60% 0.025 234.3)",
+          "oklch(72% 0.017 234.3)",
+          "oklch(84% 0.01 234.3)",
+          "oklch(95% 0.004 234.3)"
+        ],
+        "theme": "dark"
+      },
+      "sheet-dark": {
+        "role": "neutral",
+        "displayName": "Sheet Glass (dark)",
+        "canonical": "rgba(14, 24, 30, 0.76)",
+        "tonalRamp": [
+          "oklch(15% 0.003 235.3)",
+          "oklch(26% 0.008 235.3)",
+          "oklch(37% 0.013 235.3)",
+          "oklch(48% 0.018 235.3)",
+          "oklch(60% 0.019 235.3)",
+          "oklch(72% 0.013 235.3)",
+          "oklch(84% 0.008 235.3)",
+          "oklch(95% 0.003 235.3)"
+        ],
+        "theme": "dark"
+      },
+      "solid-dark": {
+        "role": "neutral",
+        "displayName": "Solid (dark)",
+        "canonical": "#13222a",
+        "tonalRamp": [
+          "oklch(15% 0.004 232.6)",
+          "oklch(26% 0.01 232.6)",
+          "oklch(37% 0.017 232.6)",
+          "oklch(48% 0.024 232.6)",
+          "oklch(60% 0.026 232.6)",
+          "oklch(72% 0.018 232.6)",
+          "oklch(84% 0.01 232.6)",
+          "oklch(95% 0.004 232.6)"
+        ],
+        "theme": "dark"
+      },
+      "solid-raised-dark": {
+        "role": "neutral",
+        "displayName": "Raised Solid (dark)",
+        "canonical": "#182a33",
+        "tonalRamp": [
+          "oklch(15% 0.004 230.9)",
+          "oklch(26% 0.012 230.9)",
+          "oklch(37% 0.02 230.9)",
+          "oklch(48% 0.028 230.9)",
+          "oklch(60% 0.029 230.9)",
+          "oklch(72% 0.02 230.9)",
+          "oklch(84% 0.012 230.9)",
+          "oklch(95% 0.004 230.9)"
+        ],
+        "theme": "dark"
+      },
+      "shore-sand-dark": {
+        "role": "secondary",
+        "displayName": "Wet Sand (dark)",
+        "canonical": "#2b2a24",
+        "tonalRamp": [
+          "oklch(15% 0.002 99.3)",
+          "oklch(26% 0.004 99.3)",
+          "oklch(37% 0.007 99.3)",
+          "oklch(48% 0.01 99.3)",
+          "oklch(60% 0.011 99.3)",
+          "oklch(72% 0.008 99.3)",
+          "oklch(84% 0.004 99.3)",
+          "oklch(95% 0.002 99.3)"
+        ],
+        "theme": "dark"
+      },
+      "shore-foam-dark": {
+        "role": "secondary",
+        "displayName": "Foam (dark)",
+        "canonical": "#10222c",
+        "tonalRamp": [
+          "oklch(15% 0.005 234.3)",
+          "oklch(26% 0.012 234.3)",
+          "oklch(37% 0.021 234.3)",
+          "oklch(48% 0.029 234.3)",
+          "oklch(60% 0.031 234.3)",
+          "oklch(72% 0.021 234.3)",
+          "oklch(84% 0.012 234.3)",
+          "oklch(95% 0.005 234.3)"
+        ],
+        "theme": "dark"
+      },
+      "shore-shallows-dark": {
+        "role": "secondary",
+        "displayName": "Turquoise Shallows (dark)",
+        "canonical": "#15474e",
+        "tonalRamp": [
+          "oklch(15% 0.008 208.2)",
+          "oklch(26% 0.021 208.2)",
+          "oklch(37% 0.036 208.2)",
+          "oklch(48% 0.051 208.2)",
+          "oklch(60% 0.053 208.2)",
+          "oklch(72% 0.037 208.2)",
+          "oklch(84% 0.021 208.2)",
+          "oklch(95% 0.008 208.2)"
+        ],
+        "theme": "dark"
+      },
+      "shore-sea-dark": {
+        "role": "secondary",
+        "displayName": "Open Sea (dark)",
+        "canonical": "#1b5d68",
+        "tonalRamp": [
+          "oklch(15% 0.01 210.9)",
+          "oklch(26% 0.027 210.9)",
+          "oklch(37% 0.045 210.9)",
+          "oklch(48% 0.063 210.9)",
+          "oklch(60% 0.066 210.9)",
+          "oklch(72% 0.046 210.9)",
+          "oklch(84% 0.027 210.9)",
+          "oklch(95% 0.01 210.9)"
+        ],
+        "theme": "dark"
+      },
+      "shore-deep-dark": {
+        "role": "secondary",
+        "displayName": "Deep Water (dark)",
+        "canonical": "#0f2f40",
+        "tonalRamp": [
+          "oklch(15% 0.007 235.2)",
+          "oklch(26% 0.019 235.2)",
+          "oklch(37% 0.033 235.2)",
+          "oklch(48% 0.046 235.2)",
+          "oklch(60% 0.048 235.2)",
+          "oklch(72% 0.034 235.2)",
+          "oklch(84% 0.019 235.2)",
+          "oklch(95% 0.007 235.2)"
+        ],
+        "theme": "dark"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles in the sheet head, with a tabular count beside them; the About name."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Dialog titles."
+      },
+      "title-section": {
+        "displayName": "Section title",
+        "purpose": "Guide and prose section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All interface text; prose at line-height 1.55 and 68ch."
+      },
+      "body-strong": {
+        "displayName": "Body strong",
+        "purpose": "Buttons, nav links, field labels, row titles, rule names."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Hints, errors, monitoring text, toast sub-lines; 600 for group titles and day rows."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase table column headers; badges at the same size without uppercase."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Folder paths, patterns, extensions, kbd."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-side",
+        "value": "0 0 0 0.5px rgba(20,35,43,0.08), 0 18px 50px rgba(20,40,50,0.1)",
+        "purpose": "Sidebar glass pane."
+      },
+      {
+        "name": "shadow-sheet",
+        "value": "0 0 0 0.5px rgba(20,35,43,0.1), 0 24px 60px rgba(20,40,50,0.14)",
+        "purpose": "Content sheet glass pane."
+      },
+      {
+        "name": "shadow-group",
+        "value": "0 0 0 0.5px rgba(20,35,43,0.12), 0 1px 2px rgba(20,35,43,0.04)",
+        "purpose": "Solid grouped settings lists."
+      },
+      {
+        "name": "shadow-pop",
+        "value": "0 0 0 0.5px rgba(20,35,43,0.14), 0 18px 48px rgba(20,40,50,0.22)",
+        "purpose": "Dialogs, toasts, skip link."
+      },
+      {
+        "name": "shadow-side-dark",
+        "value": "0 0 0 0.5px rgba(0,0,0,0.5), 0 18px 50px rgba(0,0,0,0.35)",
+        "purpose": "Sidebar, dark theme."
+      },
+      {
+        "name": "shadow-sheet-dark",
+        "value": "0 0 0 0.5px rgba(0,0,0,0.6), 0 24px 60px rgba(0,0,0,0.45)",
+        "purpose": "Sheet, dark theme."
+      },
+      {
+        "name": "shadow-group-dark",
+        "value": "0 0 0 0.5px rgba(255,255,255,0.09), 0 1px 2px rgba(0,0,0,0.3)",
+        "purpose": "Groups, dark theme."
+      },
+      {
+        "name": "shadow-pop-dark",
+        "value": "0 0 0 0.5px rgba(255,255,255,0.1), 0 24px 60px rgba(0,0,0,0.55)",
+        "purpose": "Dialogs and toasts, dark theme."
+      },
+      {
+        "name": "glass-sidebar",
+        "value": "backdrop-filter: blur(40px) saturate(180%)",
+        "purpose": "Sidebar material (more transparent pane)."
+      },
+      {
+        "name": "glass-sheet",
+        "value": "backdrop-filter: blur(40px) saturate(160%)",
+        "purpose": "Content sheet material (denser pane)."
+      },
+      {
+        "name": "shore-blur",
+        "value": "filter: blur(72px)",
+        "purpose": "Shoreline field blur; fields extend 140px past the window."
+      },
+      {
+        "name": "scrim-blur",
+        "value": "backdrop-filter: blur(3px)",
+        "purpose": "Dialog scrim."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid var(--focus); outline-offset: 2px",
+        "purpose": "Global keyboard focus."
+      },
+      {
+        "name": "input-focus-halo",
+        "value": "0 0 0 3px var(--accent-soft)",
+        "purpose": "Text input focus, with accent border."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Tide, dialog and toast entry, switch thumb, step dots."
+      },
+      {
+        "name": "tide",
+        "value": "2.4s ease-out (fields); 2.2s (filter)",
+        "purpose": "Shoreline transition between tide in and tide out; skipped on first render."
+      },
+      {
+        "name": "state-fast",
+        "value": "0.15s ease",
+        "purpose": "Hover background, border, and colour changes on controls."
+      },
+      {
+        "name": "row-hover",
+        "value": "0.12s ease",
+        "purpose": "Table row hover and mover reveal."
+      },
+      {
+        "name": "switch",
+        "value": "0.18s",
+        "purpose": "Switch track colour and thumb travel."
+      },
+      {
+        "name": "fade-in",
+        "value": "0.18s ease-out",
+        "purpose": "Dialog scrim."
+      },
+      {
+        "name": "rise-in",
+        "value": "translateY(6px) scale(0.99) to rest, 0.24s dialog / 0.26s toast",
+        "purpose": "Dialog and toast entry."
+      },
+      {
+        "name": "monitor-tint",
+        "value": "0.4s ease (card), 0.6s ease (Reduce transparency sidebar)",
+        "purpose": "Monitoring state colour changes."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "all transitions and animations 0.01ms",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "window-min",
+        "value": "1000px x 700px"
+      },
+      {
+        "name": "safety",
+        "value": "899px"
+      },
+      {
+        "name": "compact",
+        "value": "1199px"
+      },
+      {
+        "name": "window-max",
+        "value": "1600px x 1000px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action of a page head or a dialog confirm.",
+      "html": "<button class=\"ds-btn-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>New rule</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-control, 8px); font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; background: var(--accent, #0b6a75); color: var(--ink-on-accent, #fff); border: 1px solid transparent; } .ds-btn-primary:hover { background: var(--accent-hover, #08575f); } .ds-btn-primary:focus-visible { outline: 2px solid var(--focus, #0b6a75); outline-offset: 2px; }"
+    },
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default secondary action on a translucent control fill.",
+      "html": "<button class=\"ds-btn\">Preview</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-control, 8px); font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; background: var(--control, rgba(255,255,255,0.78)); color: var(--ink, #14232b); border: 1px solid var(--hair-strong, rgba(20,35,43,0.14)); } .ds-btn:hover { background: var(--fill-hover, rgba(20,35,43,0.065)); } .ds-btn:focus-visible { outline: 2px solid var(--focus, #0b6a75); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive action outside a confirm dialog.",
+      "html": "<button class=\"ds-btn-danger\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg>Delete rule</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-control, 8px); font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; background: var(--control, rgba(255,255,255,0.78)); color: var(--danger-text, #9c2626); border: 1px solid var(--danger-line, rgba(178,58,58,0.36)); } .ds-btn-danger:hover { background: var(--danger-soft, rgba(178,58,58,0.09)); } .ds-btn-danger:focus-visible { outline: 2px solid var(--focus, #0b6a75); outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Page-head search well; turns to a control fill with a teal edge on focus.",
+      "html": "<label class=\"ds-search\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" placeholder=\"Search rules\" /></label>",
+      "css": ".ds-search { display: flex; align-items: center; gap: 7px; height: 30px; width: 240px; padding: 0 10px; border-radius: var(--r-control, 8px); background: var(--fill, rgba(20,35,43,0.045)); border: 1px solid var(--hair, rgba(20,35,43,0.08)); color: var(--ink-2, #4a5c65); font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; } .ds-search:focus-within { border-color: var(--accent-line, rgba(11,106,117,0.34)); background: var(--control, rgba(255,255,255,0.78)); outline: 2px solid var(--focus, #0b6a75); outline-offset: 1px; } .ds-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--ink, #14232b); font: inherit; } .ds-search input::placeholder { color: var(--ink-3, #5b6c74); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Solid field with a teal border and soft halo on focus; mono for paths.",
+      "html": "<input class=\"ds-input\" value=\"C:\\Users\\you\\Downloads\\Images\" />",
+      "css": ".ds-input { width: 280px; height: 32px; padding: 0 10px; border-radius: var(--r-control, 8px); border: 1px solid var(--hair-strong, rgba(20,35,43,0.14)); background: var(--solid, #fff); color: var(--ink, #14232b); font-family: var(--font-mono, \"JetBrains Mono\", Consolas, monospace); font-size: 12px; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-input:hover { border-color: rgba(20,35,43,0.26); } .ds-input:focus { outline: none; border-color: var(--accent, #0b6a75); box-shadow: 0 0 0 3px var(--accent-soft, rgba(11,106,117,0.11)); }"
+    },
+    {
+      "name": "Switch",
+      "kind": "custom",
+      "refersTo": "switch",
+      "description": "Native checkbox drawn as a pill; teal when on.",
+      "html": "<label class=\"ds-switch\"><input type=\"checkbox\" role=\"switch\" checked aria-label=\"Active monitoring\" /><span class=\"ds-switch-track\"></span></label>",
+      "css": ".ds-switch { position: relative; display: inline-flex; cursor: pointer; } .ds-switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: inherit; } .ds-switch-track { width: 30px; height: 18px; padding: 2px; box-sizing: border-box; border-radius: 999px; background: var(--track-off, rgba(20,35,43,0.24)); display: flex; pointer-events: none; transition: background-color 0.18s ease; } .ds-switch-track::after { content: \"\"; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-switch input:checked + .ds-switch-track { background: var(--accent, #0b6a75); } .ds-switch input:checked + .ds-switch-track::after { transform: translateX(12px); } .ds-switch input:focus-visible + .ds-switch-track { outline: 2px solid var(--focus, #0b6a75); outline-offset: 2px; }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Glass sidebar destinations; active item takes the teal wash.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link is-active\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M7 12h10\"/><path d=\"M10 18h4\"/></svg><span>Rules</span></a><a class=\"ds-nav-link\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l4 2\"/></svg><span>Activity</span></a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 2px; width: 204px; padding: 10px; border-radius: 14px; background: var(--side, rgba(255,255,255,0.36)); border: 1px solid var(--side-edge, rgba(255,255,255,0.6)); box-shadow: 0 0 0 0.5px rgba(20,35,43,0.08), 0 18px 50px rgba(20,40,50,0.1); } .ds-nav-link { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: 7px; font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; color: var(--ink, #14232b); text-decoration: none; transition: background-color 0.15s ease; } .ds-nav-link svg { color: var(--ink-2, #4a5c65); } .ds-nav-link:hover { background: var(--fill-hover, rgba(20,35,43,0.065)); } .ds-nav-link.is-active { background: var(--accent-soft, rgba(11,106,117,0.11)); color: var(--accent-text, #0b6a75); } .ds-nav-link.is-active svg { color: currentColor; } .ds-nav-link:focus-visible { outline: 2px solid var(--focus, #0b6a75); outline-offset: 2px; }"
+    },
+    {
+      "name": "Monitoring Card",
+      "kind": "custom",
+      "refersTo": "monitor-card",
+      "description": "Sidebar state card: status dot, title, switch, watched folder line.",
+      "html": "<section class=\"ds-monitor\"><div class=\"ds-monitor-head\"><span class=\"ds-dot\"></span><span class=\"ds-monitor-title\">Monitoring</span></div><p class=\"ds-monitor-text\">Watching Downloads. New files move as they arrive.</p></section>",
+      "css": ".ds-monitor { width: 204px; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--r-card, 10px); background: var(--side-card, rgba(255,255,255,0.5)); border: 1px solid var(--side-edge, rgba(255,255,255,0.6)); font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; color: var(--ink, #14232b); } .ds-monitor-head { display: flex; align-items: center; gap: 8px; } .ds-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok, #2f9e74); } .ds-monitor-title { font-weight: 600; } .ds-monitor-text { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ink-2, #4a5c65); }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Small hairline tag; accent tone for emphasis.",
+      "html": "<span class=\"ds-badge\">Off</span> <span class=\"ds-badge ds-badge-accent\">Default</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-family: var(--font-sans, \"Inter Variable\", system-ui, sans-serif); font-size: 11px; font-weight: 500; border: 1px solid var(--hair-strong, rgba(20,35,43,0.14)); color: var(--ink-2, #4a5c65); } .ds-badge-accent { border-color: var(--accent-line, rgba(11,106,117,0.34)); color: var(--accent-text, #0b6a75); }"
+    },
+    {
+      "name": "Grouped List",
+      "kind": "card",
+      "refersTo": "group",
+      "description": "Solid settings group with hairline-divided rows.",
+      "html": "<div class=\"ds-group\"><div class=\"ds-group-row\"><div class=\"ds-text\"><div class=\"ds-title\">Launch at startup</div><div class=\"ds-desc\">Open Harbor when you sign in.</div></div></div><div class=\"ds-group-row\"><div class=\"ds-text\"><div class=\"ds-title\">Reduce transparency</div><div class=\"ds-desc\">Solid panels; monitoring shows as a sidebar tint.</div></div></div></div>",
+      "css": ".ds-group { width: 420px; background: var(--solid, #fff); border-radius: var(--r-card, 10px); box-shadow: 0 0 0 0.5px rgba(20,35,43,0.12), 0 1px 2px rgba(20,35,43,0.04); font-family: var(--font-sans, \"Inter Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; } .ds-group-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 52px; box-sizing: border-box; border-bottom: 1px solid var(--hair, rgba(20,35,43,0.08)); } .ds-group-row:last-child { border-bottom: 0; } .ds-title { font-weight: 500; color: var(--ink, #14232b); } .ds-desc { color: var(--ink-2, #4a5c65); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Shoreline Glass",
+    "overview": "Harbor is a calm native utility seen through frosted glass, with an aerial shoreline blurred behind it: wet sand bottom-left, turquoise shallows, deep sea-blue top-right. The backdrop is five large, heavily blurred colour fields, static at rest. A floating, more transparent sidebar sits beside an opaque-leaning content sheet; tables, forms, grouped settings and dialogs sit on near-solid surfaces so glass never hurts reading.\n\nThe shoreline is not decoration; it carries state. While monitoring runs the water is in, in full colour. When monitoring is paused the tide goes out: the water fields slide toward the top right, shrink, and turn to dry-sand tones while the sand field grows across the frame, in one slow ease of about 2.4 seconds. Errors tint only the monitoring card, never the backdrop. With Reduce transparency on (app setting or OS preference), the backdrop and blurs go away and the same state appears as a sidebar tint: sea-tinted when watching, sand-tinted when paused.\n\nDensity is that of a desktop utility: 13px body, 30px controls, 46px table rows, a supported window from 1000×700 to 1600×1000. One sea-teal accent, muted state colours, monochrome line icons, hairlines. It refuses the grey-sidebar-plus-card dashboard, dark-and-techy chrome, and the earlier cartoon-harbour look: no scenery illustrations, no rainbow of icon colours, no nautical puns in copy.",
+    "keyCharacteristics": [
+      "Blurred five-field shoreline backdrop that reports monitoring state through the tide.",
+      "Two glass panes: a lighter sidebar (blur 40px, saturate 180%) and a denser content sheet (blur 40px, saturate 160%).",
+      "Reading surfaces (groups, inputs, dialogs, toasts) are solid, never glass.",
+      "One sea-teal accent; state colours stay muted and appear as small dots, tinted notices, and text.",
+      "Inter at 13px with weights 400 to 600; JetBrains Mono for paths and patterns.",
+      "Light and dark themes share every rule; dark swaps tokens only."
+    ],
+    "rules": [
+      {
+        "name": "The One Teal Rule",
+        "body": "Sea-teal is the only accent. Every interactive highlight, selection, and focus ring is teal; nothing else competes. File-type and nav icons stay monochrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Water Stays Behind the Glass Rule",
+        "body": "Shoreline and dry-sand colours appear only in the blurred backdrop, the Reduce-transparency sidebar tint, and the theme preview swatches. They are never used for text, controls, or icons.",
+        "section": "colors"
+      },
+      {
+        "name": "The Card Carries the Alarm Rule",
+        "body": "Errors tint the monitoring card and inline notices; the backdrop only ever reports active versus paused.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight Not Size Rule",
+        "body": "The ramp spans 11 to 20px. Emphasis comes from 500 or 600 and from moving between Harbor Ink and Slate Ink, not from larger type.",
+        "section": "typography"
+      },
+      {
+        "name": "The Numbers Line Up Rule",
+        "body": "Counts, order indexes, sizes, and times use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glass Frames, Solid Reads Rule",
+        "body": "Only the sidebar and sheet are glass. Tables sit on the sheet's dense glass; inputs, grouped lists, dialogs, and toasts are solid.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Portal Rule",
+        "body": "Anything `position: fixed` (dialog scrims, toasts) is portaled to `document.body`, because the sheet's backdrop-filter becomes the containing block for fixed descendants and would clip them.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Reduce Transparency Rule",
+        "body": "With Reduce transparency on, the backdrop is hidden, all blurs are removed, the sheet goes solid with a stronger edge, and monitoring state moves to the sidebar tint (sea mixed 22% into canvas when watching, sand 55% when paused). Browsers without backdrop-filter get solid panes as well.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** drive the backdrop only from monitoring state through `data-tide`, and mirror it as a sidebar tint under Reduce transparency.",
+      "**Do** keep reading and typing on solid surfaces; glass is for the two panes only.",
+      "**Do** portal dialogs, scrims, and toasts to `document.body`.",
+      "**Do** use Sea-Teal for every interactive highlight and the 2px focus outline at 2px offset.",
+      "**Do** draw icons with lucide-react line icons in the current ink tone, 16px in navigation and dialog chrome, 14px inside compact controls.",
+      "**Do** set paths, patterns, and extensions in JetBrains Mono at 12px and ellipsise them, keeping the file name visible.",
+      "**Do** bundle fonts and icons locally; load nothing from a CDN.",
+      "**Do** keep the existing Harbor \"H\" mark as the only logo."
+    ],
+    "donts": [
+      "**Don't** use shoreline or sand colours for text, icons, or controls.",
+      "**Don't** put errors on the backdrop; tint the monitoring card or a notice.",
+      "**Don't** colour file-type or navigation icons; the icon family stays monochrome.",
+      "**Don't** add scenery illustrations, toy colours, or nautical puns in copy.",
+      "**Don't** animate the backdrop in loops; it moves once per state change.",
+      "**Don't** place text directly on the blurred backdrop outside the panes.",
+      "**Don't** introduce a second accent hue or a display typeface."
+    ]
+  }
+}
