@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { Layout } from './Layout';
 import { MemoryRouter } from 'react-router-dom';
 
+vi.mock('../hooks/useSettings', () => ({
+    useSettings: vi.fn(() => ({ serviceStatus: { running: true, pid: 1 }, loading: false })),
+}));
+
 // Mock the Sidebar because it is a complex component with context dependencies
 vi.mock('./Sidebar', () => ({
     Sidebar: () => <div data-testid="sidebar">Sidebar</div>,
@@ -44,5 +48,15 @@ describe('Layout', () => {
         );
         // Should have a flex container wrapping sidebar + content
         expect(container.firstChild).toBeInTheDocument();
+    });
+
+    it('lets the shoreline carry monitoring state', async () => {
+        const { useSettings } = await import('../hooks/useSettings');
+        const { container, rerender } = render(<MemoryRouter><Layout /></MemoryRouter>);
+        expect(container.querySelector('.shell')).toHaveAttribute('data-tide', 'in');
+        vi.mocked(useSettings).mockReturnValue({ serviceStatus: { running: false, pid: 0 }, loading: false } as never);
+        rerender(<MemoryRouter><Layout /></MemoryRouter>);
+        expect(container.querySelector('.shell')).toHaveAttribute('data-tide', 'out');
+        expect(container.querySelector('.shore')).toHaveAttribute('aria-hidden', 'true');
     });
 });

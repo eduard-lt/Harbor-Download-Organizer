@@ -40,7 +40,7 @@ describe('ActivityLogsPage', () => {
 
     it('renders the header with title', () => {
         render(<ActivityLogsPage />);
-        expect(screen.getByText('Activity Logs')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Activity' })).toBeInTheDocument();
     });
 
     it('shows total count in subtitle', () => {
@@ -59,7 +59,7 @@ describe('ActivityLogsPage', () => {
             ...mockUseActivity, logs: [], loading: true,
         });
         render(<ActivityLogsPage />);
-        expect(screen.getByText('Loading activity...')).toBeInTheDocument();
+        expect(screen.getByText('Loading activity…')).toBeInTheDocument();
     });
 
     it('shows error banner when error is present', () => {
@@ -67,7 +67,7 @@ describe('ActivityLogsPage', () => {
             ...mockUseActivity, error: 'Network error',
         });
         render(<ActivityLogsPage />);
-        expect(screen.getByText('Network error')).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveTextContent('Network error');
     });
 
     it('shows Load More button when hasMore is true', () => {
@@ -75,7 +75,7 @@ describe('ActivityLogsPage', () => {
             ...mockUseActivity, hasMore: true,
         });
         render(<ActivityLogsPage />);
-        expect(screen.getByText('Load More')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Load more' })).toBeInTheDocument();
     });
 
     it('calls loadMore when Load More button is clicked', () => {
@@ -83,7 +83,7 @@ describe('ActivityLogsPage', () => {
             ...mockUseActivity, hasMore: true,
         });
         render(<ActivityLogsPage />);
-        fireEvent.click(screen.getByText('Load More'));
+        fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
         expect(mockUseActivity.loadMore).toHaveBeenCalled();
     });
 
@@ -92,7 +92,7 @@ describe('ActivityLogsPage', () => {
             ...mockUseActivity, hasMore: true, loading: true,
         });
         render(<ActivityLogsPage />);
-        const buttons = screen.getAllByText('Loading...');
+        const buttons = screen.getAllByText('Loading…');
         expect(buttons.length).toBeGreaterThan(0);
     });
 
@@ -101,6 +101,25 @@ describe('ActivityLogsPage', () => {
             ...mockUseActivity, logs: [],
         });
         render(<ActivityLogsPage />);
-        expect(screen.getByText('No activity logs found.')).toBeInTheDocument();
+        expect(screen.getByText('No activity yet')).toBeInTheDocument();
+    });
+
+    it('filters by status with the segmented control', () => {
+        render(<ActivityLogsPage />);
+        fireEvent.click(screen.getByRole('button', { name: 'Failed' }));
+        expect(screen.getByRole('button', { name: 'Failed' })).toHaveAttribute('aria-pressed', 'true');
+        expect(vi.mocked(useActivity)).toHaveBeenLastCalledWith(20, '', 'error');
+    });
+
+    it('shows failures from the last organize run and lets the user dismiss them', () => {
+        window.sessionStorage.setItem('harbor:lastOrganizeResult', JSON.stringify({ failure_groups: [{
+            code: 'filesystem_error', message: 'A file could not be moved', count: 1, legacy_errors: [],
+            failures: [{ code: 'filesystem_error', message: 'x', details: { source_path: 'C:\\Downloads\\locked.txt', reason: 'Access denied' } }],
+        }] }));
+        render(<ActivityLogsPage />);
+        expect(screen.getByText(/couldn’t be moved/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Dismiss failures' }));
+        expect(screen.queryByText(/couldn’t be moved/)).not.toBeInTheDocument();
+        expect(window.sessionStorage.getItem('harbor:lastOrganizeResult')).toBeNull();
     });
 });

@@ -19,6 +19,19 @@ vi.mock('../hooks/useWindowSize', () => ({
     useWindowSize: vi.fn(),
 }));
 
+const notify = vi.hoisted(() => vi.fn());
+vi.mock('../context/ToastContext', () => ({ useToast: () => ({ notify }) }));
+const fileActions = vi.hoisted(() => ({
+    busy: false, organizing: false, chooseFolder: vi.fn(), previewMoves: vi.fn(), organizeNow: vi.fn(),
+    requestUndo: vi.fn(), exportRules: vi.fn(), requestImport: vi.fn(),
+}));
+vi.mock('../context/FileActionsContext', () => ({ useFileActions: () => fileActions }));
+vi.mock('@tauri-apps/plugin-shell', () => ({ open: vi.fn() }));
+vi.mock('../lib/tauri', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('../lib/tauri')>()),
+    setTutorialCompleted: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@tauri-apps/api/window', () => ({
     getCurrentWindow: () => ({ setSize: vi.fn(), center: vi.fn() }),
     LogicalSize: class { w: number; h: number; constructor(w: number, h: number) { this.w = w; this.h = h; } },
@@ -108,105 +121,120 @@ describe('SettingsPage', () => {
 
     it('renders Settings header', () => {
         render(<SettingsPage />);
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
-    it('shows Service is Stopped when service is not running', () => {
+    it('shows paused monitoring when service is not running', () => {
         render(<SettingsPage />);
-        expect(screen.getByText('Service is Stopped')).toBeInTheDocument();
+        expect(screen.getByText('Monitoring is paused')).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Monitoring service' })).not.toBeChecked();
     });
 
-    it('shows Service is Running when service is running', () => {
+    it('shows monitoring on when service is running', () => {
         vi.mocked(useSettings).mockReturnValue({
             ...mockSettings, serviceStatus: { running: true, lifecycle_state: 'running', pid: 12345, degraded: false, degraded_reason: null },
         });
         render(<SettingsPage />);
-        expect(screen.getByText('Service is Running')).toBeInTheDocument();
+        expect(screen.getByText('Monitoring is on')).toBeInTheDocument();
     });
 
-    it('shows Checking... when loading', () => {
-        vi.mocked(useSettings).mockReturnValue({
-            ...mockSettings, loading: true,
-        });
+    it('toggles the monitoring service', () => {
         render(<SettingsPage />);
-        expect(screen.getByText('Checking...')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('switch', { name: 'Monitoring service' }));
+        expect(mockSettings.toggleService).toHaveBeenCalled();
+    });
+
+    it('shows Checking… when loading', () => {
+        vi.mocked(useSettings).mockReturnValue({ ...mockSettings, loading: true });
+        render(<SettingsPage />);
+        expect(screen.getByText('Checking…')).toBeInTheDocument();
     });
 
     it('shows error banner when error is present', () => {
+        vi.mocked(useSettings).mockReturnValue({ ...mockSettings, error: 'Service error' });
+        render(<SettingsPage />);
+        expect(screen.getByRole('alert')).toHaveTextContent('Service error');
+    });
+
+    it('shows configuration and scan problems', () => {
         vi.mocked(useSettings).mockReturnValue({
-            ...mockSettings, error: 'Service error',
+            ...mockSettings,
+            serviceStatus: { ...mockSettings.serviceStatus, configuration_error: 'Bad YAML', scan_error: 'Folder unreadable' },
         });
         render(<SettingsPage />);
-        expect(screen.getByText('Service error')).toBeInTheDocument();
+        expect(screen.getByText(/Bad YAML/)).toBeInTheDocument();
+        expect(screen.getByText(/Folder unreadable/)).toBeInTheDocument();
     });
 
-    it('calls setTheme when light theme is clicked', () => {
+    it.each([['Light', 'light'], ['Dark', 'dark'], ['Match system', 'system']])('selects the %s theme', (label, value) => {
+        vi.mocked(useTheme).mockReturnValue({ ...mockTheme, theme: value === 'light' ? 'dark' : 'light' });
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Light'));
-        expect(mockTheme.setTheme).toHaveBeenCalledWith('light');
+        fireEvent.click(screen.getByRole('radio', { name: label }));
+        expect(mockTheme.setTheme).toHaveBeenCalledWith(value);
     });
 
-    it('calls setTheme when dark theme is clicked', () => {
+    it('toggles reduce transparency', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Dark'));
-        expect(mockTheme.setTheme).toHaveBeenCalledWith('dark');
-    });
-
-    it('calls setTheme when system theme is clicked', () => {
-        render(<SettingsPage />);
-        fireEvent.click(screen.getByText('System'));
-        expect(mockTheme.setTheme).toHaveBeenCalledWith('system');
+        fireEvent.click(screen.getByRole('switch', { name: 'Reduce transparency' }));
+        expect(mockTheme.setReduceTransparency).toHaveBeenCalledWith(true);
     });
 
     it('calls toggleStartup when startup toggle is changed', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Launch at startup' }));
+        fireEvent.click(screen.getByRole('switch', { name: 'Launch at startup' }));
         expect(mockSettings.toggleStartup).toHaveBeenCalled();
     });
 
     it('calls setSize when a window preset is clicked', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Small'));
+        fireEvent.click(screen.getByRole('button', { name: 'Small' }));
         expect(mockWindowSize.setSize).toHaveBeenCalledWith(PRESET_SIZES[0]);
+        expect(notify).toHaveBeenCalledWith(expect.objectContaining({ message: 'Window resized to 1280 × 800.' }));
     });
 
-    it('shows feedback message after clicking Reload then clears it', async () => {
+    it('marks the current window size preset as pressed', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Reload'));
-        await waitFor(() => expect(screen.getByText('Configuration reloaded successfully.')).toBeInTheDocument());
-        // The feedback auto-dismisses after 3s - just verify it appeared
+        expect(screen.getByRole('button', { name: 'Large' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Small' })).toHaveAttribute('aria-pressed', 'false');
     });
 
-    it('opens reset confirmation modal when Reset All Settings is clicked', () => {
+    it('reloads configuration and confirms with a toast', async () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Reset All Settings'));
-        expect(screen.getByText('Reset to Defaults?')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+        await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ message: 'Configuration reloaded.' })));
+    });
+
+    it('opens reset confirmation modal', () => {
+        render(<SettingsPage />);
+        fireEvent.click(screen.getByRole('button', { name: 'Reset…' }));
+        expect(screen.getByRole('alertdialog', { name: 'Reset to defaults?' })).toBeInTheDocument();
     });
 
     it('confirms reset and calls reset()', async () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Reset All Settings'));
+        fireEvent.click(screen.getByRole('button', { name: 'Reset…' }));
         await act(async () => {
-            fireEvent.click(screen.getByText('Yes, Reset Everything'));
+            fireEvent.click(screen.getByRole('button', { name: 'Reset everything' }));
         });
         expect(mockSettings.reset).toHaveBeenCalled();
+        await waitFor(() => expect(screen.getByText('Welcome to Harbor')).toBeInTheDocument());
     });
 
-    it('cancels reset modal when No, Keep Settings is clicked', () => {
+    it('cancels reset modal', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Reset All Settings'));
-        fireEvent.click(screen.getByText('No, Keep Settings'));
-        expect(screen.queryByText('Reset to Defaults?')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Reset…' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Keep my settings' }));
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+        expect(mockSettings.reset).not.toHaveBeenCalled();
     });
 
-    it('calls checkNow and shows feedback on Check Now button click', async () => {
+    it('calls checkNow on Check now', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByText('Check Now'));
+        fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
         expect(mockUpdateCheck.checkNow).toHaveBeenCalled();
-        await waitFor(() => expect(screen.getByText('Checking for updates...')).toBeInTheDocument());
     });
 
-    it('shows update available text when update is available', () => {
+    it('shows update available text and a download action', () => {
         vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUpdateCheck,
             updateState: {
@@ -217,8 +245,8 @@ describe('SettingsPage', () => {
             },
         });
         render(<SettingsPage />);
-        expect(screen.getByText('Update available:')).toBeInTheDocument();
-        expect(screen.getByText('2.0.0')).toBeInTheDocument();
+        expect(screen.getByText('Version 2.0.0 is available.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
     });
 
     it('shows update error when update check fails', () => {
@@ -227,30 +255,27 @@ describe('SettingsPage', () => {
             updateState: { ...mockUpdateCheck.updateState, error: 'Network error' },
         });
         render(<SettingsPage />);
-        expect(screen.getByText('Error checking updates')).toBeInTheDocument();
+        expect(screen.getByText('Couldn’t check for updates.')).toBeInTheDocument();
+        expect(screen.getByText('Network error')).toBeInTheDocument();
     });
 
-    it('shows "You are up to date." when no update found', () => {
+    it('says when Harbor is up to date', () => {
         vi.mocked(useUpdateContext).mockReturnValue({
             ...mockUpdateCheck,
             updateState: { ...mockUpdateCheck.updateState, checked: true, hasUpdate: false },
         });
         render(<SettingsPage />);
-        expect(screen.getByText('You are up to date.')).toBeInTheDocument();
+        expect(screen.getByText('You’re up to date.')).toBeInTheDocument();
     });
 
-    it('shows active badge on current window size preset', () => {
-        render(<SettingsPage />);
-        expect(screen.getByText('Active')).toBeInTheDocument(); // Large is active by default
-    });
-
-    it('shows uptime when uptime_seconds is present', () => {
+    it('shows uptime and process ID in diagnostics', () => {
         vi.mocked(useSettings).mockReturnValue({
             ...mockSettings,
-            serviceStatus: { running: true, lifecycle_state: 'running', pid: 12345, degraded: false, degraded_reason: null, uptime_seconds: 120 },
+            serviceStatus: { running: true, lifecycle_state: 'running', pid: 12345, degraded: false, degraded_reason: null, uptime_seconds: 3720 },
         });
         render(<SettingsPage />);
-        expect(screen.getByText('2m')).toBeInTheDocument();
+        expect(screen.getByText('1h 2m')).toBeInTheDocument();
+        expect(screen.getByText('12345')).toBeInTheDocument();
     });
 
     it('shows degraded reason and retry recovery action', () => {
@@ -270,18 +295,24 @@ describe('SettingsPage', () => {
         expect(mockSettings.retryService).toHaveBeenCalled();
     });
 
-    it('shows N/A when no uptime_seconds', () => {
+    it('says not running when there is no uptime', () => {
         render(<SettingsPage />);
-        expect(screen.getByText('N/A')).toBeInTheDocument();
+        expect(screen.getByText('Not running')).toBeInTheDocument();
     });
 
-    it('runs organize now and shows toast + inline grouped failures', async () => {
+    it('routes file actions through the shared file actions', () => {
         render(<SettingsPage />);
-        fireEvent.click(screen.getByRole('button', { name: 'Organize Now' }));
-        await waitFor(() => expect(mockSettings.organizeNow).toHaveBeenCalled());
-        expect(screen.getAllByText('Organize finished with 1 move(s) and 1 failure(s).').length).toBeGreaterThan(1);
-        expect(screen.getByText('filesystem_error')).toBeInTheDocument();
-        expect(screen.getByText('Access denied')).toBeInTheDocument();
-        expect(screen.getByText('Close applications locking the file and retry.')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Change…' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Preview moves' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Organize now' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Undo last batch' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Import rules…' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Export rules…' }));
+        expect(fileActions.chooseFolder).toHaveBeenCalled();
+        expect(fileActions.previewMoves).toHaveBeenCalled();
+        expect(fileActions.organizeNow).toHaveBeenCalled();
+        expect(fileActions.requestUndo).toHaveBeenCalled();
+        expect(fileActions.requestImport).toHaveBeenCalled();
+        expect(fileActions.exportRules).toHaveBeenCalled();
     });
 });

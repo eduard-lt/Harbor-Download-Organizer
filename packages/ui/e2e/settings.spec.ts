@@ -11,45 +11,38 @@ test.describe('Settings', () => {
         await expectHeading(page, 'Settings');
     });
 
-    test('shows service status as stopped by default', async ({ page }) => {
-        await expect(page.getByText('Service is Stopped')).toBeVisible();
+    test('shows monitoring as paused by default', async ({ page }) => {
+        await expect(page.getByText('Monitoring is paused')).toBeVisible();
     });
 
     test('toggles service on and off', async ({ page }) => {
-        // Turn on — checkbox overlay div intercepts clicks, use force
-        const toggleSection = page.locator('section').filter({ hasText: 'Service Status' });
-        await toggleSection.getByRole('checkbox').click({ force: true });
+        const toggle = page.getByRole('switch', { name: 'Monitoring service' });
+        await toggle.check();
+        await expect(page.getByText('Monitoring is on')).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('.shell')).toHaveAttribute('data-tide', 'in');
 
-        await expect(page.getByText('Service is Running')).toBeVisible({ timeout: 5000 });
-
-        // Turn off
-        await toggleSection.getByRole('checkbox').click({ force: true });
-        await expect(page.getByText('Service is Stopped')).toBeVisible({ timeout: 5000 });
+        await toggle.uncheck();
+        await expect(page.getByText('Monitoring is paused')).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('.shell')).toHaveAttribute('data-tide', 'out');
     });
 
     test('switches theme to dark', async ({ page }) => {
-        await page.getByText('Dark').first().click();
-
-        // The dark theme card should show selected state
-        const darkCard = page.locator('.group.cursor-pointer').filter({ hasText: 'Dark' }).first();
-        await expect(darkCard.locator('.border-primary')).toBeVisible();
+        await page.getByRole('radio', { name: 'Dark' }).check();
+        await expect(page.getByRole('radio', { name: 'Dark' })).toBeChecked();
+        await expect(page.locator('html')).toHaveClass(/dark/);
     });
 
     test('switches theme to system', async ({ page }) => {
-        await page.getByText('System').first().click();
-        const systemCard = page.locator('.group.cursor-pointer').filter({ hasText: 'System' }).first();
-        await expect(systemCard.locator('.border-primary')).toBeVisible();
+        await page.getByRole('radio', { name: 'Match system' }).check();
+        await expect(page.getByRole('radio', { name: 'Match system' })).toBeChecked();
     });
 
     test('organize now shows result feedback', async ({ page }) => {
-        await page.getByRole('button', { name: 'Organize Now' }).click();
-
-        // Should show feedback message — multiple elements match, use first()
-        await expect(page.getByText(/files moved/).first()).toBeVisible({ timeout: 5000 });
+        await page.getByRole('button', { name: 'Organize now' }).click();
+        await expect(page.getByRole('status').filter({ hasText: '0 files moved.' })).toBeVisible({ timeout: 5000 });
     });
 
     test('organize now button disabled while running', async ({ page }) => {
-        // Set up a slow organize response by overriding the mock after init
         await page.evaluate(() => {
             window.__e2eMocks.invoke['trigger_organize_now'] = () => new Promise(resolve => {
                 setTimeout(() => resolve({
@@ -59,30 +52,28 @@ test.describe('Settings', () => {
             });
         });
 
-        await page.getByRole('button', { name: 'Organize Now' }).click();
-        await expect(page.getByRole('button', { name: 'Organizing...' })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Organizing...' })).toBeDisabled();
+        await page.getByRole('button', { name: 'Organize now' }).click();
+        await expect(page.getByRole('button', { name: 'Organizing…' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Organizing…' })).toBeDisabled();
     });
 
     test('factory reset shows confirmation', async ({ page }) => {
-        await page.getByRole('button', { name: 'Reset All Settings' }).click();
-        await expect(page.getByText('Reset to Defaults?')).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Yes, Reset Everything' })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'No, Keep Settings' })).toBeVisible();
+        await page.getByRole('button', { name: 'Reset…' }).click();
+        await expect(page.getByRole('alertdialog', { name: 'Reset to defaults?' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Reset everything' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Keep my settings' })).toBeFocused();
     });
 
     test('factory reset can be cancelled', async ({ page }) => {
-        await page.getByRole('button', { name: 'Reset All Settings' }).click();
-        await page.getByRole('button', { name: 'No, Keep Settings' }).click();
-        await expect(page.getByText('Reset to Defaults?')).not.toBeVisible();
+        await page.getByRole('button', { name: 'Reset…' }).click();
+        await page.getByRole('button', { name: 'Keep my settings' }).click();
+        await expect(page.getByRole('alertdialog')).toHaveCount(0);
     });
 
     test('factory reset can be confirmed', async ({ page }) => {
-        await page.getByRole('button', { name: 'Reset All Settings' }).click();
-        await page.getByRole('button', { name: 'Yes, Reset Everything' }).click();
-
-        // Confirmation modal dismissed, feedback shown
-        await expect(page.getByText('Reset to Defaults?')).not.toBeVisible();
-        await expect(page.getByText(/reset to defaults/i)).toBeVisible();
+        await page.getByRole('button', { name: 'Reset…' }).click();
+        await page.getByRole('button', { name: 'Reset everything' }).click();
+        await expect(page.getByRole('alertdialog')).toHaveCount(0);
+        await expect(page.getByText(/back to their defaults/i)).toBeVisible();
     });
 });

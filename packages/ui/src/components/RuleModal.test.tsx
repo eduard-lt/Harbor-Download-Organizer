@@ -27,9 +27,9 @@ describe('RuleModal', () => {
 
     it('contains keyboard focus and supports Escape', () => {
         render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
-        const dialog = screen.getByRole('dialog', { name: 'New Rule' });
+        const dialog = screen.getByRole('dialog', { name: 'New rule' });
         const close = screen.getByRole('button', { name: 'Close rule editor' });
-        const save = screen.getByRole('button', { name: 'Save Rule' });
+        const save = screen.getByRole('button', { name: 'Save rule' });
         expect(close).toHaveFocus();
         save.focus();
         fireEvent.keyDown(save, { key: 'Tab' });
@@ -38,7 +38,7 @@ describe('RuleModal', () => {
         expect(save).toHaveFocus();
         fireEvent.keyDown(dialog, { key: 'Escape' });
         expect(onClose).toHaveBeenCalledOnce();
-        expect(screen.getByRole('textbox', { name: 'Rule Name' })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: 'Rule name' })).toBeInTheDocument();
     });
 
     it('renders nothing when isOpen is false', () => {
@@ -48,12 +48,12 @@ describe('RuleModal', () => {
 
     it('renders "New Rule" title for create mode', () => {
         render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
-        expect(screen.getByText('New Rule')).toBeInTheDocument();
+        expect(screen.getByText('New rule')).toBeInTheDocument();
     });
 
     it('renders "Edit Rule" title for edit mode', () => {
         render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} initialData={mockRule} />);
-        expect(screen.getByText('Edit Rule')).toBeInTheDocument();
+        expect(screen.getByText('Edit rule')).toBeInTheDocument();
     });
 
     it('pre-fills form fields from initialData', () => {
@@ -76,14 +76,14 @@ describe('RuleModal', () => {
     });
 
     it('calls onSave with form data and closes on submit', async () => {
-        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
+        render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
 
         fireEvent.change(screen.getByPlaceholderText('e.g. Images'), { target: { value: 'Videos' } });
         fireEvent.change(screen.getByPlaceholderText('e.g. jpg, png, gif'), { target: { value: 'mp4, avi' } });
         fireEvent.change(screen.getByPlaceholderText('C:\\Users\\Name\\Pictures'), { target: { value: 'C:\\Videos' } });
 
         await act(async () => {
-            fireEvent.submit(container.querySelector('form')!);
+            fireEvent.submit(document.querySelector('form')!);
         });
 
         await waitFor(() => expect(onSave).toHaveBeenCalledWith(
@@ -94,10 +94,10 @@ describe('RuleModal', () => {
 
     it('shows error message when onSave throws', async () => {
         onSave.mockRejectedValue(new Error('Save failed'));
-        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} initialData={mockRule} />);
+        render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} initialData={mockRule} />);
 
         await act(async () => {
-            fireEvent.submit(container.querySelector('form')!);
+            fireEvent.submit(document.querySelector('form')!);
         });
 
         await waitFor(() => expect(screen.getByText('Save failed')).toBeInTheDocument());
@@ -121,7 +121,7 @@ describe('RuleModal', () => {
         render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
 
         await act(async () => {
-            fireEvent.click(screen.getByTitle('Browse Folder'));
+            fireEvent.click(screen.getByTitle('Browse for folder'));
         });
 
         await waitFor(() => {
@@ -136,7 +136,7 @@ describe('RuleModal', () => {
         render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
 
         await act(async () => {
-            fireEvent.click(screen.getByTitle('Browse Folder'));
+            fireEvent.click(screen.getByTitle('Browse for folder'));
         });
 
         // Destination should remain empty since dialog was cancelled
@@ -145,13 +145,13 @@ describe('RuleModal', () => {
 
     it('passes enabled: true for new rules and existing enabled for edits', async () => {
         onSave.mockResolvedValue(undefined);
-        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
+        render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
 
         fireEvent.change(screen.getByPlaceholderText('e.g. Images'), { target: { value: 'Test' } });
         fireEvent.change(screen.getByPlaceholderText('C:\\Users\\Name\\Pictures'), { target: { value: 'C:\\Test' } });
 
         await act(async () => {
-            fireEvent.submit(container.querySelector('form')!);
+            fireEvent.submit(document.querySelector('form')!);
         });
 
         await waitFor(() => expect(onSave).toHaveBeenCalledWith(
@@ -160,13 +160,13 @@ describe('RuleModal', () => {
     });
 
     it('sends explicit null clears for optional fields when clear toggles are used', async () => {
-        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} initialData={mockRule} />);
+        render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} initialData={mockRule} />);
         fireEvent.click(screen.getByLabelText('Clear pattern'));
         fireEvent.click(screen.getByLabelText('Clear minimum size'));
         fireEvent.click(screen.getByLabelText('Clear maximum size'));
 
         await act(async () => {
-            fireEvent.submit(container.querySelector('form')!);
+            fireEvent.submit(document.querySelector('form')!);
         });
 
         await waitFor(() => {
@@ -179,14 +179,14 @@ describe('RuleModal', () => {
     });
 
     it('shows field-level size validation and blocks submit for invalid range', async () => {
-        const { container } = render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
+        render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
         fireEvent.change(screen.getByPlaceholderText('e.g. Images'), { target: { value: 'Docs' } });
         fireEvent.change(screen.getByPlaceholderText('C:\\Users\\Name\\Pictures'), { target: { value: 'C:\\Docs' } });
         fireEvent.change(screen.getByPlaceholderText('e.g. 1048576'), { target: { value: '200' } });
         fireEvent.change(screen.getByPlaceholderText('e.g. 1073741824'), { target: { value: '100' } });
 
         await act(async () => {
-            fireEvent.submit(container.querySelector('form')!);
+            fireEvent.submit(document.querySelector('form')!);
         });
 
         expect(screen.getAllByText('Minimum size must be less than or equal to maximum size.').length).toBeGreaterThan(0);

@@ -53,7 +53,7 @@ describe('Sidebar', () => {
     it('renders navigation links', () => {
         renderSidebar();
         expect(screen.getByText('Rules')).toBeInTheDocument();
-        expect(screen.getByText('Activity Logs')).toBeInTheDocument();
+        expect(screen.getByText('Activity')).toBeInTheDocument();
         expect(screen.getByText('Settings')).toBeInTheDocument();
         expect(screen.getByText('Info & Guide')).toBeInTheDocument();
     });
@@ -80,26 +80,38 @@ describe('Sidebar', () => {
         }
     });
 
-    it('shows Active when service is running', () => {
+    it('shows Monitoring when service is running', () => {
         vi.mocked(useSettings).mockReturnValue({ ...baseSettings, serviceStatus: { running: true, pid: 12345 } });
         renderSidebar();
-        expect(screen.getByText('Active')).toBeInTheDocument();
+        expect(screen.getByText('Monitoring')).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Active monitoring' })).toBeChecked();
     });
 
-    it('shows Stopped when service is not running', () => {
+    it('shows Paused when service is not running', () => {
         renderSidebar();
-        expect(screen.getByText('Stopped')).toBeInTheDocument();
+        expect(screen.getByText('Paused')).toBeInTheDocument();
+        expect(screen.getByText(/stay in Downloads/)).toBeInTheDocument();
     });
 
-    it('shows update badge on GitHub link when update is available', () => {
+    it('tints only the monitoring card and links to Settings when health needs attention', () => {
+        vi.mocked(useSettings).mockReturnValue({ ...baseSettings, serviceStatus: { running: false, pid: 0, scan_error: 'Folder unreadable' } });
+        renderSidebar();
+        expect(screen.getByText('Needs attention')).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveTextContent('Folder unreadable');
+        expect(screen.getByRole('link', { name: 'Review in Settings' })).toHaveAttribute('href', '/settings');
+        expect(document.querySelector('#sidebar-service-toggle')).toHaveAttribute('data-health', 'error');
+    });
+
+    it('shows an update entry and badge when an update is available', () => {
         vi.mocked(useUpdateContext).mockReturnValue({
             ...baseUpdateCheck,
-            updateState: { ...baseUpdateCheck.updateState, available: true, hasUpdate: true, version: '2.0.0' },
+            updateState: { ...baseUpdateCheck.updateState, available: true, hasUpdate: true, version: '2.0.0', url: 'https://example.test/release' },
         });
-        const { container } = renderSidebar();
-        // Should show a notification indicator
-        const badge = container.querySelector('.bg-red-500');
-        expect(badge).toBeTruthy();
+        renderSidebar();
+        expect(screen.getByLabelText('Update available')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Update available · 2\.0\.0/ }));
+        expect(open).toHaveBeenCalledWith('https://example.test/release');
+        expect(baseUpdateCheck.dismissNotification).toHaveBeenCalled();
     });
 
     it('shows tutorial coach mark when localStorage has coaching key', () => {
@@ -111,7 +123,7 @@ describe('Sidebar', () => {
 
     it('opens GitHub link when GitHub button is clicked', () => {
         renderSidebar();
-        fireEvent.click(screen.getByRole('button', { name: 'GitHub' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Source on GitHub' }));
         expect(open).toHaveBeenCalledWith(expect.stringContaining('github.com'));
     });
 

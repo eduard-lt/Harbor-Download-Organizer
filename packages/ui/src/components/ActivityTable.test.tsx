@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ActivityTable } from './ActivityTable';
 import type { ActivityLog, OrganizeFailureGroup } from '../lib/tauri';
 
@@ -32,54 +32,49 @@ const makeFailureGroup = (overrides?: Partial<OrganizeFailureGroup>): OrganizeFa
 });
 
 describe('ActivityTable', () => {
-    it('shows empty state when no logs provided', () => {
+    it('shows an empty state when no logs are provided', () => {
         render(<ActivityTable logs={[]} />);
-        expect(screen.getByText('No activity logs found.')).toBeInTheDocument();
+        expect(screen.getByText('No activity yet')).toBeInTheDocument();
     });
 
-    it('shows count of results in footer', () => {
-        render(<ActivityTable logs={[makeLog()]} />);
-        expect(screen.getByText('Showing 1 results')).toBeInTheDocument();
+    it('explains an empty filtered result', () => {
+        render(<ActivityTable logs={[]} filtered />);
+        expect(screen.getByText('Nothing matches')).toBeInTheDocument();
     });
 
-    it('renders a row with filename, paths, rule name and status', () => {
+    it('renders a row with filename, destination, rule name and status', () => {
         render(<ActivityTable logs={[makeLog()]} />);
         expect(screen.getByText('photo.jpg')).toBeInTheDocument();
-        expect(screen.getByText('Downloads\\photo.jpg')).toBeInTheDocument();
+        expect(screen.getByText('From Downloads\\photo.jpg')).toBeInTheDocument();
         expect(screen.getByText('Pictures\\photo.jpg')).toBeInTheDocument();
         expect(screen.getByText('Images')).toBeInTheDocument();
-        expect(screen.getByText('Success')).toBeInTheDocument();
+        expect(screen.getByText('Moved')).toBeInTheDocument();
     });
 
-    it('renders status with correct badge class for success', () => {
-        const { container } = render(<ActivityTable logs={[makeLog({ status: 'success' })]} />);
-        const badge = container.querySelector('.bg-emerald-100');
-        expect(badge).toBeInTheDocument();
+    it.each([
+        ['success', 'Moved', 'ok'],
+        ['error', 'Failed', 'danger'],
+        ['conflict', 'Conflict', 'warn'],
+        ['ignored', 'Skipped', 'muted'],
+        ['recovered', 'Recovered', 'ok'],
+        ['undone', 'Undone', 'muted'],
+        ['unknown_status', 'Unknown_status', 'muted'],
+    ])('labels status %s as %s with a %s dot', (statusValue, label, tone) => {
+        render(<ActivityTable logs={[makeLog({ status: statusValue })]} />);
+        const status = screen.getByText(label);
+        expect(status.querySelector('.dot')).toHaveAttribute('data-tone', tone);
     });
 
-    it('renders status with correct badge class for error', () => {
-        const { container } = render(<ActivityTable logs={[makeLog({ status: 'error' })]} />);
-        const badge = container.querySelector('.bg-red-100');
-        expect(badge).toBeInTheDocument();
-    });
-
-    it('renders status with correct badge class for conflict', () => {
-        const { container } = render(<ActivityTable logs={[makeLog({ status: 'conflict' })]} />);
-        const badge = container.querySelector('.bg-yellow-100');
-        expect(badge).toBeInTheDocument();
-    });
-
-    it('renders status with correct badge class for ignored', () => {
-        const { container } = render(<ActivityTable logs={[makeLog({ status: 'ignored' })]} />);
-        const badge = container.querySelector('.bg-slate-100');
-        expect(badge).toBeInTheDocument();
-    });
-
-    it('falls back to ignored class for unknown status', () => {
-        const { container } = render(<ActivityTable logs={[makeLog({ status: 'unknown_status' })]} />);
-        // Should fall back to 'ignored' class
-        const badge = container.querySelector('.bg-slate-100');
-        expect(badge).toBeInTheDocument();
+    it('groups rows by day and shows the time', () => {
+        const logs = [
+            makeLog({ id: '1', timestamp: '2024-01-02 10:15:00' }),
+            makeLog({ id: '2', filename: 'video.mp4', timestamp: '2024-01-02 09:00:00' }),
+            makeLog({ id: '3', filename: 'old.zip', timestamp: '2024-01-01 08:30:00' }),
+        ];
+        render(<ActivityTable logs={logs} />);
+        expect(screen.getAllByRole('columnheader').filter(h => h.getAttribute('scope') === 'colgroup')).toHaveLength(2);
+        expect(screen.getByText('10:15')).toBeInTheDocument();
+        expect(screen.getByText('08:30')).toBeInTheDocument();
     });
 
     it('renders multiple rows', () => {
@@ -89,16 +84,18 @@ describe('ActivityTable', () => {
         expect(screen.getByText('video.mp4')).toBeInTheDocument();
     });
 
-    it('capitalizes status text', () => {
-        render(<ActivityTable logs={[makeLog({ status: 'success' })]} />);
-        expect(screen.getByText('Success')).toBeInTheDocument();
-    });
-
     it('renders grouped failures with remediation hints', () => {
         render(<ActivityTable logs={[]} failureGroups={[makeFailureGroup()]} />);
         expect(screen.getByText('filesystem_error')).toBeInTheDocument();
-        expect(screen.getByText('Access denied')).toBeInTheDocument();
+        expect(screen.getByText(/Access denied/)).toBeInTheDocument();
         expect(screen.getByText('Close applications locking the file and retry.')).toBeInTheDocument();
+    });
+
+    it('lets the user dismiss grouped failures', () => {
+        const onDismiss = vi.fn();
+        render(<ActivityTable logs={[]} failureGroups={[makeFailureGroup()]} onDismissFailures={onDismiss} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Dismiss failures' }));
+        expect(onDismiss).toHaveBeenCalled();
     });
 
     it('does not display raw absolute source paths in grouped failures', () => {

@@ -54,15 +54,15 @@ describe('ConfirmationModal', () => {
             <ConfirmationModal isOpen={true} title="D?" message="M?" isDestructive={true} onConfirm={onConfirm} onCancel={onCancel} />
         );
         const confirmBtn = screen.getByText('Confirm');
-        expect(confirmBtn.className).toContain('bg-red-600');
+        expect(confirmBtn.className).toContain('btn-danger-solid');
     });
 
-    it('applies indigo button style when isDestructive=false (default)', () => {
+    it('applies the primary button style when isDestructive=false (default)', () => {
         render(
             <ConfirmationModal isOpen={true} title="D?" message="M?" onConfirm={onConfirm} onCancel={onCancel} />
         );
         const confirmBtn = screen.getByText('Confirm');
-        expect(confirmBtn.className).toContain('bg-indigo-600');
+        expect(confirmBtn.className).toContain('btn-primary');
     });
 
     it('calls onCancel when Escape key is pressed while open', () => {

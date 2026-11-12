@@ -11,14 +11,16 @@ test.describe('Navigation', () => {
     });
 
     test('lands on Rules page by default', async ({ page }) => {
-        await expectHeading(page, 'Rules Management');
-        await expect(page.getByText('Total Rules')).toBeVisible();
-        await expect(page.getByText('Active Rules')).toBeVisible();
+        await expectHeading(page, 'Rules');
+        await expect(page.getByText('2 rules, 2 enabled')).toBeVisible();
+        await expect(page.getByRole('region', { name: 'Watched folder' })).toContainText('/Users/test/Downloads');
+        await expect(page.getByRole('link', { name: 'Rules', exact: true })).toHaveAttribute('aria-current', 'page');
     });
 
-    test('navigates to Activity Logs', async ({ page }) => {
-        await navigateTo(page, 'Activity Logs');
-        await expectHeading(page, 'Activity Logs');
+    test('navigates to Activity', async ({ page }) => {
+        await navigateTo(page, 'Activity');
+        await expectHeading(page, 'Activity');
+        await expect(page.getByText('photo.jpg', { exact: true })).toBeVisible();
     });
 
     test('navigates to Settings', async ({ page }) => {
@@ -29,12 +31,20 @@ test.describe('Navigation', () => {
     test('navigates to Info & Guide', async ({ page }) => {
         await navigateTo(page, 'Info & Guide');
         await expectHeading(page, 'Info & Guide');
+        await expect(page.getByRole('heading', { name: 'How Harbor works' })).toBeVisible();
     });
 
     test('navigates back to Rules', async ({ page }) => {
-        await navigateTo(page, 'Activity Logs');
-        await expectHeading(page, 'Activity Logs');
+        await navigateTo(page, 'Activity');
+        await expectHeading(page, 'Activity');
         await navigateTo(page, 'Rules');
-        await expectHeading(page, 'Rules Management');
+        await expectHeading(page, 'Rules');
+    });
+
+    test('skip link moves focus to the content sheet', async ({ page }) => {
+        await page.keyboard.press('Tab');
+        await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#main-content')).toBeFocused();
     });
 });

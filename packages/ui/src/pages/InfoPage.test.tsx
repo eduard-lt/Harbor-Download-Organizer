@@ -43,21 +43,22 @@ describe('InfoPage', () => {
 
     it('shows User Guide tab content by default', () => {
         render(<InfoPage />);
-        expect(screen.getByText('How it Works')).toBeInTheDocument();
+        expect(screen.getByText('How Harbor works')).toBeInTheDocument();
     });
 
     it('switches to About tab when clicked', () => {
         render(<InfoPage />);
-        fireEvent.click(screen.getByText('About'));
-        expect(screen.getByText('Harbor')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.getByRole('tab', { name: 'About' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('heading', { name: 'Harbor' })).toBeInTheDocument();
         expect(screen.getByText(new RegExp(`Version ${packageJson.version}`))).toBeInTheDocument();
     });
 
     it('can switch back to User Guide from About tab', () => {
         render(<InfoPage />);
-        fireEvent.click(screen.getByText('About'));
-        fireEvent.click(screen.getByText('User Guide'));
-        expect(screen.getByText('How it Works')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        fireEvent.click(screen.getByRole('tab', { name: 'User Guide' }));
+        expect(screen.getByText('How Harbor works')).toBeInTheDocument();
     });
 
     it('shows update banner when update is available', () => {
@@ -70,13 +71,14 @@ describe('InfoPage', () => {
             },
         });
         render(<InfoPage />);
-        expect(screen.getByText('Update Available!')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
         expect(screen.getByText('Version 1.5.0 is ready to download.')).toBeInTheDocument();
     });
 
     it('does NOT show update banner when no update available', () => {
         render(<InfoPage />);
-        expect(screen.queryByText('Update Available!')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.queryByText(/is ready to download/)).not.toBeInTheDocument();
     });
 
     it('does NOT show update banner when available is true but url is null', () => {
@@ -85,6 +87,13 @@ describe('InfoPage', () => {
             updateState: { ...baseUpdateState, available: true, version: '1.5.0', url: null },
         });
         render(<InfoPage />);
-        expect(screen.queryByText('Update Available!')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.queryByText(/is ready to download/)).not.toBeInTheDocument();
+    });
+
+    it('moves between tabs with the arrow keys', () => {
+        render(<InfoPage />);
+        fireEvent.keyDown(screen.getByRole('tab', { name: 'User Guide' }), { key: 'ArrowRight' });
+        expect(screen.getByRole('tab', { name: 'About' })).toHaveAttribute('aria-selected', 'true');
     });
 });
