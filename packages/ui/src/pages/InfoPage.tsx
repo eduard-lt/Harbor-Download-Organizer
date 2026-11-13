@@ -1,6 +1,10 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
-import { ArrowDownToLine, Code2, Coffee, Download, FolderInput, ListFilter } from 'lucide-react';
+import { ArrowDownToLine, Code2, Coffee, Download, FileQuestion, FolderInput, ListFilter, Sparkles } from 'lucide-react';
+import { useRules } from '../hooks/useRules';
+import { matchFile } from '../lib/matchRule';
+import { fileIcon } from '../lib/icons';
+import { shortPath } from '../lib/format';
 import { Header } from '../components/Header';
 import { useUpdateContext } from '../context/UpdateContext';
 import packageJson from '../../package.json';
@@ -10,54 +14,117 @@ const SUPPORT_URL = 'https://ko-fi.com/eduardolteanu';
 const tabs = [{ id: 'guide', label: 'User Guide' }, { id: 'about', label: 'About' }] as const;
 type Tab = typeof tabs[number]['id'];
 
+const samples = [
+  { name: 'holiday-photo.jpg', mb: 4 },
+  { name: 'invoice-march.pdf', mb: 1 },
+  { name: 'setup-2.4.exe', mb: 90 },
+  { name: 'lecture-recording.mp4', mb: 850 },
+  { name: 'dataset.zip.crdownload', mb: 300 },
+];
+
+function RuleTester() {
+  const { rules, loading } = useRules();
+  const [name, setName] = useState(samples[0].name);
+  const [mb, setMb] = useState(String(samples[0].mb));
+  const size = Math.max(0, Number(mb) || 0) * 1024 * 1024;
+  const result = name.trim() ? matchFile(rules, name, size) : null;
+  const Icon = result?.kind === 'match' ? fileIcon(result.rule.icon) : FileQuestion;
+
+  return (
+    <section className="tester" aria-labelledby="tester-title">
+      <div className="tester-head">
+        <Sparkles size={16} aria-hidden="true" />
+        <h2 id="tester-title">Try a file name</h2>
+        <span className="cell-muted">Uses your current rules. Nothing moves.</span>
+      </div>
+      <div className="tester-inputs">
+        <label className="field" style={{ flex: 1 }}>
+          <span className="field-label">File name</span>
+          <input className="input" value={name} onChange={e => setName(e.target.value)} spellCheck={false} />
+        </label>
+        <label className="field" style={{ width: 120 }}>
+          <span className="field-label">Size (MB)</span>
+          <input className="input num" type="number" min={0} value={mb} onChange={e => setMb(e.target.value)} />
+        </label>
+      </div>
+      <div className="tester-samples" role="group" aria-label="Example files">
+        {samples.map(s => (
+          <button key={s.name} type="button" className="chip" aria-pressed={name === s.name}
+            onClick={() => { setName(s.name); setMb(String(s.mb)); }}>{s.name}</button>
+        ))}
+      </div>
+      <div className="tester-result" role="status" data-kind={result?.kind ?? 'empty'}>
+        <Icon size={20} aria-hidden="true" />
+        {loading && <p>Loading your rules…</p>}
+        {!loading && !result && <p>Type a file name to see where it would go.</p>}
+        {!loading && result?.kind === 'partial' && (
+          <p><strong>Still downloading.</strong> Harbor waits until the download finishes, then sorts the finished file.</p>
+        )}
+        {!loading && result?.kind === 'none' && (
+          <p><strong>Stays in your watched folder.</strong> No rule that is turned on matches this file.</p>
+        )}
+        {!loading && result?.kind === 'match' && (
+          <p>
+            <strong>Moves to <code>{shortPath(result.rule.destination, 2)}</code></strong>
+            <span>The <em>{result.rule.name}</em> rule catches it because {result.reason}.</span>
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function Guide() {
   return (
     <div className="guide">
-    <div className="prose">
-      <section>
-        <h2>How Harbor works</h2>
-        <p>Harbor watches one folder, normally <strong>Downloads</strong>. When a new file finishes downloading, Harbor checks your rules and moves the file to the folder the first matching rule names.</p>
-        <ol className="flow" aria-label="What happens to a new file">
-          <li className="flow-step">
-            <div className="marker"><Download size={16} aria-hidden="true" /></div>
-            <h3>A file arrives</h3>
-            <p>You save a file to the watched folder as usual. Partial downloads are skipped until they finish.</p>
-          </li>
-          <li className="flow-step">
-            <div className="marker"><ListFilter size={16} aria-hidden="true" /></div>
-            <h3>A rule matches</h3>
-            <p>Harbor compares the file with your rules and picks the first one that fits.</p>
-          </li>
-          <li className="flow-step">
-            <div className="marker"><FolderInput size={16} aria-hidden="true" /></div>
-            <h3>The file moves</h3>
-            <p>It goes to the rule’s destination. An existing file there is never overwritten.</p>
-          </li>
-        </ol>
-      </section>
+      <div className="prose">
+        <p className="guide-intro">Harbor does one job: it keeps your Downloads folder from piling up. You decide where each kind of file belongs, and Harbor moves new files there the moment they finish downloading.</p>
 
-      <section>
-        <h2>Which rule wins</h2>
-        <p>Rules with a filename pattern or a size limit are checked first, because they are more specific. Among the rest, the order on the Rules page decides: the higher rule wins. Drag a rule by its handle, or use the arrows beside its number, to change the order.</p>
-      </section>
+        <RuleTester />
 
-      <section>
-        <h2>Staying in control</h2>
-        <p><strong>Preview moves</strong> shows what would happen without moving anything. <strong>Undo last batch</strong> puts the last set of moved files back, as long as they haven’t changed. Changing the watched folder, importing rules, or undoing a batch pauses monitoring until you turn it back on.</p>
-      </section>
-    </div>
-    <aside className="guide-side" aria-label="Rule fields">
-      <section>
-        <h2>What a rule can match</h2>
-        <dl className="terms">
-          <dt>Extensions</dt><dd>File types, such as <code>jpg, png</code>. Leave empty to match every type.</dd>
-          <dt>Filename pattern</dt><dd>A regular expression for the file name, such as <code>^invoice</code>. For precise rules.</dd>
-          <dt>Size</dt><dd>A minimum or maximum size in bytes, for example to send large videos elsewhere.</dd>
-          <dt>Destination</dt><dd>Any folder on your computer. Harbor creates it if it doesn’t exist.</dd>
-          <dt>Shortcut</dt><dd>On Windows, Harbor can leave a hidden symlink where the file was.</dd>
-        </dl>
-      </section>
-    </aside>
+        <section>
+          <h2>What happens to a new file</h2>
+          <ol className="flow" aria-label="What happens to a new file">
+            <li className="flow-step">
+              <div className="marker"><Download size={16} aria-hidden="true" /></div>
+              <h3>It arrives</h3>
+              <p>You save a file as usual. Harbor waits until the download has finished.</p>
+            </li>
+            <li className="flow-step">
+              <div className="marker"><ListFilter size={16} aria-hidden="true" /></div>
+              <h3>A rule claims it</h3>
+              <p>Harbor checks your rules and picks the first one that fits.</p>
+            </li>
+            <li className="flow-step">
+              <div className="marker"><FolderInput size={16} aria-hidden="true" /></div>
+              <h3>It’s put away</h3>
+              <p>The file moves to that rule’s folder. A file with the same name is never replaced; Harbor keeps both.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section>
+          <h2>When two rules could match</h2>
+          <p>Specific rules win. A rule with a filename pattern or a size limit is checked before a plain extension rule, so an “Invoices” rule for <code>invoice.*\.pdf</code> catches invoices before a general “Documents” rule sees them. After that, the higher rule on the Rules page wins. Drag a rule by its handle, or use the arrows by its number, to change the order.</p>
+        </section>
+
+        <section>
+          <h2>You’re always in control</h2>
+          <p><strong>Preview moves</strong> shows what would happen without touching anything. <strong>Undo last batch</strong> puts the last set of files back, as long as they haven’t changed. Changing the watched folder, importing rules, or undoing a batch pauses monitoring, so you can check things before Harbor carries on.</p>
+        </section>
+      </div>
+      <aside className="guide-side" aria-label="Rule fields">
+        <section>
+          <h2>What a rule can match</h2>
+          <dl className="terms">
+            <dt>Extensions</dt><dd>File types, such as <code>jpg, png</code>. Leave empty to match every type.</dd>
+            <dt>Filename pattern</dt><dd>A regular expression for the file name, such as <code>^invoice</code>. Good for precise rules.</dd>
+            <dt>Size</dt><dd>A minimum or maximum size in bytes, for example to send large videos elsewhere.</dd>
+            <dt>Destination</dt><dd>Any folder on your computer. Harbor creates it if it doesn’t exist yet.</dd>
+            <dt>Shortcut</dt><dd>On Windows, Harbor can leave a hidden symlink where the file was.</dd>
+          </dl>
+        </section>
+      </aside>
     </div>
   );
 }
