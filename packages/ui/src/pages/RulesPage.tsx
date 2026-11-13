@@ -44,7 +44,7 @@ function WatchedFolderStrip() {
 }
 
 export function RulesPage() {
-  const { rules, loading, error, addRule, editRule, removeRule, toggleRule, reorderRules } = useRules();
+  const { rules, loading, error, fetchRules, addRule, editRule, removeRule, toggleRule, reorderRules } = useRules();
   const { busy, requestUndo, lastBatch } = useFileActions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
@@ -102,6 +102,8 @@ export function RulesPage() {
 
   const handleCloseTutorial = async () => {
     setShowTutorial(false);
+    // The guided setup can switch rules on or off; show what it left.
+    void fetchRules();
     try { await setTutorialCompleted(true); }
     catch (e) { console.error('Failed to set tutorial status:', e); }
   };

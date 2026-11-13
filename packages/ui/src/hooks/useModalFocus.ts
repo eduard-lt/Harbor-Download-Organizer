@@ -12,7 +12,8 @@ export function useModalFocus(isOpen: boolean, onClose: () => void) {
     const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>('*'))
       .filter(el => el.matches('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')
         && !el.closest('[hidden]'));
-    (focusable()[0] ?? dialog).focus();
+    // A dialog can name its primary action with data-autofocus; otherwise the first control.
+    (dialog.querySelector<HTMLElement>('[data-autofocus]') ?? focusable()[0] ?? dialog).focus();
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {

@@ -1,32 +1,43 @@
 import { test, expect, setupMocks, navigateTo } from './fixtures';
 
-test('onboarding cues monitoring until it starts, and reset replays the cue', async ({ page }) => {
+test('guided first run previews, adjusts rules and starts monitoring', async ({ page }) => {
   await setupMocks(page, { tutorialCompleted: false });
   await page.setViewportSize({ width: 1000, height: 700 });
   await page.goto('/');
   await expect(page.getByRole('dialog', { name: 'Welcome to Harbor' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Start monitoring' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Set up Harbor' }).click();
+  await expect(page.getByRole('dialog', { name: 'Where your downloads land' })).toContainText('/Users/test/Downloads');
   await page.getByRole('button', { name: 'Next' }).click();
-  await expect(page.getByRole('dialog', { name: 'Monitoring is off for now' })).toBeVisible();
-  await page.getByRole('button', { name: 'Got it' }).click();
+  const documents = page.getByRole('switch', { name: 'Use Documents' });
+  await documents.uncheck();
+  await expect(documents).not.toBeChecked();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByText(/1 file already in Downloads would move/)).toBeVisible();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByRole('dialog', { name: 'Ready when you are' })).toBeInViewport();
+  await page.getByRole('button', { name: 'Start monitoring' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('switch', { name: 'Active monitoring' })).toBeChecked();
+  await expect(page.getByRole('switch', { name: 'Enable Documents' })).not.toBeChecked();
+});
+
+test('starting later leaves an invitation in the top bar, and reset replays setup', async ({ page }) => {
+  await setupMocks(page, { tutorialCompleted: false });
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Skip setup' }).click();
   const start = page.getByRole('button', { name: 'Start monitoring' });
-  const monitor = page.locator('#sidebar-service-toggle');
   await expect(start).toBeInViewport();
-  await expect(monitor).toHaveAttribute('data-cue', '');
+  await expect(page.locator('#sidebar-service-toggle')).toHaveAttribute('data-cue', '');
   await start.click();
   await expect(page.getByRole('switch', { name: 'Active monitoring' })).toBeChecked();
-  await expect(start).toHaveCount(0);
-  await page.getByRole('switch', { name: 'Active monitoring' }).uncheck();
   await expect(start).toHaveCount(0);
 
   await navigateTo(page, 'Settings');
   await page.getByRole('button', { name: 'Reset…' }).click();
   await page.getByRole('button', { name: 'Reset everything' }).click();
   await expect(page.getByRole('dialog', { name: 'Welcome to Harbor' })).toBeVisible();
-  await expect(start).toHaveCount(0);
-  await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('button', { name: 'Got it' }).click();
-  await expect(start).toBeVisible();
+  await page.getByRole('button', { name: 'Skip setup' }).click();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect(start).toHaveCSS('animation-name', 'none');
+  await expect(page.getByRole('switch', { name: 'Active monitoring' })).toHaveCount(1);
 });

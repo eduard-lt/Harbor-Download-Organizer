@@ -1,69 +1,128 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { TutorialModal } from './TutorialModal';
+
+const settings = vi.hoisted(() => ({
+    downloadDir: 'C:\\Users\\you\\Downloads',
+    serviceStatus: { running: false, pid: 0 },
+    toggleService: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../hooks/useSettings', () => ({ useSettings: () => settings }));
+const rules = vi.hoisted(() => ({
+    rules: [
+        { id: '1', name: 'Images', extensions: ['jpg', 'png'], destination: 'C:\\Users\\you\\Pictures', create_symlink: false, enabled: true, icon: 'image', icon_color: 'blue' },
+        { id: '2', name: 'Disc images', extensions: ['iso'], destination: 'C:\\ISOs', create_symlink: false, enabled: false, icon: 'album', icon_color: 'slate' },
+    ],
+    toggleRule: vi.fn().mockResolvedValue(undefined),
+    fetchRules: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../hooks/useRules', () => ({ useRules: () => rules }));
+const fileActions = vi.hoisted(() => ({ busy: false, chooseFolder: vi.fn(), organizeNow: vi.fn() }));
+vi.mock('../context/FileActionsContext', () => ({ useFileActions: () => fileActions }));
+vi.mock('../lib/tauri', () => ({
+    previewOrganization: vi.fn().mockResolvedValue({
+        moves: [
+            { source: 'C:\\Users\\you\\Downloads\\a.jpg', destination: 'C:\\Users\\you\\Pictures\\a.jpg', rule: 'Images' },
+            { source: 'C:\\Users\\you\\Downloads\\b.png', destination: 'C:\\Users\\you\\Pictures\\b.png', rule: 'Images' },
+        ],
+        errors: [],
+    }),
+}));
+
+import { previewOrganization } from '../lib/tauri';
+
+const next = () => fireEvent.click(screen.getByRole('button', { name: /^(Next|Set up Harbor)$/ }));
 
 describe('TutorialModal', () => {
     const onClose = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
+        localStorage.clear();
+        settings.serviceStatus = { running: false, pid: 0 };
     });
 
     it('renders nothing when isOpen is false', () => {
-        const { container } = render(<TutorialModal isOpen={false} onClose={onClose} />);
-        expect(container.firstChild).toBeNull();
+        render(<TutorialModal isOpen={false} onClose={onClose} />);
+        expect(screen.queryByRole('dialog')).toBeNull();
     });
 
-    it('renders step 1 content by default when opened', () => {
+    it('opens on a welcome step with the safety promises', () => {
         render(<TutorialModal isOpen={true} onClose={onClose} />);
-        expect(screen.getByText('Welcome to Harbor')).toBeInTheDocument();
-        expect(screen.getByText('Next')).toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: 'Welcome to Harbor' })).toBeInTheDocument();
+        expect(screen.getByText('Preview first')).toBeInTheDocument();
+        expect(screen.getByText('Never overwrites')).toBeInTheDocument();
+        expect(screen.getByRole('list', { name: 'Step 1 of 5' })).toBeInTheDocument();
     });
 
-    it('advances to step 2 when Next is clicked', () => {
+    it('shows the watched folder and lets the user change it', () => {
         render(<TutorialModal isOpen={true} onClose={onClose} />);
-        fireEvent.click(screen.getByText('Next'));
-        expect(screen.getByText('Monitoring is off for now')).toBeInTheDocument();
+        next();
+        expect(screen.getByRole('dialog', { name: 'Where your downloads land' })).toBeInTheDocument();
+        expect(screen.getByText('C:\\Users\\you\\Downloads')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Change folder…' }));
+        expect(fileActions.chooseFolder).toHaveBeenCalled();
     });
 
-    it('goes back to step 1 when Back is clicked from step 2', () => {
+    it('lets the user switch starter rules on and off', () => {
         render(<TutorialModal isOpen={true} onClose={onClose} />);
-        fireEvent.click(screen.getByText('Next'));
-        expect(screen.getByText('Monitoring is off for now')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Back'));
-        expect(screen.getByText('Welcome to Harbor')).toBeInTheDocument();
+        next(); next();
+        expect(screen.getByText('1 of 2 rules on.', { exact: false })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('switch', { name: 'Use Disc images' }));
+        expect(rules.toggleRule).toHaveBeenCalledWith('2', true);
+        expect(rules.fetchRules).toHaveBeenCalled();
     });
 
-    it('calls onClose when Got it! is clicked', () => {
+    it('previews which files would move using the real preview', async () => {
         render(<TutorialModal isOpen={true} onClose={onClose} />);
-        fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Got it'));
-        expect(onClose).toHaveBeenCalledTimes(1);
+        next(); next();
+        await act(async () => { next(); });
+        expect(previewOrganization).toHaveBeenCalled();
+        expect(await screen.findByText(/would move/)).toHaveTextContent('2 files already in Downloads would move');
+        expect(screen.getByText('a.jpg, b.png')).toBeInTheDocument();
     });
 
-    it('resets to step 1 when reopened (isOpen changes)', () => {
+    it('starts monitoring, optionally organizes, and clears the cue', async () => {
+        render(<TutorialModal isOpen={true} onClose={onClose} />);
+        next(); next();
+        await act(async () => { next(); });
+        await screen.findByText(/would move/);
+        next();
+        expect(screen.getByRole('dialog', { name: 'Ready when you are' })).toBeInTheDocument();
+        fireEvent.click(screen.getByLabelText('Also move the 2 files already there'));
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Start monitoring' })); });
+        expect(settings.toggleService).toHaveBeenCalled();
+        expect(fileActions.organizeNow).toHaveBeenCalled();
+        expect(onClose).toHaveBeenCalled();
+        expect(localStorage.getItem('harbor-monitoring-cue')).toBe('false');
+    });
+
+    it('Start later leaves monitoring off and sets the sidebar cue', async () => {
+        render(<TutorialModal isOpen={true} onClose={onClose} />);
+        next(); next();
+        await act(async () => { next(); });
+        next();
+        fireEvent.click(screen.getByRole('button', { name: 'Start later' }));
+        expect(settings.toggleService).not.toHaveBeenCalled();
+        expect(onClose).toHaveBeenCalled();
+        expect(localStorage.getItem('harbor-monitoring-cue')).toBe('true');
+    });
+
+    it('can go back and skip setup', () => {
+        render(<TutorialModal isOpen={true} onClose={onClose} />);
+        next();
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        expect(screen.getByRole('dialog', { name: 'Welcome to Harbor' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Skip setup' }));
+        expect(onClose).toHaveBeenCalled();
+        expect(localStorage.getItem('harbor-monitoring-cue')).toBe('true');
+    });
+
+    it('resets to the first step when reopened', () => {
         const { rerender } = render(<TutorialModal isOpen={true} onClose={onClose} />);
-        fireEvent.click(screen.getByText('Next')); // go to step 2
-        expect(screen.getByText('Monitoring is off for now')).toBeInTheDocument();
-
+        next();
         rerender(<TutorialModal isOpen={false} onClose={onClose} />);
         rerender(<TutorialModal isOpen={true} onClose={onClose} />);
-
-        expect(screen.getByText('Welcome to Harbor')).toBeInTheDocument();
-    });
-
-    it('requests the monitoring cue without adding a rectangle when onboarding finishes', () => {
-        // Create a fake sidebar toggle element
-        const div = document.createElement('div');
-        div.id = 'sidebar-service-toggle';
-        document.body.appendChild(div);
-
-        render(<TutorialModal isOpen={true} onClose={onClose} />);
-        fireEvent.click(screen.getByText('Next'));
-        fireEvent.click(screen.getByText('Got it'));
-
-        expect(div.className).toBe('');
-        expect(localStorage.getItem('harbor-monitoring-cue')).toBe('true');
-        document.body.removeChild(div);
+        expect(screen.getByRole('dialog', { name: 'Welcome to Harbor' })).toBeInTheDocument();
     });
 });
