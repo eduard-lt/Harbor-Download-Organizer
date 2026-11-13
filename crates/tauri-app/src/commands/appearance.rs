@@ -1,13 +1,19 @@
 use tauri::{window::Color, WebviewWindow};
 
-// Keep these opaque canvas colors aligned with --harbor-canvas in index.css.
+/// Caption, window border and window background share one colour per theme so
+/// the native title bar flows into the app. Keep in sync with `--canvas` in
+/// packages/ui/src/index.css (light #e9f1f0, dark #10293a).
+pub fn caption_color(dark: bool) -> Color {
+    if dark {
+        Color(16, 41, 58, 255)
+    } else {
+        Color(233, 241, 240, 255)
+    }
+}
+
 #[tauri::command]
 pub fn set_window_appearance(window: WebviewWindow, dark: bool) -> Result<(), String> {
-    let color = if dark {
-        Color(17, 27, 36, 255)
-    } else {
-        Color(223, 231, 232, 255)
-    };
+    let color = caption_color(dark);
     window
         .set_background_color(Some(color))
         .map_err(|error| error.to_string())?;
@@ -22,7 +28,8 @@ pub fn set_window_appearance(window: WebviewWindow, dark: bool) -> Result<(), St
         };
         let hwnd = HWND(window.hwnd().map_err(|error| error.to_string())?.0);
         let caption = u32::from(color.0) | (u32::from(color.1) << 8) | (u32::from(color.2) << 16);
-        let text: u32 = if dark { 0x00f6f3ed } else { 0x00493b24 };
+        // COLORREF is 0x00BBGGRR: dark #eef3f2, light #14232b (the UI ink).
+        let text: u32 = if dark { 0x00f2f3ee } else { 0x002b2314 };
         for (attribute, value) in [
             (DWMWA_CAPTION_COLOR, caption),
             (DWMWA_TEXT_COLOR, text),
@@ -43,4 +50,17 @@ pub fn set_window_appearance(window: WebviewWindow, dark: bool) -> Result<(), St
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::caption_color;
+
+    #[test]
+    fn caption_matches_the_ui_canvas() {
+        let light = caption_color(false);
+        let dark = caption_color(true);
+        assert_eq!((light.0, light.1, light.2), (0xe9, 0xf1, 0xf0));
+        assert_eq!((dark.0, dark.1, dark.2), (0x10, 0x29, 0x3a));
+    }
 }
