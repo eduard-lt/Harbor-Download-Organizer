@@ -83,8 +83,8 @@
 /* Dark is a twilight shore: deep teal and evening blue, never near-black. */
 .dark {
   --ink: #eaf2f3;
-  --ink-2: #b2c5cb;
-  --ink-3: #94aab1;
+  --ink-2: #c8d7db;
+  --ink-3: #bfd0d4;
 
   --accent: #17808a;
   --accent-hover: #1c919c;
@@ -115,7 +115,7 @@
   --side: rgba(26, 60, 76, 0.42);
   --side-edge: rgba(255, 255, 255, 0.1);
   --side-card: rgba(255, 255, 255, 0.06);
-  --sheet: rgba(22, 56, 70, 0.66);
+  --sheet: rgba(20, 52, 66, 0.7);
   --sheet-edge: rgba(255, 255, 255, 0.09);
   --solid: #173443;
   --solid-raised: #1c3c4c;
@@ -233,7 +233,11 @@
 /* Dark tide: while the water is in, sand stays a low glow so it never muddies the teal sheet.
    When it goes out, the sheet itself warms to a dusk violet-grey so amber sand reads as gold. */
 .dark .shell[data-tide="in"] .f-sand { opacity: 0.45; }
-.dark .shell[data-tide="out"] { --sheet: rgba(38, 44, 64, 0.64); --side: rgba(44, 48, 68, 0.45); }
+.dark .shell[data-tide="out"] {
+  --sheet: rgba(32, 36, 54, 0.74); --side: rgba(44, 48, 68, 0.45);
+  /* Secondary text takes the warm sand hue so it holds 4.5:1 over the sunset sheet. */
+  --ink-2: #eadbc8; --ink-3: #ddcbb5;
+}
 
 /* Tide out: water draws back toward the top right; sand and light take more of the frame. */
 .shell[data-tide="out"] .f-sand { transform: translate(18%, -30%) scale(1.9); }
