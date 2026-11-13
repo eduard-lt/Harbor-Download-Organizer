@@ -8,8 +8,8 @@ vi.mock('../hooks/useSettings', () => ({
 }));
 
 // Mock the Sidebar because it is a complex component with context dependencies
-vi.mock('./Sidebar', () => ({
-    Sidebar: () => <div data-testid="sidebar">Sidebar</div>,
+vi.mock('./TopBar', () => ({
+    TopBar: () => <div data-testid="sidebar">TopBar</div>,
 }));
 
 // Mock Outlet from react-router-dom
@@ -22,7 +22,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 });
 
 describe('Layout', () => {
-    it('renders the Sidebar', () => {
+    it('renders the top bar', () => {
         render(
             <MemoryRouter>
                 <Layout />

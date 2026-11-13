@@ -6,6 +6,7 @@ import { useUpdateContext } from '../context/UpdateContext';
 import { useEffect } from 'react';
 import { setMonitoringCue, useMonitoringCue } from '../lib/monitoringCue';
 import { formatPath } from '../lib/format';
+import { Switch } from './Switch';
 
 const REPO_URL = 'https://github.com/eduard-lt/Harbor-Download-Organizer';
 
@@ -16,7 +17,8 @@ const navItems = [
   { to: '/info', icon: BookOpen, label: 'Info & Guide' },
 ];
 
-export function Sidebar() {
+/** Frosted Control Deck bar that sits under the native title bar on every page. */
+export function TopBar() {
   const { serviceStatus, toggleService, loading, downloadDir } = useSettings();
   const { updateState, dismissNotification } = useUpdateContext();
   const { available, url, version } = updateState;
@@ -25,7 +27,7 @@ export function Sidebar() {
   const running = serviceStatus.running;
   const showCue = cuePending && !loading && !running && !healthError;
   const restarting = serviceStatus.lifecycle_state === 'restarting';
-  const folder = formatPath(downloadDir || '').leaf || 'your Downloads folder';
+  const folder = formatPath(downloadDir || '').leaf || 'Downloads';
 
   useEffect(() => {
     if (cuePending && !loading && running) setMonitoringCue(false);
@@ -33,18 +35,17 @@ export function Sidebar() {
 
   let tone = running ? 'ok' : 'warn';
   let title = running ? 'Monitoring' : 'Paused';
-  let text = running
-    ? `Watching ${folder}. New files move as they arrive.`
-    : `New downloads stay in ${folder} until you turn monitoring on.`;
-  if (loading) { tone = 'muted'; title = 'Checking…'; text = 'Reading Harbor’s status.'; }
+  let text = running ? `Watching ${folder}` : `New files stay in ${folder}`;
+  if (loading) { tone = 'muted'; title = 'Checking…'; text = 'Reading status'; }
   else if (healthError) { tone = 'danger'; title = 'Needs attention'; text = healthError; }
-  else if (restarting) { tone = 'warn'; title = 'Restarting'; text = 'Harbor is restarting the folder watcher.'; }
+  else if (restarting) { tone = 'warn'; title = 'Restarting'; text = 'Restarting the folder watcher'; }
+  else if (showCue) { tone = 'accent'; title = 'Ready to start'; text = `Harbor will tidy ${folder}`; }
 
   return (
-    <aside className="sidebar" aria-label="Harbor">
+    <header className="topbar">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <div className="brand">
-        <img src="/harbor.svg" alt="" width="22" height="22" draggable="false" />
+        <img src="/harbor.svg" alt="" width="26" height="26" draggable="false" />
         <span>Harbor</span>
       </div>
       <nav aria-label="Main navigation" className="nav">
@@ -58,37 +59,38 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <section id="sidebar-service-toggle" className="monitor" aria-label="Monitoring"
-        data-health={healthError && !loading ? 'error' : undefined} data-cue={showCue ? '' : undefined}>
-        <div className="monitor-head">
+      <div className="topbar-end">
+        <section id="sidebar-service-toggle" className="monitor" aria-label="Monitoring" title={text}
+          data-health={healthError && !loading ? 'error' : undefined} data-cue={showCue ? '' : undefined}>
           <span className="dot" data-tone={tone} aria-hidden="true" />
-          <span className="monitor-title" role="status">{title}</span>
-          <label className="switch">
-            <input type="checkbox" role="switch" aria-label="Active monitoring" checked={running} disabled={loading}
-              onChange={() => void toggleService()} />
-            <span className="switch-track" aria-hidden="true" />
-          </label>
-        </div>
-        <p className="monitor-text" role={healthError && !loading ? 'alert' : undefined}>{text}</p>
-        {healthError && !loading && <NavLink to="/settings" className="monitor-link">Review in Settings</NavLink>}
-        {showCue && <button type="button" className="monitor-start" onClick={() => void toggleService()}>Start monitoring</button>}
-      </section>
+          <span className="monitor-label">
+            <span className="monitor-title" role="status">{title}</span>
+            {healthError && !loading
+              ? <NavLink to="/settings" className="monitor-link">Review in Settings</NavLink>
+              : <span className="monitor-text" role={undefined}>{text}</span>}
+          </span>
+          {healthError && !loading && <span className="sr-only" role="alert">{healthError}</span>}
+          {showCue
+            ? <button type="button" className="monitor-start" onClick={() => void toggleService()}>Start monitoring</button>
+            : <Switch label="Active monitoring" checked={running} disabled={loading} onChange={() => void toggleService()} />}
+        </section>
 
-      <div className="side-links">
         {available && url && (
-          <button type="button" className="side-link" data-emphasis=""
+          <button type="button" className="side-link" data-emphasis="" title={`Download version ${version ?? ''}`}
             onClick={() => { void open(url); dismissNotification(); }}>
             <ArrowDownToLine size={15} aria-hidden="true" />
-            <span>Update available{version ? ` · ${version}` : ''}</span>
+            <span>Update{version ? ` ${version}` : ''}</span>
           </button>
         )}
-        <button type="button" className="side-link" onClick={() => void open(REPO_URL)}>
-          <Code2 size={15} aria-hidden="true" /><span>Source on GitHub</span>
+        <button type="button" className="side-link" aria-label="Source on GitHub" title="Source on GitHub"
+          onClick={() => void open(REPO_URL)}>
+          <Code2 size={16} aria-hidden="true" />
         </button>
-        <button type="button" className="side-link" onClick={() => void open('https://ko-fi.com/eduardolteanu')}>
-          <Coffee size={15} aria-hidden="true" /><span>Buy me a coffee</span>
+        <button type="button" className="side-link" aria-label="Buy me a coffee" title="Buy me a coffee"
+          onClick={() => void open('https://ko-fi.com/eduardolteanu')}>
+          <Coffee size={16} aria-hidden="true" />
         </button>
       </div>
-    </aside>
+    </header>
   );
 }

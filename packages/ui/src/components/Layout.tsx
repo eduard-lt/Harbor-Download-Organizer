@@ -1,11 +1,11 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Sidebar } from './Sidebar';
+import { TopBar } from './TopBar';
 import { useSettings } from '../hooks/useSettings';
 
 /**
  * The shoreline behind the glass carries monitoring state: the water is in while
- * Harbor watches, and the tide goes out to desaturated sand while it is paused.
+ * Harbor watches; while paused the tide draws back and sunlit sand widens, still in colour.
  */
 function Shoreline() {
   return (
@@ -39,7 +39,7 @@ export function Layout() {
     <div className="shell" data-tide={serviceStatus.running ? 'in' : 'out'} data-settling={settled ? undefined : ''}>
       <Shoreline />
       <div className="frame">
-        <Sidebar />
+        <TopBar />
         <main ref={mainRef} id="main-content" className="sheet" tabIndex={-1}>
           <Outlet />
         </main>

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
+import { TopBar as Sidebar } from './TopBar';
 
 // Mock all dependencies of Sidebar
 vi.mock('../hooks/useSettings', () => ({ useSettings: vi.fn() }));
@@ -109,7 +109,7 @@ describe('Sidebar', () => {
         });
         renderSidebar();
         expect(screen.getByLabelText('Update available')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Update available · 2\.0\.0/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Update 2\.0\.0/ }));
         expect(open).toHaveBeenCalledWith('https://example.test/release');
         expect(baseUpdateCheck.dismissNotification).toHaveBeenCalled();
     });

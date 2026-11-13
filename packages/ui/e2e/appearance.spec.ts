@@ -24,7 +24,7 @@ test('compact window, monitoring tide and appearance preferences survive reload'
   await expect(shell).toHaveAttribute('data-tide', 'out');
   await monitoring.check();
   await expect(shell).toHaveAttribute('data-tide', 'in');
-  await expect(monitoring.locator('+ .switch-track')).toHaveCSS('background-color', 'rgb(11, 106, 117)');
+  await expect(monitoring.locator('+ .switch-track')).toHaveCSS('background-color', 'rgb(10, 111, 123)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('rules-light.png') });
 
@@ -36,7 +36,7 @@ test('compact window, monitoring tide and appearance preferences survive reload'
   await expect(page.getByRole('radio', { name: 'Dark' })).toBeChecked();
   await expect(page.locator('html')).toHaveClass(/dark/);
   await expect(page.locator('html')).toHaveClass(/reduce-transparency/);
-  await expect(page.locator('.sidebar')).toHaveCSS('backdrop-filter', 'none');
+  await expect(page.locator('.topbar')).toHaveCSS('backdrop-filter', 'none');
   await expect(page.locator('.shore')).toBeHidden();
   await page.getByRole('switch', { name: 'Reduce transparency' }).uncheck();
   await navigateTo(page, 'Rules');

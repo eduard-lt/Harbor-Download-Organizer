@@ -31,7 +31,7 @@ test.describe('Navigation', () => {
     test('navigates to Info & Guide', async ({ page }) => {
         await navigateTo(page, 'Info & Guide');
         await expectHeading(page, 'Info & Guide');
-        await expect(page.getByRole('heading', { name: 'How Harbor works' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'What happens to a new file' })).toBeVisible();
     });
 
     test('navigates back to Rules', async ({ page }) => {
