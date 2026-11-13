@@ -17,19 +17,19 @@ Logo: keep the existing Harbor "H" mark (decided after reviewing alternatives on
 
 Must not feel: childish (no cartoon scenery, toy colours, puns), generic SaaS, dark-and-techy, or glass that hurts reading.
 
-Reference: concept canvas https://claude.ai/artifact/MBVWgjhKqeTZah92Gk5zdR (Rules light, Activity dark, Settings, README banner) and the chosen sketch `.impeccable/mocks/decision/model-pick.html`.
+Reference: the Control Deck shell from commit `43d11b1` (horizontal frosted nav merged with the native title bar), which the user prefers over the sidebar layout. The concept canvas https://claude.ai/artifact/MBVWgjhKqeTZah92Gk5zdR and `.impeccable/mocks/decision/model-pick.html` still set the backdrop, glass and type.
 
 ## Direction contract
 
-THESIS: A calm native utility seen through frosted glass, with a beach blurred behind it. It refuses the category default of a grey sidebar plus card dashboard, and the earlier cartoon-harbour look.
+THESIS: Control Deck with a glow-up: a calm native utility seen through frosted glass, with a bright shoreline blurred behind it. It refuses the category default of a grey sidebar plus card dashboard, a near-black "pro" look, and the earlier cartoon-harbour look.
 
-OWN-WORLD: Backdrop of large, heavily blurred colour fields read as an aerial shoreline: wet sand bottom-left, turquoise shallows, deep sea-blue top-right. Floating frosted sidebar (more transparent) beside an opaque-leaning content sheet; tables and forms sit on near-solid surfaces. Inter, 13px body, 20px titles, weights 400–600. One sea-teal accent; muted state colours. Monochrome line icons, hairlines, 14px panel radius, 7–8px control radius.
+OWN-WORLD: Backdrop of large, heavily blurred colour fields read as an aerial shoreline: sunlit sand bottom-left, turquoise shallows, sea-blue top-right. Light is airy and sunny; dark is a teal-blue dusk, never near-black. A frosted top bar (more transparent) above an opaque-leaning content sheet; tables and forms sit on near-solid surfaces. Inter, 13px body, 20px titles, weights 400–600. One sea-teal accent; muted state colours. Monochrome line icons, hairlines, 14px panel radius, 7–8px control radius.
 
 STORY: The user sees at once whether Harbor is watching, where files went, and can change a rule or undo a batch without hunting.
 
-FIRST VIEWPORT: Left, a floating glass sidebar: logo, four destinations, monitoring card with a toggle at the bottom. Right, a content sheet: title with count, search, primary "New rule"; watched-folder strip with Preview and Organize now; ordered rules table; footer with last batch and Undo.
+FIRST VIEWPORT: Top, a frosted Control Deck bar merged with the native title bar (caption, border and canvas band share one colour on Windows and macOS): logo, four destination pills, a monitoring chip with its toggle, update, GitHub and support icons. Below, a content sheet: title with count, search, primary "New rule"; watched-folder strip with Preview and Organize now; ordered rules table; footer with last batch and Undo.
 
-SIGNATURE MOVE: The shoreline backdrop carries monitoring state. Active shows full-colour water; paused lets the tide go out, so the backdrop eases toward desaturated sand. Errors tint only the monitoring card. With Reduce transparency on, the same state appears as a sidebar tint.
+SIGNATURE MOVE: The shoreline backdrop carries monitoring state. Active: the tide is in and water reaches across the frame. Paused: the tide eases out, water draws back and sunlit sand widens, still in colour, a calm change of scene, never a grey-out. On first run, "off" is an invitation: the monitoring chip reads "Ready to start" with a Start monitoring button until the user starts. Errors tint only the monitoring chip. With Reduce transparency on, the same state appears as a top bar tint.
 
 FORM: Shoreline Glass, position 1 on my ordered list (chosen as Impeccable's pick over the rolled Harbour Yard). seed:1c0c0058c5140051
 
@@ -37,4 +37,4 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Unresolved
 
-- Dark theme backdrop palette is set in the canvas Activity board; confirm during the build.
+- Native macOS rendering of the caption band under the transparent title bar is unverified (built and checked on Windows only).
