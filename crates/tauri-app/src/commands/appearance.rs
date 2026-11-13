@@ -2,10 +2,10 @@ use tauri::{window::Color, WebviewWindow};
 
 /// Caption, window border and window background share one colour per theme so
 /// the native title bar flows into the app. Keep in sync with `--canvas` in
-/// packages/ui/src/index.css (light #e9f1f0, dark #10293a).
+/// packages/ui/src/index.css (light #e9f1f0, dark #0b1c27).
 pub fn caption_color(dark: bool) -> Color {
     if dark {
-        Color(16, 41, 58, 255)
+        Color(11, 28, 39, 255)
     } else {
         Color(233, 241, 240, 255)
     }
@@ -61,6 +61,6 @@ mod tests {
         let light = caption_color(false);
         let dark = caption_color(true);
         assert_eq!((light.0, light.1, light.2), (0xe9, 0xf1, 0xf0));
-        assert_eq!((dark.0, dark.1, dark.2), (0x10, 0x29, 0x3a));
+        assert_eq!((dark.0, dark.1, dark.2), (0x0b, 0x1c, 0x27));
     }
 }

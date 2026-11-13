@@ -57,21 +57,21 @@ colors:
   danger-dark: "#f2a682"
   danger-text-dark: "#f6b89b"
   calm-dark: "#d9bd84"
-  canvas-dark: "#10293a"
-  ground-dark: "#15394a"
+  canvas-dark: "#0b1c27"
+  ground-dark: "#0b1c27"
   side-dark: "rgba(26, 60, 76, 0.42)"
   side-dark-out: "rgba(44, 48, 68, 0.45)"
   sheet-dark: "rgba(20, 52, 66, 0.7)"
   sheet-dark-out: "rgba(32, 36, 54, 0.74)"
-  solid-dark: "#173443"
-  solid-raised-dark: "#1c3c4c"
+  solid-dark: "#112631"
+  solid-raised-dark: "#16303d"
   scrim-dark: "rgba(16, 41, 58, 0.45)"
-  shore-sand-dark: "#c99a68"
-  shore-foam-dark: "#24506a"
-  shore-shallows-dark: "#237a7f"
-  shore-sea-dark: "#268598"
-  shore-deep-dark: "#23558a"
-  shore-bay-dark: "#1f6f7d"
+  shore-sand-dark: "#6b5236"
+  shore-foam-dark: "#132d40"
+  shore-shallows-dark: "#13505a"
+  shore-sea-dark: "#145b6c"
+  shore-deep-dark: "#15335c"
+  shore-bay-dark: "#114552"
 typography:
   headline:
     fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
@@ -476,7 +476,7 @@ A solid 14px-radius panel with the Group shadow and 16px padding: a heading with
 
 ### Do:
 - **Do** drive the backdrop only from monitoring state through `data-tide`, and mirror it as a top bar tint under Reduce transparency.
-- **Do** keep `--canvas` and the native caption colour in `crates/tauri-app/src/commands/appearance.rs` identical (light #e9f1f0, dark #10293a).
+- **Do** keep `--canvas` and the native caption colour in `crates/tauri-app/src/commands/appearance.rs` identical (light #e9f1f0, dark #0b1c27).
 - **Do** keep reading and typing on solid surfaces; glass is for the top bar, the monitoring chip and the sheet.
 - **Do** put dark secondary text on `--ink-2`/`--ink-3` so the tide can swap it with the sheet.
 - **Do** portal dialogs, scrims, and toasts to `document.body`, and mark a dialog's primary action with `data-autofocus`.

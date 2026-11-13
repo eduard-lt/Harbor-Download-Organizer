@@ -110,29 +110,30 @@
   --row-hover: rgba(255, 255, 255, 0.035);
   --track-off: rgba(255, 255, 255, 0.24);
 
-  --canvas: #10293a;
-  --ground: #15394a;
-  --side: rgba(26, 60, 76, 0.42);
-  --side-edge: rgba(255, 255, 255, 0.1);
-  --side-card: rgba(255, 255, 255, 0.06);
-  --sheet: rgba(20, 52, 66, 0.7);
-  --sheet-edge: rgba(255, 255, 255, 0.09);
-  --solid: #173443;
-  --solid-raised: #1c3c4c;
-  --control: rgba(255, 255, 255, 0.08);
-  --scrim: rgba(16, 41, 58, 0.45);
+  --canvas: #0b1c27;
+  --ground: #0b1c27;
+  --side: rgba(16, 38, 50, 0.5);
+  --side-edge: rgba(255, 255, 255, 0.08);
+  --side-card: rgba(255, 255, 255, 0.05);
+  --sheet: rgba(12, 30, 41, 0.8);
+  --sheet-edge: rgba(255, 255, 255, 0.08);
+  --solid: #112631;
+  --solid-raised: #16303d;
+  --control: rgba(255, 255, 255, 0.07);
+  --scrim: rgba(6, 16, 23, 0.55);
   --calm: #d9bd84;
   --shadow-side: 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 18px 50px rgba(2, 14, 22, 0.35);
   --shadow-sheet: 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 24px 60px rgba(2, 14, 22, 0.42);
   --shadow-group: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-pop: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 24px 60px rgba(2, 14, 22, 0.5);
 
-  --shore-sand: #c99a68;
-  --shore-foam: #24506a;
-  --shore-shallows: #237a7f;
-  --shore-sea: #268598;
-  --shore-deep: #23558a;
-  --shore-bay: #1f6f7d;
+  /* Night sea: deep and quiet, with colour that glows rather than fills. */
+  --shore-sand: #6b5236;
+  --shore-foam: #132d40;
+  --shore-shallows: #13505a;
+  --shore-sea: #145b6c;
+  --shore-deep: #15335c;
+  --shore-bay: #114552;
 
   color-scheme: dark;
 }
@@ -233,8 +234,10 @@
 /* Dark tide: while the water is in, sand stays a low glow so it never muddies the teal sheet.
    When it goes out, the sheet itself warms to a dusk violet-grey so amber sand reads as gold. */
 .dark .shell[data-tide="in"] .f-sand { opacity: 0.45; }
+/* Tide out at night: the sand warms to a dim dusk glow; it never spreads light across the window. */
+.dark .shell[data-tide="out"] .f-sand { opacity: 0.6; transform: translate(14%, -18%) scale(1.35); }
 .dark .shell[data-tide="out"] {
-  --sheet: rgba(32, 36, 54, 0.74); --side: rgba(44, 48, 68, 0.45);
+  --sheet: rgba(22, 24, 36, 0.82); --side: rgba(30, 32, 46, 0.52);
   /* Secondary text takes the warm sand hue so it holds 4.5:1 over the sunset sheet. */
   --ink-2: #eadbc8; --ink-3: #ddcbb5;
 }
@@ -667,8 +670,8 @@
 .theme-option input:focus-visible ~ .theme-swatch { outline: 2px solid var(--focus); outline-offset: 5px; }
 .theme-option input:checked ~ span:last-child { font-weight: 600; }
 .sw-light { background: radial-gradient(circle at 18% 92%, #f3e2bf 0, transparent 55%), radial-gradient(circle at 78% 18%, #4cadbf 0, transparent 62%), #b4e3db; }
-.sw-dark { background: radial-gradient(circle at 18% 92%, #4d4634 0, transparent 55%), radial-gradient(circle at 78% 22%, #227a8c 0, transparent 62%), #10293a; }
-.sw-system { background: linear-gradient(90deg, #b4e3db 50%, #10293a 50%); }
+.sw-dark { background: radial-gradient(circle at 18% 92%, #4d4634 0, transparent 55%), radial-gradient(circle at 78% 22%, #145b6c 0, transparent 62%), #0b1c27; }
+.sw-system { background: linear-gradient(90deg, #b4e3db 50%, #0b1c27 50%); }
 
 /* Guide */
 .guide { display: grid; grid-template-columns: minmax(0, 68ch) minmax(260px, 1fr); gap: 32px 56px; align-items: start; max-width: 1180px; }

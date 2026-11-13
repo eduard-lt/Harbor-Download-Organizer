@@ -847,7 +847,7 @@
       "canvas-dark": {
         "role": "neutral",
         "displayName": "Dusk Canvas",
-        "canonical": "#10293a",
+        "canonical": "#0b1c27",
         "tonalRamp": [
           "oklch(15% 0.007 240.8)",
           "oklch(26% 0.018 240.8)",
@@ -863,7 +863,7 @@
       "ground-dark": {
         "role": "neutral",
         "displayName": "Dusk Ground",
-        "canonical": "#15394a",
+        "canonical": "#0b1c27",
         "tonalRamp": [
           "oklch(15% 0.008 231.7)",
           "oklch(26% 0.02 231.7)",
@@ -943,7 +943,7 @@
       "solid-dark": {
         "role": "neutral",
         "displayName": "Solid (dark)",
-        "canonical": "#173443",
+        "canonical": "#112631",
         "tonalRamp": [
           "oklch(15% 0.007 233.2)",
           "oklch(26% 0.018 233.2)",
@@ -959,7 +959,7 @@
       "solid-raised-dark": {
         "role": "neutral",
         "displayName": "Raised Solid (dark)",
-        "canonical": "#1c3c4c",
+        "canonical": "#16303d",
         "tonalRamp": [
           "oklch(15% 0.007 232.2)",
           "oklch(26% 0.019 232.2)",
@@ -991,7 +991,7 @@
       "shore-sand-dark": {
         "role": "secondary",
         "displayName": "Amber Sand (dark)",
-        "canonical": "#c99a68",
+        "canonical": "#6b5236",
         "tonalRamp": [
           "oklch(15% 0.013 67.4)",
           "oklch(26% 0.035 67.4)",
@@ -1007,7 +1007,7 @@
       "shore-foam-dark": {
         "role": "secondary",
         "displayName": "Dusk Light (dark)",
-        "canonical": "#24506a",
+        "canonical": "#132d40",
         "tonalRamp": [
           "oklch(15% 0.01 237.2)",
           "oklch(26% 0.026 237.2)",
@@ -1023,7 +1023,7 @@
       "shore-shallows-dark": {
         "role": "secondary",
         "displayName": "Shallows (dark)",
-        "canonical": "#237a7f",
+        "canonical": "#13505a",
         "tonalRamp": [
           "oklch(15% 0.012 200.7)",
           "oklch(26% 0.032 200.7)",
@@ -1039,7 +1039,7 @@
       "shore-sea-dark": {
         "role": "secondary",
         "displayName": "Open Sea (dark)",
-        "canonical": "#268598",
+        "canonical": "#145b6c",
         "tonalRamp": [
           "oklch(15% 0.013 214.2)",
           "oklch(26% 0.036 214.2)",
@@ -1055,7 +1055,7 @@
       "shore-deep-dark": {
         "role": "secondary",
         "displayName": "Deep Water (dark)",
-        "canonical": "#23558a",
+        "canonical": "#15335c",
         "tonalRamp": [
           "oklch(15% 0.015 252.3)",
           "oklch(26% 0.041 252.3)",
@@ -1071,7 +1071,7 @@
       "shore-bay-dark": {
         "role": "secondary",
         "displayName": "Bay (dark)",
-        "canonical": "#1f6f7d",
+        "canonical": "#114552",
         "tonalRamp": [
           "oklch(15% 0.012 211.9)",
           "oklch(26% 0.031 211.9)",
@@ -1434,7 +1434,7 @@
     ],
     "dos": [
       "**Do** drive the backdrop only from monitoring state through `data-tide`, and mirror it as a top bar tint under Reduce transparency.",
-      "**Do** keep `--canvas` and the native caption colour in `crates/tauri-app/src/commands/appearance.rs` identical (light #e9f1f0, dark #10293a).",
+      "**Do** keep `--canvas` and the native caption colour in `crates/tauri-app/src/commands/appearance.rs` identical (light #e9f1f0, dark #0b1c27).",
       "**Do** keep reading and typing on solid surfaces; glass is for the top bar, the monitoring chip and the sheet.",
       "**Do** put dark secondary text on `--ink-2`/`--ink-3` so the tide can swap it with the sheet.",
       "**Do** portal dialogs, scrims, and toasts to `document.body`, and mark a dialog's primary action with `data-autofocus`.",
