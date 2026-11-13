@@ -127,7 +127,7 @@
   --shadow-group: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-pop: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 24px 60px rgba(2, 14, 22, 0.5);
 
-  --shore-sand: #7a6440;
+  --shore-sand: #c99a68;
   --shore-foam: #24506a;
   --shore-shallows: #237a7f;
   --shore-sea: #268598;
@@ -230,6 +230,10 @@
 .shore .f-deep { left: 68%; top: -8%; width: 46%; height: 50%; background: var(--shore-deep); }
 .shore .f-bay { left: 52%; top: 66%; width: 62%; height: 52%; background: var(--shore-bay); }
 .dark .shell { background: var(--ground); }
+/* Dark tide: while the water is in, sand stays a low glow so it never muddies the teal sheet.
+   When it goes out, the sheet itself warms to a dusk violet-grey so amber sand reads as gold. */
+.dark .shell[data-tide="in"] .f-sand { opacity: 0.45; }
+.dark .shell[data-tide="out"] { --sheet: rgba(38, 44, 64, 0.64); --side: rgba(44, 48, 68, 0.45); }
 
 /* Tide out: water draws back toward the top right; sand and light take more of the frame. */
 .shell[data-tide="out"] .f-sand { transform: translate(18%, -30%) scale(1.9); }
@@ -361,6 +365,7 @@
   -webkit-backdrop-filter: blur(40px) saturate(160%);
   backdrop-filter: blur(40px) saturate(160%);
   overflow: hidden;
+  transition: background-color 2.4s var(--ease-out);
 }
 .sheet:focus { outline: none; }
 
@@ -813,6 +818,8 @@ kbd { padding: 1px 5px; border-radius: 4px; background: var(--fill-hover); borde
 .folder-card > svg { color: var(--accent-text); flex-shrink: 0; }
 .folder-card code { display: block; color: var(--ink-2); overflow-wrap: anywhere; }
 .onboard-rules, .preview-groups { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--hair); max-height: 300px; overflow-y: auto; }
+/* A scroll cue: the list fades out at the bottom, and the last row can scroll clear of the fade. */
+.onboard-rules, .preview-groups { -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent); padding-bottom: 24px; }
 .onboard-rules li, .preview-groups li { display: flex; align-items: center; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--hair); }
 .onboard-rules li > svg { color: var(--accent-text); flex-shrink: 0; }
 .onboard-rules li[data-off] > svg { color: var(--ink-3); }
