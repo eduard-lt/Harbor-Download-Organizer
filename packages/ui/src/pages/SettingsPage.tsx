@@ -62,7 +62,8 @@ export function SettingsPage() {
 
   const running = serviceStatus.running;
   const lifecycle = serviceStatus.lifecycle_state ?? (running ? 'running' : 'stopped');
-  const statusTone = loading ? 'muted' : serviceStatus.degraded_reason ? 'warn' : running ? 'ok' : 'warn';
+  const healthError = serviceStatus.configuration_error || serviceStatus.scan_error;
+  const statusTone = loading ? 'muted' : healthError ? 'danger' : serviceStatus.degraded_reason ? 'warn' : running ? 'ok' : 'calm';
 
   let updateText = `You’re up to date.`;
   if (updateLoading) updateText = 'Checking for updates…';
@@ -147,10 +148,12 @@ export function SettingsPage() {
                 <div className="group-row">
                   <span className="dot" data-tone={statusTone} aria-hidden="true" />
                   <div className="text">
-                    <div className="title">{loading ? 'Checking…' : running ? 'Monitoring is on' : 'Monitoring is paused'}</div>
-                    <div className="desc">{running
-                      ? 'New files in the watched folder move as they arrive.'
-                      : 'New downloads stay where they land until you turn this on.'}</div>
+                    <div className="title">{loading ? 'Checking…' : healthError ? 'Monitoring needs attention' : running ? 'Monitoring is on' : 'Monitoring is paused'}</div>
+                    <div className="desc">{healthError
+                      ? 'Files aren’t being sorted until the problem above is fixed.'
+                      : running
+                        ? 'New files in the watched folder move as they arrive.'
+                        : 'New downloads stay where they land until you turn this on.'}</div>
                   </div>
                   <Switch label="Monitoring service" checked={running} disabled={loading} onChange={() => void toggleService()} />
                 </div>

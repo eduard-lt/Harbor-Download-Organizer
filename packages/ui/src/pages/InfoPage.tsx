@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
-import { ArrowDownToLine, Code2, Coffee, Download, FileQuestion, FolderInput, ListFilter, Sparkles } from 'lucide-react';
+import { ArrowDownToLine, Code2, Coffee, Download, FileQuestion, FileSearch, FolderInput, ListFilter } from 'lucide-react';
 import { useRules } from '../hooks/useRules';
 import { matchFile } from '../lib/matchRule';
 import { fileIcon } from '../lib/icons';
@@ -33,7 +33,7 @@ function RuleTester() {
   return (
     <section className="tester" aria-labelledby="tester-title">
       <div className="tester-head">
-        <Sparkles size={16} aria-hidden="true" />
+        <FileSearch size={16} aria-hidden="true" />
         <h2 id="tester-title">Try a file name</h2>
         <span className="cell-muted">Uses your current rules. Nothing moves.</span>
       </div>
@@ -119,7 +119,7 @@ function Guide() {
           <dl className="terms">
             <dt>Extensions</dt><dd>File types, such as <code>jpg, png</code>. Leave empty to match every type.</dd>
             <dt>Filename pattern</dt><dd>A regular expression for the file name, such as <code>^invoice</code>. Good for precise rules.</dd>
-            <dt>Size</dt><dd>A minimum or maximum size in bytes, for example to send large videos elsewhere.</dd>
+            <dt>Size</dt><dd>A minimum or maximum size in MB, for example to send videos over 500 MB elsewhere.</dd>
             <dt>Destination</dt><dd>Any folder on your computer. Harbor creates it if it doesn’t exist yet.</dd>
             <dt>Shortcut</dt><dd>On Windows, Harbor can leave a hidden symlink where the file was.</dd>
           </dl>

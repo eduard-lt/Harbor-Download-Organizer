@@ -18,7 +18,7 @@ vi.mock('../lib/tauri', async (importOriginal) => {
 });
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn() }));
-vi.mock('../hooks/useSettings', () => ({ useSettings: () => ({ downloadDir: 'C:\\Users\\you\\Downloads' }) }));
+vi.mock('../hooks/useSettings', () => ({ useSettings: () => ({ serviceStatus: { running: false, pid: 0 }, toggleService: vi.fn(), downloadDir: 'C:\\Users\\you\\Downloads' }) }));
 const fileActions = vi.hoisted(() => ({
     busy: false, organizing: false, lastBatch: { count: 3, recorded_at: '2024-01-02 14:32:00' } as { count: number; recorded_at: string } | null, chooseFolder: vi.fn(), previewMoves: vi.fn(), organizeNow: vi.fn(),
     requestUndo: vi.fn(), exportRules: vi.fn(), requestImport: vi.fn(),

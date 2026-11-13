@@ -182,8 +182,8 @@ describe('RuleModal', () => {
         render(<RuleModal isOpen={true} onClose={onClose} onSave={onSave} />);
         fireEvent.change(screen.getByPlaceholderText('e.g. Images'), { target: { value: 'Docs' } });
         fireEvent.change(screen.getByPlaceholderText('C:\\Users\\Name\\Pictures'), { target: { value: 'C:\\Docs' } });
-        fireEvent.change(screen.getByPlaceholderText('e.g. 1048576'), { target: { value: '200' } });
-        fireEvent.change(screen.getByPlaceholderText('e.g. 1073741824'), { target: { value: '100' } });
+        fireEvent.change(screen.getByPlaceholderText('e.g. 1'), { target: { value: '200' } });
+        fireEvent.change(screen.getByPlaceholderText('e.g. 1024'), { target: { value: '100' } });
 
         await act(async () => {
             fireEvent.submit(document.querySelector('form')!);

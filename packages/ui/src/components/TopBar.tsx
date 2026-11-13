@@ -33,7 +33,7 @@ export function TopBar() {
     if (cuePending && !loading && running) setMonitoringCue(false);
   }, [cuePending, loading, running]);
 
-  let tone = running ? 'ok' : 'warn';
+  let tone = running ? 'ok' : 'calm';
   let title = running ? 'Monitoring' : 'Paused';
   let text = running ? `Watching ${folder}` : `New files stay in ${folder}`;
   if (loading) { tone = 'muted'; title = 'Checking…'; text = 'Reading status'; }

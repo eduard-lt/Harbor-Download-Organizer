@@ -12,6 +12,9 @@ const destinationHint = isMac
   ? 'Full path of the folder files move to. You can use $HOME, ~/ and ${VAR}.'
   : 'Full path of the folder files move to. You can use %USERPROFILE%.';
 
+const MB = 1024 * 1024;
+const toMb = (bytes?: number | null) => (bytes != null ? String(+(bytes / MB).toFixed(4)) : '');
+
 export interface RuleFormData {
     name: string;
     extensions: string[];
@@ -55,8 +58,8 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
             setExtensions(initialData.extensions.join(', '));
             setDestination(initialData.destination);
             setPattern(initialData.pattern || '');
-            setMinSizeBytes(initialData.min_size_bytes != null ? String(initialData.min_size_bytes) : '');
-            setMaxSizeBytes(initialData.max_size_bytes != null ? String(initialData.max_size_bytes) : '');
+            setMinSizeBytes(toMb(initialData.min_size_bytes));
+            setMaxSizeBytes(toMb(initialData.max_size_bytes));
             setClearPattern(false);
             setClearMinSize(false);
             setClearMaxSize(false);
@@ -113,8 +116,8 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                 .map((s) => s.trim())
                 .filter((s) => s.length > 0);
 
-            const parsedMin = minSizeBytes.trim() === '' ? undefined : Number(minSizeBytes);
-            const parsedMax = maxSizeBytes.trim() === '' ? undefined : Number(maxSizeBytes);
+            const parsedMin = minSizeBytes.trim() === '' ? undefined : Math.round(Number(minSizeBytes) * MB);
+            const parsedMax = maxSizeBytes.trim() === '' ? undefined : Math.round(Number(maxSizeBytes) * MB);
 
             const nextFieldErrors: { min_size_bytes?: string; max_size_bytes?: string } = {};
             if (!clearMinSize && parsedMin != null && Number.isNaN(parsedMin)) {
@@ -218,10 +221,10 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
 
                             <div className="size-grid">
                                 <div className="field">
-                                    <label className="field-label" htmlFor={`${formId}-minSizeBytes`}>Minimum size (bytes)</label>
+                                    <label className="field-label" htmlFor={`${formId}-minSizeBytes`}>Minimum size (MB)</label>
                                     <input type="number" min={0} id={`${formId}-minSizeBytes`} className="input mono" value={minSizeBytes}
                                         aria-invalid={!!fieldErrors.min_size_bytes || undefined}
-                                        onChange={(e) => setMinSizeBytes(e.target.value)} disabled={clearMinSize} placeholder="e.g. 1048576" />
+                                        onChange={(e) => setMinSizeBytes(e.target.value)} disabled={clearMinSize} placeholder="e.g. 1" step="any" />
                                     {editing && (
                                         <label className="check"><input type="checkbox" checked={clearMinSize}
                                             onChange={(e) => setClearMinSize(e.target.checked)} />Clear minimum size</label>
@@ -229,10 +232,10 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                                     {fieldErrors.min_size_bytes && <p className="field-error" role="alert">{fieldErrors.min_size_bytes}</p>}
                                 </div>
                                 <div className="field">
-                                    <label className="field-label" htmlFor={`${formId}-maxSizeBytes`}>Maximum size (bytes)</label>
+                                    <label className="field-label" htmlFor={`${formId}-maxSizeBytes`}>Maximum size (MB)</label>
                                     <input type="number" min={0} id={`${formId}-maxSizeBytes`} className="input mono" value={maxSizeBytes}
                                         aria-invalid={!!fieldErrors.max_size_bytes || undefined}
-                                        onChange={(e) => setMaxSizeBytes(e.target.value)} disabled={clearMaxSize} placeholder="e.g. 1073741824" />
+                                        onChange={(e) => setMaxSizeBytes(e.target.value)} disabled={clearMaxSize} placeholder="e.g. 1024" step="any" />
                                     {editing && (
                                         <label className="check"><input type="checkbox" checked={clearMaxSize}
                                             onChange={(e) => setClearMaxSize(e.target.checked)} />Clear maximum size</label>
@@ -241,7 +244,7 @@ export function RuleModal({ isOpen, onClose, onSave, initialData }: RuleModalPro
                                         <p className="field-error" role="alert">{fieldErrors.max_size_bytes}</p>}
                                 </div>
                             </div>
-                            <p className="field-hint">1 MB is 1048576 bytes. Leave a size empty for no limit.</p>
+                            <p className="field-hint">Sizes are in megabytes; 1024 MB is 1 GB. Leave a size empty for no limit.</p>
                         </div>
                     </details>
 

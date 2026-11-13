@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Eye, Folder, Hourglass, ShieldCheck, Undo2, Play } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, Folder, Hourglass, ShieldCheck, Undo2, Play, ListFilter, FileStack } from 'lucide-react';
 import { setMonitoringCue } from '../lib/monitoringCue';
 import { previewOrganization, type OrganizationPreview } from '../lib/tauri';
 import { useSettings } from '../hooks/useSettings';
@@ -55,6 +55,11 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
   useEffect(() => {
     if (isOpen) { setStep(0); setPreview(null); setPreviewError(null); setAlsoOrganize(false); }
   }, [isOpen]);
+
+  // From the first launch the top bar invites a start; starting clears it.
+  useEffect(() => {
+    if (isOpen && !serviceStatus.running) setMonitoringCue(true);
+  }, [isOpen, serviceStatus.running]);
 
   const loadPreview = useCallback(async () => {
     setPreview(null); setPreviewError(null);
@@ -135,6 +140,7 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
 
         {step === 0 && (
           <>
+            <div className="onboarding-hero" aria-hidden="true"><img src="/harbor.svg" alt="" /></div>
             <p className="lead">Harbor keeps your Downloads folder tidy. When a file finishes downloading, it moves it to the folder you chose for that kind of file.</p>
             <ul className="promise-grid">
               {promises.map(({ icon: Icon, title, text }) => (
@@ -219,7 +225,12 @@ export function TutorialModal({ isOpen, onClose }: TutorialModalProps) {
 
         {step === 4 && (
           <>
-            <p className="lead">Turn on monitoring and Harbor sorts new files in {folder} with {enabled} {enabled === 1 ? 'rule' : 'rules'}. It runs quietly in the {navigator.platform.toLowerCase().includes('mac') ? 'menu bar' : 'system tray'}, even when this window is closed.</p>
+            <p className="lead">Turn on monitoring and Harbor sorts new files as they arrive. It runs quietly in the {navigator.platform.toLowerCase().includes('mac') ? 'menu bar' : 'system tray'}, even when this window is closed.</p>
+            <ul className="recap" aria-label="Your setup">
+              <li><Folder size={16} aria-hidden="true" />Watching<span title={downloadDir}>{folder}</span></li>
+              <li><ListFilter size={16} aria-hidden="true" />Rules on<span>{enabled} of {rules.length}</span></li>
+              <li><FileStack size={16} aria-hidden="true" />Already waiting<span>{preview ? `${moveCount} ${moveCount === 1 ? 'file' : 'files'}` : 'not checked'}</span></li>
+            </ul>
             {moveCount > 0 && (
               <label className="check" style={{ color: 'var(--ink)' }}>
                 <input type="checkbox" checked={alsoOrganize} onChange={e => setAlsoOrganize(e.target.checked)} />

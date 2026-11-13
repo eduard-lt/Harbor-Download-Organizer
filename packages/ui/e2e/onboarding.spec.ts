@@ -15,7 +15,7 @@ test('guided first run previews, adjusts rules and starts monitoring', async ({ 
   await expect(page.getByText(/1 file already in Downloads would move/)).toBeVisible();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByRole('dialog', { name: 'Ready when you are' })).toBeInViewport();
-  await page.getByRole('button', { name: 'Start monitoring' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Start monitoring' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('switch', { name: 'Active monitoring' })).toBeChecked();
   await expect(page.getByRole('switch', { name: 'Enable Documents' })).not.toBeChecked();

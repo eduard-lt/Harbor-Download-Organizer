@@ -15,6 +15,7 @@ function Shoreline() {
       <i className="f-shallows" />
       <i className="f-sea" />
       <i className="f-deep" />
+      <i className="f-bay" />
     </div>
   );
 }

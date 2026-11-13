@@ -49,12 +49,13 @@
   --side: rgba(255, 255, 255, 0.4);
   --side-edge: rgba(255, 255, 255, 0.65);
   --side-card: rgba(255, 255, 255, 0.55);
-  --sheet: rgba(252, 253, 253, 0.74);
+  --sheet: rgba(252, 253, 253, 0.68);
   --sheet-edge: rgba(255, 255, 255, 0.75);
   --solid: #ffffff;
   --solid-raised: #ffffff;
   --control: rgba(255, 255, 255, 0.8);
-  --scrim: rgba(16, 41, 58, 0.28);
+  --scrim: rgba(233, 241, 240, 0.38);
+  --calm: #b08f55;
   --shadow-side: 0 0 0 0.5px rgba(18, 36, 44, 0.08), 0 18px 50px rgba(20, 60, 70, 0.1);
   --shadow-sheet: 0 0 0 0.5px rgba(18, 36, 44, 0.1), 0 24px 60px rgba(20, 60, 70, 0.14);
   --shadow-group: 0 0 0 0.5px rgba(18, 36, 44, 0.12), 0 1px 2px rgba(18, 36, 44, 0.04);
@@ -66,6 +67,7 @@
   --shore-shallows: #8fdacd;
   --shore-sea: #4cadbf;
   --shore-deep: #227d9a;
+  --shore-bay: #7fd0cf;
 
   /* Shape */
   --r-panel: 14px;
@@ -109,25 +111,28 @@
   --track-off: rgba(255, 255, 255, 0.24);
 
   --canvas: #10293a;
+  --ground: #15394a;
   --side: rgba(26, 60, 76, 0.42);
   --side-edge: rgba(255, 255, 255, 0.1);
   --side-card: rgba(255, 255, 255, 0.06);
-  --sheet: rgba(17, 42, 56, 0.74);
+  --sheet: rgba(22, 56, 70, 0.66);
   --sheet-edge: rgba(255, 255, 255, 0.09);
   --solid: #173443;
   --solid-raised: #1c3c4c;
   --control: rgba(255, 255, 255, 0.08);
-  --scrim: rgba(4, 16, 24, 0.5);
+  --scrim: rgba(16, 41, 58, 0.45);
+  --calm: #d9bd84;
   --shadow-side: 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 18px 50px rgba(2, 14, 22, 0.35);
   --shadow-sheet: 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 24px 60px rgba(2, 14, 22, 0.42);
   --shadow-group: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-pop: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 24px 60px rgba(2, 14, 22, 0.5);
 
-  --shore-sand: #4d4634;
-  --shore-foam: #1d4458;
-  --shore-shallows: #1f6c72;
-  --shore-sea: #227a8c;
-  --shore-deep: #1c4b75;
+  --shore-sand: #7a6440;
+  --shore-foam: #24506a;
+  --shore-shallows: #237a7f;
+  --shore-sea: #268598;
+  --shore-deep: #23558a;
+  --shore-bay: #1f6f7d;
 
   color-scheme: dark;
 }
@@ -223,14 +228,16 @@
 .shore .f-shallows { left: -2%; top: 24%; width: 58%; height: 44%; background: var(--shore-shallows); }
 .shore .f-sea { left: 40%; top: 8%; width: 66%; height: 64%; background: var(--shore-sea); }
 .shore .f-deep { left: 68%; top: -8%; width: 46%; height: 50%; background: var(--shore-deep); }
+.shore .f-bay { left: 52%; top: 66%; width: 62%; height: 52%; background: var(--shore-bay); }
+.dark .shell { background: var(--ground); }
 
 /* Tide out: water draws back toward the top right; sand and light take more of the frame. */
-.shell[data-tide="out"] .shore { filter: blur(72px) saturate(0.85); }
-.shell[data-tide="out"] .f-sand { transform: translate(8%, -16%) scale(1.35); }
-.shell[data-tide="out"] .f-foam { transform: translate(6%, 10%) scale(1.25); }
-.shell[data-tide="out"] .f-shallows { transform: translate(34%, -16%) scale(0.78); opacity: 0.8; }
-.shell[data-tide="out"] .f-sea { transform: translate(14%, -14%) scale(0.86); }
-.shell[data-tide="out"] .f-deep { transform: translate(6%, -10%) scale(0.92); }
+.shell[data-tide="out"] .f-sand { transform: translate(18%, -30%) scale(1.9); }
+.shell[data-tide="out"] .f-foam { transform: translate(10%, 18%) scale(1.5); }
+.shell[data-tide="out"] .f-shallows { transform: translate(55%, -30%) scale(0.6); opacity: 0.55; }
+.shell[data-tide="out"] .f-sea { transform: translate(24%, -24%) scale(0.72); opacity: 0.8; }
+.shell[data-tide="out"] .f-deep { transform: translate(10%, -16%) scale(0.85); }
+.shell[data-tide="out"] .f-bay { transform: translate(30%, 30%) scale(0.6); opacity: 0.35; }
 .shell[data-settling] .shore, .shell[data-settling] .shore i { transition: none; }
 
 .frame {
@@ -322,6 +329,7 @@
 .dot[data-tone="danger"] { background: var(--danger); }
 .dot[data-tone="muted"] { background: var(--ink-3); }
 .dot[data-tone="accent"] { background: var(--accent); }
+.dot[data-tone="calm"] { background: var(--calm); }
 
 .side-link {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -702,8 +710,8 @@
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
   background: var(--scrim);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(6px) saturate(1.15);
+  backdrop-filter: blur(6px) saturate(1.15);
   animation: fade-in 0.18s ease-out;
 }
 .dialog {
@@ -770,7 +778,23 @@
 kbd { padding: 1px 5px; border-radius: 4px; background: var(--fill-hover); border: 1px solid var(--hair-strong); }
 
 /* Guided first run */
-.onboarding { min-height: 320px; display: flex; flex-direction: column; gap: 14px; color: var(--ink-2); }
+.onboarding-hero {
+  position: relative; height: 112px; margin: -10px -20px 4px; overflow: hidden;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(60% 90% at 12% 100%, var(--shore-sand), transparent 70%),
+    radial-gradient(55% 80% at 40% 60%, var(--shore-shallows), transparent 72%),
+    radial-gradient(70% 100% at 85% 10%, var(--shore-deep), transparent 70%),
+    radial-gradient(60% 90% at 70% 70%, var(--shore-sea), transparent 75%),
+    var(--shore-foam);
+}
+.onboarding-hero img { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 10px 30px rgba(10, 60, 80, 0.3); }
+.recap { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.recap li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-card); background: var(--fill); color: var(--ink); }
+.recap li > svg { color: var(--accent-text); flex-shrink: 0; }
+.recap li span { color: var(--ink-2); margin-left: auto; white-space: nowrap; }
+
+.onboarding { display: flex; flex-direction: column; gap: 14px; color: var(--ink-2); }
 .onboarding .lead { color: var(--ink); font-size: 14px; line-height: 1.55; }
 .onboarding .lead strong { font-weight: 600; }
 .onboarding .hint { font-size: 12px; }
