@@ -6,6 +6,9 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // `tauri dev` loads this exact URL (devUrl in tauri.conf.json), so fail
+  // instead of silently moving to another port.
+  server: { port: 5173, strictPort: true },
   test: {
     globals: true,
     environment: 'jsdom',

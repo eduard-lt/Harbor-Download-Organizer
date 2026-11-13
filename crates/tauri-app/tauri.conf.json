@@ -7,7 +7,7 @@
   "build": {
     "beforeBuildCommand": "npm run build --prefix ../packages/ui",
     "beforeDevCommand": "npm run dev --prefix ../packages/ui",
-    "devUrl": null,
+    "devUrl": "http://localhost:5173",
     "frontendDist": "../../packages/ui/dist"
   },
   "app": {
