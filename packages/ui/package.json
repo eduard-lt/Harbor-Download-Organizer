@@ -39,7 +39,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.0",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.12",
     "cross-env": "^7.0.3",
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.1.0",
@@ -50,10 +50,10 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.24.0",
     "vite": "^7.1.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "overrides": {
-    "minimatch": "^10.2.1",
+    "minimatch": "11.0.1",
     "eslint": "$eslint"
   }
 }
