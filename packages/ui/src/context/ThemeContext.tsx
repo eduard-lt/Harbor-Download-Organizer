@@ -42,6 +42,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       }
 
+      // Switch every colour in one frame: without this, surfaces with their own
+      // background transitions fade at different speeds and the change ripples.
+      root.classList.add('theme-switching');
+      requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')));
+
       setIsDark(dark);
       root.style.colorScheme = dark ? 'dark' : 'light';
       if ('__TAURI_INTERNALS__' in window) {
