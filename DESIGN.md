@@ -74,43 +74,43 @@ colors:
   shore-bay-dark: "#114552"
 typography:
   headline:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "20px"
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "-0.3px"
   title:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "16px"
     fontWeight: 600
     letterSpacing: "-0.2px"
   title-section:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "15px"
     fontWeight: 600
   lead:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.55
   body:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.45
     fontFeature: "\"cv11\", \"ss01\""
   body-strong:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "13px"
     fontWeight: 500
     lineHeight: 1.45
   caption:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "12px"
     fontWeight: 400
     lineHeight: 1.4
   label:
-    fontFamily: "Inter Variable, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontFamily: "Sora Variable, Segoe UI, system-ui, -apple-system, sans-serif"
     fontSize: "11px"
     fontWeight: 500
     letterSpacing: "0.5px"
@@ -299,7 +299,7 @@ Density is that of a desktop utility: 13px body, 30px controls, 46px table rows,
 - Caption, window border and window background share the canvas colour; a canvas band runs under the native title bar.
 - Reading surfaces (groups, inputs, tester, dialogs, toasts) are solid, never glass.
 - One sea-teal accent; state colours stay muted and appear as small dots, tinted notices, and text.
-- Inter at 13px with weights 400 to 600; JetBrains Mono for paths, patterns and sample file names.
+- Sora at 14px with weights 400 to 600 (chosen for personality over Inter); JetBrains Mono for paths, patterns and sample file names.
 - Light and dark share every rule; dark swaps tokens, and in dark the tide also swaps the sheet and secondary inks.
 
 ## Colors
@@ -345,7 +345,7 @@ A bright shoreline palette: blue-grey ink on pale sea-glass in light, pale ink o
 ## Typography
 
 **Display Font:** none; the system has no display role.
-**Body Font:** Inter Variable (with Segoe UI, system-ui, -apple-system), bundled via @fontsource with `cv11` and `ss01` on.
+**Body Font:** Sora Variable (with Segoe UI, system-ui, -apple-system), bundled via @fontsource; slight negative tracking (-0.005em).
 **Label/Mono Font:** JetBrains Mono 400 (with Cascadia Mono, Consolas, SF Mono), bundled via @fontsource.
 
 **Character:** a native-utility sans at small sizes, set tight and quiet; hierarchy comes from weight (400, 500, 600) and ink tone rather than size jumps. Mono marks anything the user would type or that names a place on disk.

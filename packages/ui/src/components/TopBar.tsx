@@ -52,7 +52,7 @@ export function TopBar() {
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to} end={to === '/'}
             className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>
-            <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+            <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
             <span>{label}</span>
             {available && to === '/info' && <span className="nav-badge" aria-label="Update available" />}
           </NavLink>
@@ -78,17 +78,17 @@ export function TopBar() {
         {available && url && (
           <button type="button" className="side-link" data-emphasis="" title={`Download version ${version ?? ''}`}
             onClick={() => { void open(url); dismissNotification(); }}>
-            <ArrowDownToLine size={15} aria-hidden="true" />
+            <ArrowDownToLine size={17} aria-hidden="true" />
             <span>Update{version ? ` ${version}` : ''}</span>
           </button>
         )}
         <button type="button" className="side-link" aria-label="Source on GitHub" title="Source on GitHub"
           onClick={() => void open(REPO_URL)}>
-          <Code2 size={16} aria-hidden="true" />
+          <Code2 size={19} aria-hidden="true" />
         </button>
         <button type="button" className="side-link" aria-label="Buy me a coffee" title="Buy me a coffee"
           onClick={() => void open('https://ko-fi.com/eduardolteanu')}>
-          <Coffee size={16} aria-hidden="true" />
+          <Coffee size={19} aria-hidden="true" />
         </button>
       </div>
     </header>

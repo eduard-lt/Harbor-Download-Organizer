@@ -23,7 +23,7 @@ Reference: the Control Deck shell from commit `43d11b1` (horizontal frosted nav 
 
 THESIS: Control Deck with a glow-up: a calm native utility seen through frosted glass, with a bright shoreline blurred behind it. It refuses the category default of a grey sidebar plus card dashboard, a near-black "pro" look, and the earlier cartoon-harbour look.
 
-OWN-WORLD: Backdrop of large, heavily blurred colour fields read as an aerial shoreline: sunlit sand bottom-left, turquoise shallows, sea-blue top-right. Light is airy and sunny; dark is a teal-blue dusk, never near-black. A frosted top bar (more transparent) above an opaque-leaning content sheet; tables and forms sit on near-solid surfaces. Inter, 13px body, 20px titles, weights 400–600. One sea-teal accent; muted state colours. Monochrome line icons, hairlines, 14px panel radius, 7–8px control radius.
+OWN-WORLD: Backdrop of large, heavily blurred colour fields read as an aerial shoreline: sunlit sand bottom-left, turquoise shallows, sea-blue top-right. Light is airy and sunny; dark is a teal-blue dusk, never near-black. A frosted top bar (more transparent) above an opaque-leaning content sheet; tables and forms sit on near-solid surfaces. Sora, 14px body, 24px titles, weights 400–600. One sea-teal accent; muted state colours. Monochrome line icons, hairlines, 14px panel radius, 7–8px control radius.
 
 STORY: The user sees at once whether Harbor is watching, where files went, and can change a rule or undo a batch without hunting.
 
