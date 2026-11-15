@@ -68,12 +68,27 @@ jobs:
         run: |
           echo 'Unsigned release candidate. Review docs/RELEASE.md and complete native install, upgrade, login and signing checks before publication.' > release-notes.md
           git log --pretty=format:'- %s' "$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD" >> release-notes.md
+      # Fixed-name copies keep the README's releases/latest/download/... buttons stable
+      # across versions; the versioned files stay for anyone who wants a specific build.
+      - name: Stable download names and checksums
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          exe=(dist/**/*_x64-setup.exe)
+          dmg=(dist/**/*_universal.dmg)
+          test "${#exe[@]}" -eq 1 && test "${#dmg[@]}" -eq 1
+          mkdir -p stable
+          cp "${exe[0]}" stable/Harbor-Windows-x64-Setup.exe
+          cp "${dmg[0]}" stable/Harbor-macOS-Universal.dmg
+          cp "${exe[0]}" "${dmg[0]}" stable/
+          (cd stable && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
       - uses: softprops/action-gh-release@v3
         with:
           draft: true
           prerelease: true
           body_path: release-notes.md
           files: |
-            dist/**/*.exe
-            dist/**/*.dmg
+            stable/*.exe
+            stable/*.dmg
+            stable/SHA256SUMS.txt
           fail_on_unmatched_files: true
