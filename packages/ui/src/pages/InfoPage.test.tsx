@@ -13,6 +13,13 @@ vi.mock('@tauri-apps/plugin-shell', () => ({
     open: vi.fn(),
 }));
 
+vi.mock('../hooks/useRules', () => ({
+    useRules: () => ({ loading: false, rules: [
+        { id: '1', name: 'Invoices', extensions: ['pdf'], pattern: 'invoice', destination: '/Users/you/Docs/Invoices', create_symlink: false, enabled: true, icon: 'description', icon_color: 'red' },
+        { id: '2', name: 'Images', extensions: ['jpg'], destination: '/Users/you/Pictures', create_symlink: false, enabled: true, icon: 'image', icon_color: 'blue' },
+    ] }),
+}));
+
 import { useUpdateContext } from '../context/UpdateContext';
 import packageJson from '../../package.json';
 
@@ -43,21 +50,22 @@ describe('InfoPage', () => {
 
     it('shows User Guide tab content by default', () => {
         render(<InfoPage />);
-        expect(screen.getByText('How it Works')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'What happens to a new file' })).toBeInTheDocument();
     });
 
     it('switches to About tab when clicked', () => {
         render(<InfoPage />);
-        fireEvent.click(screen.getByText('About'));
-        expect(screen.getByText('Harbor')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.getByRole('tab', { name: 'About' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('heading', { name: 'Harbor' })).toBeInTheDocument();
         expect(screen.getByText(new RegExp(`Version ${packageJson.version}`))).toBeInTheDocument();
     });
 
     it('can switch back to User Guide from About tab', () => {
         render(<InfoPage />);
-        fireEvent.click(screen.getByText('About'));
-        fireEvent.click(screen.getByText('User Guide'));
-        expect(screen.getByText('How it Works')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        fireEvent.click(screen.getByRole('tab', { name: 'User Guide' }));
+        expect(screen.getByRole('heading', { name: 'What happens to a new file' })).toBeInTheDocument();
     });
 
     it('shows update banner when update is available', () => {
@@ -70,13 +78,14 @@ describe('InfoPage', () => {
             },
         });
         render(<InfoPage />);
-        expect(screen.getByText('Update Available!')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
         expect(screen.getByText('Version 1.5.0 is ready to download.')).toBeInTheDocument();
     });
 
     it('does NOT show update banner when no update available', () => {
         render(<InfoPage />);
-        expect(screen.queryByText('Update Available!')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.queryByText(/is ready to download/)).not.toBeInTheDocument();
     });
 
     it('does NOT show update banner when available is true but url is null', () => {
@@ -85,6 +94,24 @@ describe('InfoPage', () => {
             updateState: { ...baseUpdateState, available: true, version: '1.5.0', url: null },
         });
         render(<InfoPage />);
-        expect(screen.queryByText('Update Available!')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.queryByText(/is ready to download/)).not.toBeInTheDocument();
+    });
+
+    it('moves between tabs with the arrow keys', () => {
+        render(<InfoPage />);
+        fireEvent.keyDown(screen.getByRole('tab', { name: 'User Guide' }), { key: 'ArrowRight' });
+        expect(screen.getByRole('tab', { name: 'About' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('tests a file name against the real rules', () => {
+        render(<InfoPage />);
+        expect(screen.getByText(/Moves to/)).toHaveTextContent('Moves to …/you/Pictures');
+        fireEvent.click(screen.getByRole('button', { name: 'invoice-march.pdf' }));
+        expect(screen.getByText(/catches it because/)).toHaveTextContent('The Invoices rule catches it because its name matches the pattern invoice');
+        fireEvent.click(screen.getByRole('button', { name: 'dataset.zip.crdownload' }));
+        expect(screen.getByText('Still downloading.')).toBeInTheDocument();
+        fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), { target: { value: 'song.flac' } });
+        expect(screen.getByText('Stays in your watched folder.')).toBeInTheDocument();
     });
 });

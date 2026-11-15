@@ -40,6 +40,8 @@ def main():
     output = root / "assets/windows"
     output.mkdir(exist_ok=True)
     (output / "harbor.svg").write_text(svg, encoding="utf-8")
+    # The in-app logo shares the Icon Composer source on both platforms.
+    (root / "packages/ui/public/harbor.svg").write_text(svg, encoding="utf-8")
     png = resvg_py.svg_to_bytes(svg_string=svg)
     (output / "harbor.png").write_bytes(png)
     icon = Image.open(io.BytesIO(png))

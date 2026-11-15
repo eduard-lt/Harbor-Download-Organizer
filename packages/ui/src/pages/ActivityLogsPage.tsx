@@ -1,8 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { CircleAlert, RefreshCw, Search } from 'lucide-react';
 import { Header } from '../components/Header';
 import { ActivityTable } from '../components/ActivityTable';
 import { useActivity } from '../hooks/useActivity';
 import type { OrganizeFailureGroup } from '../lib/tauri';
+import { LAST_ORGANIZE_KEY, ORGANIZE_EVENT } from '../context/FileActionsContext';
+
+const filters = [
+  { value: '', label: 'All' },
+  { value: 'success', label: 'Moved' },
+  { value: 'error', label: 'Failed' },
+  { value: 'recovered', label: 'Recovered' },
+  { value: 'undone', label: 'Undone' },
+];
+
+function readFailureGroups(): OrganizeFailureGroup[] {
+  try {
+    const raw = window.sessionStorage.getItem(LAST_ORGANIZE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { failure_groups?: OrganizeFailureGroup[] };
+    return parsed.failure_groups ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export function ActivityLogsPage() {
   const [search, setSearch] = useState('');
@@ -11,55 +32,68 @@ export function ActivityLogsPage() {
   const [lastFailureGroups, setLastFailureGroups] = useState<OrganizeFailureGroup[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = window.sessionStorage.getItem('harbor:lastOrganizeResult');
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as { failure_groups?: OrganizeFailureGroup[] };
-      setLastFailureGroups(parsed.failure_groups ?? []);
-    } catch {
-      setLastFailureGroups([]);
-    }
+    const sync = () => setLastFailureGroups(readFailureGroups());
+    sync();
+    window.addEventListener(ORGANIZE_EVENT, sync);
+    return () => window.removeEventListener(ORGANIZE_EVENT, sync);
   }, []);
 
+  const dismissFailures = useCallback(() => {
+    try { window.sessionStorage.removeItem(LAST_ORGANIZE_KEY); } catch { /* storage unavailable */ }
+    setLastFailureGroups([]);
+  }, []);
+
+  const filtered = !!search.trim() || !!status;
+
   return (
-    <>
-      <Header title="Activity Logs" subtitle={`${total} events recorded`}>
-        <button onClick={refresh} disabled={loading} className="px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-50">
-          Refresh
+    <div className="page">
+      <Header title="Activity" subtitle={`${total.toLocaleString()} ${total === 1 ? 'event' : 'events'} recorded`}>
+        <label className="search">
+          <Search size={14} aria-hidden="true" />
+          <input type="search" aria-label="Search activity" placeholder="Search files and rules" value={search}
+            onChange={event => setSearch(event.target.value)} />
+        </label>
+        <button type="button" className="icon-btn" onClick={refresh} disabled={loading} aria-label="Refresh" title="Refresh">
+          <RefreshCw size={15} aria-hidden="true" />
         </button>
       </Header>
-      <div className="flex-1 p-12 overflow-auto">
-        <div className="flex flex-wrap gap-3 mb-4">
-          <input aria-label="Search activity" placeholder="Search files, folders or rules" value={search} onChange={event => setSearch(event.target.value)} className="border rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
-          <select aria-label="Filter activity status" value={status} onChange={event => setStatus(event.target.value)} className="border rounded-lg p-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
-            <option value="">All activity</option><option value="success">Moved</option><option value="error">Errors</option><option value="recovered">Recovered</option><option value="undone">Undone</option>
-          </select>
+
+      <div style={{ padding: '0 24px 10px' }} className="activity-toolbar">
+        <div className="seg" role="group" aria-label="Filter by status">
+          {filters.map(f => (
+            <button key={f.value || 'all'} type="button" aria-pressed={status === f.value} onClick={() => setStatus(f.value)}>
+              {f.label}
+            </button>
+          ))}
         </div>
+      </div>
+
+      <div className="page-body" aria-busy={loading}>
         {error && (
-          <div className="p-4 mb-4 bg-red-50 text-red-600 rounded-lg">
-            {error}
+          <div role="alert" className="notice" data-tone="danger" style={{ marginBottom: 12 }}>
+            <CircleAlert size={16} aria-hidden="true" /><span className="grow">Couldn’t load activity: {error}</span>
           </div>
         )}
         {loading && logs.length === 0 ? (
-          <div className="text-center p-8 text-slate-500">Loading activity...</div>
+          <div className="empty" role="status"><p>Loading activity…</p></div>
         ) : (
           <>
-            <ActivityTable logs={logs} failureGroups={lastFailureGroups} />
+            <ActivityTable logs={logs} failureGroups={lastFailureGroups} onDismissFailures={dismissFailures} filtered={filtered} />
             {hasMore && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Loading...' : 'Load More'}
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                <button type="button" className="btn" onClick={loadMore} disabled={loading}>
+                  {loading ? 'Loading…' : 'Load more'}
                 </button>
               </div>
             )}
           </>
         )}
       </div>
-      <div className="h-1 bg-gradient-to-r from-primary/10 via-primary/60 to-primary/10 opacity-30"></div>
-    </>
+      {logs.length > 0 && (
+        <footer className="page-foot">
+          <span className="grow num">Showing {logs.length.toLocaleString()} of {total.toLocaleString()}</span>
+        </footer>
+      )}
+    </div>
   );
 }

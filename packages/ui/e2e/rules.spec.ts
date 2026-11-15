@@ -8,97 +8,75 @@ test.describe('Rules CRUD', () => {
     test.beforeEach(async ({ page }) => {
         await setupMocks(page);
         await page.goto('/');
-        await expectHeading(page, 'Rules Management');
+        await expectHeading(page, 'Rules');
     });
 
     test('renders existing rules in the table', async ({ page }) => {
-        await expect(page.getByText('Images')).toBeVisible();
-        await expect(page.getByText('Documents', { exact: true })).toBeVisible();
-        await expect(page.getByText('jpg')).toBeVisible();
-        await expect(page.getByText('pdf')).toBeVisible();
+        const images = page.getByRole('row', { name: /Images/ });
+        await expect(images).toContainText('jpg, png, gif');
+        await expect(images).toContainText('Pictures');
+        await expect(page.getByRole('row', { name: /Documents/ })).toContainText('pdf, docx');
     });
 
     test('creates a new rule', async ({ page }) => {
-        await page.getByRole('button', { name: 'New Rule' }).click();
+        await page.getByRole('button', { name: 'New rule' }).click();
 
-        // Scope to the modal form to avoid matching page-level inputs (search bar, etc.)
-        const form = page.locator('form');
-        await form.getByPlaceholder('e.g. Images').fill('Videos');
-        await form.getByPlaceholder('e.g. jpg, png, gif').fill('mp4, mkv');
-        // Destination field: placeholder is platform-dependent
-        //   macOS:  ~/Downloads/Images
-        //   Linux/Windows: C:\Users\Name\Pictures
-        await form.getByPlaceholder(/Downloads|Users/).fill('/Users/test/Videos');
+        const dialog = page.getByRole('dialog', { name: 'New rule' });
+        await dialog.getByRole('textbox', { name: 'Rule name' }).fill('Videos');
+        await dialog.getByRole('textbox', { name: 'File extensions' }).fill('mp4, mkv');
+        await dialog.getByRole('textbox', { name: 'Destination folder' }).fill('/Users/test/Videos');
+        await dialog.getByRole('button', { name: 'Save rule' }).click();
 
-        // Save
-        await page.getByRole('dialog').getByRole('button', { name: 'Save Rule' }).click();
-
-        // Should appear in table (use exact to avoid matching destination path)
-        await expect(page.getByText('Videos', { exact: true })).toBeVisible();
+        await expect(page.getByRole('row', { name: /Videos/ })).toContainText('mp4, mkv');
+        await expect(page.getByText('3 rules, 3 enabled')).toBeVisible();
     });
 
     test('edits an existing rule', async ({ page }) => {
-        // Click edit on Images rule
-        const row = page.getByRole('row', { name: /Images/ });
-        await row.getByRole('button', { name: 'edit' }).click();
+        await page.getByRole('button', { name: 'Edit Images' }).click();
+        await page.getByRole('textbox', { name: 'Rule name' }).fill('Photos');
+        await page.getByRole('button', { name: 'Save rule' }).click();
 
-        // Change name
-        await page.getByPlaceholder('e.g. Images').fill('Photos');
-        await page.getByRole('button', { name: 'Save Rule' }).click();
-
-        // Old name gone, new name present
-        await expect(page.getByText('Photos')).toBeVisible();
-        await expect(page.getByText('Images')).not.toBeVisible();
+        await expect(page.getByRole('row', { name: /Photos/ })).toBeVisible();
+        await expect(page.getByRole('row', { name: /Images/ })).toHaveCount(0);
     });
 
     test('toggles a rule on and off', async ({ page }) => {
-        // Images rule is enabled by default — check stats show Active Rules = 2
-        await expect(page.getByText('Active Rules').locator('..').getByText('2')).toBeVisible();
-
-        // Toggle Images off — checkbox overlay div intercepts clicks, use force
-        const row = page.getByRole('row', { name: /Images/ });
-        await row.getByRole('checkbox').click({ force: true });
-
-        // Active count should drop to 1
-        await expect(page.getByText('Active Rules').locator('..').getByText('1')).toBeVisible();
+        await expect(page.getByText('2 rules, 2 enabled')).toBeVisible();
+        const toggle = page.getByRole('switch', { name: 'Enable Images' });
+        await toggle.uncheck();
+        await expect(page.getByText('2 rules, 1 enabled')).toBeVisible();
+        await toggle.check();
+        await expect(page.getByText('2 rules, 2 enabled')).toBeVisible();
     });
 
     test('deletes a rule with confirmation', async ({ page }) => {
-        const row = page.getByRole('row', { name: /Images/ });
-        await row.getByRole('button', { name: 'Delete Images' }).click();
-
-        // Confirmation modal — use exact match (row actions also include the rule name)
-        await expect(page.getByText('Delete Rule')).toBeVisible();
-        await page.getByRole('button', { name: 'Delete', exact: true }).click();
-
-        // Rule gone
-        await expect(page.getByText('Images')).not.toBeVisible();
+        await page.getByRole('button', { name: 'Delete Images' }).click();
+        await expect(page.getByRole('alertdialog', { name: /Delete .Images.\?/ })).toBeVisible();
+        await page.getByRole('button', { name: 'Delete rule', exact: true }).click();
+        await expect(page.getByRole('row', { name: /Images/ })).toHaveCount(0);
     });
 
     test('cancels rule deletion', async ({ page }) => {
-        const row = page.getByRole('row', { name: /Images/ });
-        await row.getByRole('button', { name: 'Delete Images' }).click();
-
-        await expect(page.getByText('Delete Rule')).toBeVisible();
+        await page.getByRole('button', { name: 'Delete Images' }).click();
+        await expect(page.getByRole('alertdialog')).toBeVisible();
         await page.getByRole('button', { name: 'Cancel' }).click();
-
-        // Modal dismissed, rule still there
-        await expect(page.getByText('Delete Rule')).not.toBeVisible();
-        await expect(page.getByText('Images')).toBeVisible();
+        await expect(page.getByRole('alertdialog')).toHaveCount(0);
+        await expect(page.getByRole('row', { name: /Images/ })).toBeVisible();
     });
 
     test('filters rules by search', async ({ page }) => {
-        await page.getByPlaceholder('Search rules...').fill('Doc');
-        await expect(page.getByText('Images')).not.toBeVisible();
-        await expect(page.getByText('Documents', { exact: true })).toBeVisible();
-
-        // Clear
-        await page.getByPlaceholder('Search rules...').fill('');
-        await expect(page.getByText('Images')).toBeVisible();
+        const search = page.getByRole('searchbox', { name: 'Search rules' });
+        await search.fill('Doc');
+        await expect(page.getByRole('row', { name: /Images/ })).toHaveCount(0);
+        await expect(page.getByRole('row', { name: /Documents/ })).toBeVisible();
+        await search.fill('');
+        await expect(page.getByRole('row', { name: /Images/ })).toBeVisible();
     });
 
     test('shows empty state when no rules match', async ({ page }) => {
-        await page.getByPlaceholder('Search rules...').fill('zzz_nonexistent');
-        await expect(page.getByText('No rules found.')).toBeVisible();
+        await page.getByRole('searchbox', { name: 'Search rules' }).fill('zzz_nonexistent');
+        await expect(page.getByText(/No rules match/)).toBeVisible();
+        await page.getByRole('button', { name: 'Clear search' }).click();
+        await expect(page.getByRole('row', { name: /Images/ })).toBeVisible();
     });
 });

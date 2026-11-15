@@ -1,6 +1,7 @@
 pub mod activity;
 pub mod files;
 pub use files::*;
+pub mod appearance;
 pub mod error_contract;
 pub mod rules;
 pub mod settings;

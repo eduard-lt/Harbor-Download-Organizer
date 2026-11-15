@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import type { ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -8,6 +9,8 @@ interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   isDark: boolean;
+  reduceTransparency: boolean;
+  setReduceTransparency: (reduce: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,9 +22,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const [isDark, setIsDark] = useState(false);
+  const [reduceTransparency, setReduceTransparency] = useState(() => localStorage.getItem('harbor-reduce-transparency') === 'true');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('reduce-transparency', reduceTransparency);
+    localStorage.setItem('harbor-reduce-transparency', String(reduceTransparency));
+  }, [reduceTransparency]);
 
   useEffect(() => {
     const root = window.document.documentElement;
+    let current = true;
+    let revision = 0;
 
     const updateDarkMode = () => {
       let dark = false;
@@ -31,10 +42,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       }
 
+      // Switch every colour in one frame: without this, surfaces with their own
+      // background transitions fade at different speeds and the change ripples.
+      root.classList.add('theme-switching');
+      requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')));
+
       setIsDark(dark);
       root.style.colorScheme = dark ? 'dark' : 'light';
       if ('__TAURI_INTERNALS__' in window) {
+        const request = ++revision;
         void getCurrentWindow().setTheme(theme === 'system' ? null : theme)
+          .then(() => {
+            if (current && request === revision) return invoke('set_window_appearance', { dark });
+          })
           .catch(error => console.error('Failed to update window theme:', error));
       }
       if (dark) {
@@ -54,11 +74,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     };
     mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    return () => { current = false; mediaQuery.removeEventListener('change', handleChange); };
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isDark }}>
+    <ThemeContext.Provider value={{ theme, setTheme, isDark, reduceTransparency, setReduceTransparency }}>
       {children}
     </ThemeContext.Provider>
   );

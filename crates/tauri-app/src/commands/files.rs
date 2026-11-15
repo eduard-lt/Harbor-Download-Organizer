@@ -47,6 +47,20 @@ pub async fn preview_organization(state: State<'_, AppState>) -> Result<Preview,
     .map_err(|e| e.to_string())?
 }
 
+/// The batch Undo would restore, for the Rules footer. Read-only.
+#[tauri::command]
+pub async fn get_last_batch(
+    state: State<'_, AppState>,
+) -> Result<Option<crate::operations::BatchSummary>, String> {
+    let work = state.work.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let _guard = work.gate.lock().map_err(|e| e.to_string())?;
+        crate::operations::last_batch(&work).map_err(|e| format!("{e:#}"))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 pub async fn undo_last_batch(app: tauri::AppHandle) -> Result<usize, String> {
     tauri::async_runtime::spawn_blocking(move || {

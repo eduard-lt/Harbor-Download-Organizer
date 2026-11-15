@@ -30,7 +30,7 @@ describe('Header', () => {
     it('does not render children container when no children', () => {
         const { container } = render(<Header title="Rules" />);
         // children div wrapper should not exist
-        const childWrapper = container.querySelector('div.flex.items-center.gap-4');
+        const childWrapper = container.querySelector('.page-actions');
         expect(childWrapper).not.toBeInTheDocument();
     });
 });

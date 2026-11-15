@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
+
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn().mockResolvedValue(undefined) }));
 
 vi.mock('@tauri-apps/api/window', () => ({
     getCurrentWindow: vi.fn(() => ({ setTheme: vi.fn().mockResolvedValue(undefined) })),
@@ -13,6 +16,20 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(ThemeProvider, { children });
 
 describe('ThemeContext', () => {
+    it('persists and restores reduced transparency independently of theme', () => {
+        localStorage.setItem('harbor-reduce-transparency', 'true');
+        const { result, unmount } = renderHook(() => useTheme(), { wrapper });
+        expect(result.current.reduceTransparency).toBe(true);
+        expect(document.documentElement).toHaveClass('reduce-transparency');
+        act(() => result.current.setTheme('dark'));
+        expect(result.current.reduceTransparency).toBe(true);
+        act(() => result.current.setReduceTransparency(false));
+        expect(localStorage.getItem('harbor-reduce-transparency')).toBe('false');
+        expect(document.documentElement).not.toHaveClass('reduce-transparency');
+        unmount();
+        const restored = renderHook(() => useTheme(), { wrapper });
+        expect(restored.result.current.reduceTransparency).toBe(false);
+    });
     beforeEach(() => {
         localStorage.clear();
         document.documentElement.classList.remove('dark');
@@ -35,8 +52,10 @@ describe('ThemeContext', () => {
             await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith('light'));
             act(() => result.current.setTheme('dark'));
             await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith('dark'));
+            await waitFor(() => expect(invoke).toHaveBeenLastCalledWith('set_window_appearance', { dark: true }));
             act(() => result.current.setTheme('system'));
             await waitFor(() => expect(nativeTheme).toHaveBeenLastCalledWith(null));
+            await waitFor(() => expect(invoke).toHaveBeenLastCalledWith('set_window_appearance', { dark: false }));
         } finally {
             Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
         }

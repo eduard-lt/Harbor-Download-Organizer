@@ -5,6 +5,21 @@ All notable changes to Harbor are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-11-15
+
+### Added
+- Redesigned interface: a frosted top bar that flows into the native title bar, over a blurred shoreline backdrop that shows whether monitoring is on.
+- Guided first-run setup that previews which existing files the default rules would move, lets you switch rules on or off, and ends with Start monitoring.
+- Info & Guide tester: type a file name to see which rule would move it and where.
+- The last batch (file count and time) shows beside Undo, and Undo is disabled when there is nothing to undo.
+- Appearance settings: Light, Dark or Match system, Reduce transparency, and window size presets.
+
+### Changed
+- Larger text and controls, and the Sora typeface (bundled, no network fonts).
+- Dark theme is a deep night sea; the paused state stays colourful instead of greying out.
+- Theme changes apply in one frame instead of fading piece by piece.
+- Icons use one consistent line icon set.
+
 ## [2.2.0] - 2026-10-04
 
 ### Added

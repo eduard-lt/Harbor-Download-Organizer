@@ -181,6 +181,8 @@ export async function setupMocks(page: Page, overrides?: Partial<MockConfig>): P
                 open_downloads_folder: function () {},
                 get_config_path: function () { return "/Users/test/.harbor/config.yaml"; },
                 reset_to_defaults: function () {},
+                preview_organization: function () { return { moves: [{ source: "/Users/test/Downloads/photo.jpg", destination: "/Users/test/Pictures/photo.jpg", rule: "Images" }], errors: [] }; },
+                get_last_batch: function () { return { count: 3, recorded_at: "2026-11-13 14:32:00" }; },
             },
             listenCallbacks: {},
         };

@@ -1,0 +1,1460 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T00:24:09.737Z",
+  "title": "Design System: Harbor",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Harbor Ink",
+        "canonical": "#12242c",
+        "tonalRamp": [
+          "oklch(15% 0.004 228.2)",
+          "oklch(26% 0.011 228.2)",
+          "oklch(37% 0.019 228.2)",
+          "oklch(48% 0.027 228.2)",
+          "oklch(60% 0.028 228.2)",
+          "oklch(72% 0.02 228.2)",
+          "oklch(84% 0.011 228.2)",
+          "oklch(95% 0.004 228.2)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Slate Ink",
+        "canonical": "#44575f",
+        "tonalRamp": [
+          "oklch(15% 0.004 225.5)",
+          "oklch(26% 0.011 225.5)",
+          "oklch(37% 0.018 225.5)",
+          "oklch(48% 0.025 225.5)",
+          "oklch(60% 0.027 225.5)",
+          "oklch(72% 0.019 225.5)",
+          "oklch(84% 0.011 225.5)",
+          "oklch(95% 0.004 225.5)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Mist Ink",
+        "canonical": "#55676f",
+        "tonalRamp": [
+          "oklch(15% 0.004 226.6)",
+          "oklch(26% 0.01 226.6)",
+          "oklch(37% 0.017 226.6)",
+          "oklch(48% 0.024 226.6)",
+          "oklch(60% 0.025 226.6)",
+          "oklch(72% 0.018 226.6)",
+          "oklch(84% 0.01 226.6)",
+          "oklch(95% 0.004 226.6)"
+        ]
+      },
+      "ink-on-accent": {
+        "role": "neutral",
+        "displayName": "On-Accent White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Sea-Teal",
+        "canonical": "#0a6f7b",
+        "tonalRamp": [
+          "oklch(15% 0.012 208.2)",
+          "oklch(26% 0.033 208.2)",
+          "oklch(37% 0.056 208.2)",
+          "oklch(48% 0.079 208.2)",
+          "oklch(60% 0.083 208.2)",
+          "oklch(72% 0.058 208.2)",
+          "oklch(84% 0.033 208.2)",
+          "oklch(95% 0.012 208.2)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Sea-Teal",
+        "canonical": "#075b65",
+        "tonalRamp": [
+          "oklch(15% 0.011 208.1)",
+          "oklch(26% 0.029 208.1)",
+          "oklch(37% 0.049 208.1)",
+          "oklch(48% 0.069 208.1)",
+          "oklch(60% 0.072 208.1)",
+          "oklch(72% 0.051 208.1)",
+          "oklch(84% 0.029 208.1)",
+          "oklch(95% 0.011 208.1)"
+        ]
+      },
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Teal Text",
+        "canonical": "#08656f",
+        "tonalRamp": [
+          "oklch(15% 0.012 207)",
+          "oklch(26% 0.031 207)",
+          "oklch(37% 0.052 207)",
+          "oklch(48% 0.074 207)",
+          "oklch(60% 0.077 207)",
+          "oklch(72% 0.054 207)",
+          "oklch(84% 0.031 207)",
+          "oklch(95% 0.012 207)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Teal Wash",
+        "canonical": "rgba(10, 111, 123, 0.12)",
+        "tonalRamp": [
+          "oklch(15% 0.012 208.2)",
+          "oklch(26% 0.033 208.2)",
+          "oklch(37% 0.056 208.2)",
+          "oklch(48% 0.079 208.2)",
+          "oklch(60% 0.083 208.2)",
+          "oklch(72% 0.058 208.2)",
+          "oklch(84% 0.033 208.2)",
+          "oklch(95% 0.012 208.2)"
+        ]
+      },
+      "accent-line": {
+        "role": "primary",
+        "displayName": "Teal Line",
+        "canonical": "rgba(10, 111, 123, 0.36)",
+        "tonalRamp": [
+          "oklch(15% 0.012 208.2)",
+          "oklch(26% 0.033 208.2)",
+          "oklch(37% 0.056 208.2)",
+          "oklch(48% 0.079 208.2)",
+          "oklch(60% 0.083 208.2)",
+          "oklch(72% 0.058 208.2)",
+          "oklch(84% 0.033 208.2)",
+          "oklch(95% 0.012 208.2)"
+        ]
+      },
+      "ok": {
+        "role": "tertiary",
+        "displayName": "Kelp Green",
+        "canonical": "#2a9d73",
+        "tonalRamp": [
+          "oklch(15% 0.018 163.8)",
+          "oklch(26% 0.048 163.8)",
+          "oklch(37% 0.081 163.8)",
+          "oklch(48% 0.114 163.8)",
+          "oklch(60% 0.119 163.8)",
+          "oklch(72% 0.084 163.8)",
+          "oklch(84% 0.048 163.8)",
+          "oklch(95% 0.018 163.8)"
+        ]
+      },
+      "ok-text": {
+        "role": "tertiary",
+        "displayName": "Kelp Green Text",
+        "canonical": "#1a6c4e",
+        "tonalRamp": [
+          "oklch(15% 0.014 163.8)",
+          "oklch(26% 0.036 163.8)",
+          "oklch(37% 0.062 163.8)",
+          "oklch(48% 0.087 163.8)",
+          "oklch(60% 0.091 163.8)",
+          "oklch(72% 0.064 163.8)",
+          "oklch(84% 0.036 163.8)",
+          "oklch(95% 0.014 163.8)"
+        ]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Driftwood Amber",
+        "canonical": "#c4703e",
+        "tonalRamp": [
+          "oklch(15% 0.019 49.7)",
+          "oklch(26% 0.05 49.7)",
+          "oklch(37% 0.084 49.7)",
+          "oklch(48% 0.118 49.7)",
+          "oklch(60% 0.124 49.7)",
+          "oklch(72% 0.087 49.7)",
+          "oklch(84% 0.05 49.7)",
+          "oklch(95% 0.019 49.7)"
+        ]
+      },
+      "warn-text": {
+        "role": "tertiary",
+        "displayName": "Driftwood Amber Text",
+        "canonical": "#8f4a1f",
+        "tonalRamp": [
+          "oklch(15% 0.016 49.5)",
+          "oklch(26% 0.043 49.5)",
+          "oklch(37% 0.073 49.5)",
+          "oklch(48% 0.103 49.5)",
+          "oklch(60% 0.108 49.5)",
+          "oklch(72% 0.076 49.5)",
+          "oklch(84% 0.043 49.5)",
+          "oklch(95% 0.016 49.5)"
+        ]
+      },
+      "warn-soft": {
+        "role": "tertiary",
+        "displayName": "Driftwood Wash",
+        "canonical": "rgba(196, 112, 62, 0.12)",
+        "tonalRamp": [
+          "oklch(15% 0.019 49.7)",
+          "oklch(26% 0.05 49.7)",
+          "oklch(37% 0.084 49.7)",
+          "oklch(48% 0.118 49.7)",
+          "oklch(60% 0.124 49.7)",
+          "oklch(72% 0.087 49.7)",
+          "oklch(84% 0.05 49.7)",
+          "oklch(95% 0.019 49.7)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Brick",
+        "canonical": "#b23a3a",
+        "tonalRamp": [
+          "oklch(15% 0.023 24.3)",
+          "oklch(26% 0.062 24.3)",
+          "oklch(37% 0.105 24.3)",
+          "oklch(48% 0.148 24.3)",
+          "oklch(60% 0.156 24.3)",
+          "oklch(72% 0.109 24.3)",
+          "oklch(84% 0.062 24.3)",
+          "oklch(95% 0.023 24.3)"
+        ]
+      },
+      "danger-text": {
+        "role": "tertiary",
+        "displayName": "Brick Text",
+        "canonical": "#9c2626",
+        "tonalRamp": [
+          "oklch(15% 0.023 25.7)",
+          "oklch(26% 0.062 25.7)",
+          "oklch(37% 0.104 25.7)",
+          "oklch(48% 0.147 25.7)",
+          "oklch(60% 0.154 25.7)",
+          "oklch(72% 0.108 25.7)",
+          "oklch(84% 0.062 25.7)",
+          "oklch(95% 0.023 25.7)"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Brick Wash",
+        "canonical": "rgba(178, 58, 58, 0.09)",
+        "tonalRamp": [
+          "oklch(15% 0.023 24.3)",
+          "oklch(26% 0.062 24.3)",
+          "oklch(37% 0.105 24.3)",
+          "oklch(48% 0.148 24.3)",
+          "oklch(60% 0.156 24.3)",
+          "oklch(72% 0.109 24.3)",
+          "oklch(84% 0.062 24.3)",
+          "oklch(95% 0.023 24.3)"
+        ]
+      },
+      "danger-line": {
+        "role": "tertiary",
+        "displayName": "Brick Line",
+        "canonical": "rgba(178, 58, 58, 0.36)",
+        "tonalRamp": [
+          "oklch(15% 0.023 24.3)",
+          "oklch(26% 0.062 24.3)",
+          "oklch(37% 0.105 24.3)",
+          "oklch(48% 0.148 24.3)",
+          "oklch(60% 0.156 24.3)",
+          "oklch(72% 0.109 24.3)",
+          "oklch(84% 0.062 24.3)",
+          "oklch(95% 0.023 24.3)"
+        ]
+      },
+      "calm": {
+        "role": "tertiary",
+        "displayName": "Calm Sand",
+        "canonical": "#b08f55",
+        "tonalRamp": [
+          "oklch(15% 0.013 80.6)",
+          "oklch(26% 0.034 80.6)",
+          "oklch(37% 0.058 80.6)",
+          "oklch(48% 0.082 80.6)",
+          "oklch(60% 0.086 80.6)",
+          "oklch(72% 0.06 80.6)",
+          "oklch(84% 0.034 80.6)",
+          "oklch(95% 0.013 80.6)"
+        ]
+      },
+      "hair": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgba(18, 36, 44, 0.08)",
+        "tonalRamp": [
+          "oklch(15% 0.004 228.2)",
+          "oklch(26% 0.011 228.2)",
+          "oklch(37% 0.019 228.2)",
+          "oklch(48% 0.027 228.2)",
+          "oklch(60% 0.028 228.2)",
+          "oklch(72% 0.02 228.2)",
+          "oklch(84% 0.011 228.2)",
+          "oklch(95% 0.004 228.2)"
+        ]
+      },
+      "hair-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "rgba(18, 36, 44, 0.14)",
+        "tonalRamp": [
+          "oklch(15% 0.004 228.2)",
+          "oklch(26% 0.011 228.2)",
+          "oklch(37% 0.019 228.2)",
+          "oklch(48% 0.027 228.2)",
+          "oklch(60% 0.028 228.2)",
+          "oklch(72% 0.02 228.2)",
+          "oklch(84% 0.011 228.2)",
+          "oklch(95% 0.004 228.2)"
+        ]
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "Quiet Fill",
+        "canonical": "rgba(18, 36, 44, 0.045)",
+        "tonalRamp": [
+          "oklch(15% 0.004 228.2)",
+          "oklch(26% 0.011 228.2)",
+          "oklch(37% 0.019 228.2)",
+          "oklch(48% 0.027 228.2)",
+          "oklch(60% 0.028 228.2)",
+          "oklch(72% 0.02 228.2)",
+          "oklch(84% 0.011 228.2)",
+          "oklch(95% 0.004 228.2)"
+        ]
+      },
+      "fill-hover": {
+        "role": "neutral",
+        "displayName": "Hover Fill",
+        "canonical": "rgba(18, 36, 44, 0.065)",
+        "tonalRamp": [
+          "oklch(15% 0.004 228.2)",
+          "oklch(26% 0.011 228.2)",
+          "oklch(37% 0.019 228.2)",
+          "oklch(48% 0.027 228.2)",
+          "oklch(60% 0.028 228.2)",
+          "oklch(72% 0.02 228.2)",
+          "oklch(84% 0.011 228.2)",
+          "oklch(95% 0.004 228.2)"
+        ]
+      },
+      "row-hover": {
+        "role": "neutral",
+        "displayName": "Row Hover",
+        "canonical": "rgba(10, 111, 123, 0.05)",
+        "tonalRamp": [
+          "oklch(15% 0.012 208.2)",
+          "oklch(26% 0.033 208.2)",
+          "oklch(37% 0.056 208.2)",
+          "oklch(48% 0.079 208.2)",
+          "oklch(60% 0.083 208.2)",
+          "oklch(72% 0.058 208.2)",
+          "oklch(84% 0.033 208.2)",
+          "oklch(95% 0.012 208.2)"
+        ]
+      },
+      "track-off": {
+        "role": "neutral",
+        "displayName": "Switch Track Off",
+        "canonical": "rgba(18, 36, 44, 0.24)",
+        "tonalRamp": [
+          "oklch(15% 0.004 228.2)",
+          "oklch(26% 0.011 228.2)",
+          "oklch(37% 0.019 228.2)",
+          "oklch(48% 0.027 228.2)",
+          "oklch(60% 0.028 228.2)",
+          "oklch(72% 0.02 228.2)",
+          "oklch(84% 0.011 228.2)",
+          "oklch(95% 0.004 228.2)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Sea-Glass Canvas",
+        "canonical": "#e9f1f0",
+        "tonalRamp": [
+          "oklch(15% 0.001 188.1)",
+          "oklch(26% 0.003 188.1)",
+          "oklch(37% 0.006 188.1)",
+          "oklch(48% 0.008 188.1)",
+          "oklch(60% 0.009 188.1)",
+          "oklch(72% 0.006 188.1)",
+          "oklch(84% 0.003 188.1)",
+          "oklch(95% 0.001 188.1)"
+        ]
+      },
+      "side": {
+        "role": "neutral",
+        "displayName": "Deck Glass",
+        "canonical": "rgba(255, 255, 255, 0.4)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "side-edge": {
+        "role": "neutral",
+        "displayName": "Glass Edge",
+        "canonical": "rgba(255, 255, 255, 0.65)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "side-card": {
+        "role": "neutral",
+        "displayName": "Chip Glass",
+        "canonical": "rgba(255, 255, 255, 0.55)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet Glass",
+        "canonical": "rgba(252, 253, 253, 0.68)",
+        "tonalRamp": [
+          "oklch(15% 0 197.1)",
+          "oklch(26% 0 197.1)",
+          "oklch(37% 0.001 197.1)",
+          "oklch(48% 0.001 197.1)",
+          "oklch(60% 0.001 197.1)",
+          "oklch(72% 0.001 197.1)",
+          "oklch(84% 0 197.1)",
+          "oklch(95% 0 197.1)"
+        ]
+      },
+      "sheet-edge": {
+        "role": "neutral",
+        "displayName": "Sheet Edge",
+        "canonical": "rgba(255, 255, 255, 0.75)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "solid": {
+        "role": "neutral",
+        "displayName": "Solid",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "control": {
+        "role": "neutral",
+        "displayName": "Control Fill",
+        "canonical": "rgba(255, 255, 255, 0.8)",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Canvas Scrim",
+        "canonical": "rgba(233, 241, 240, 0.38)",
+        "tonalRamp": [
+          "oklch(15% 0.001 188.1)",
+          "oklch(26% 0.003 188.1)",
+          "oklch(37% 0.006 188.1)",
+          "oklch(48% 0.008 188.1)",
+          "oklch(60% 0.009 188.1)",
+          "oklch(72% 0.006 188.1)",
+          "oklch(84% 0.003 188.1)",
+          "oklch(95% 0.001 188.1)"
+        ]
+      },
+      "shore-sand": {
+        "role": "secondary",
+        "displayName": "Sunlit Sand",
+        "canonical": "#f3e2bf",
+        "tonalRamp": [
+          "oklch(15% 0.007 85.1)",
+          "oklch(26% 0.02 85.1)",
+          "oklch(37% 0.033 85.1)",
+          "oklch(48% 0.047 85.1)",
+          "oklch(60% 0.05 85.1)",
+          "oklch(72% 0.035 85.1)",
+          "oklch(84% 0.02 85.1)",
+          "oklch(95% 0.007 85.1)"
+        ]
+      },
+      "shore-foam": {
+        "role": "secondary",
+        "displayName": "Morning Light",
+        "canonical": "#fbf2dc",
+        "tonalRamp": [
+          "oklch(15% 0.005 88.4)",
+          "oklch(26% 0.012 88.4)",
+          "oklch(37% 0.021 88.4)",
+          "oklch(48% 0.029 88.4)",
+          "oklch(60% 0.03 88.4)",
+          "oklch(72% 0.021 88.4)",
+          "oklch(84% 0.012 88.4)",
+          "oklch(95% 0.005 88.4)"
+        ]
+      },
+      "shore-shallows": {
+        "role": "secondary",
+        "displayName": "Turquoise Shallows",
+        "canonical": "#8fdacd",
+        "tonalRamp": [
+          "oklch(15% 0.012 182.3)",
+          "oklch(26% 0.031 182.3)",
+          "oklch(37% 0.052 182.3)",
+          "oklch(48% 0.073 182.3)",
+          "oklch(60% 0.077 182.3)",
+          "oklch(72% 0.054 182.3)",
+          "oklch(84% 0.031 182.3)",
+          "oklch(95% 0.012 182.3)"
+        ]
+      },
+      "shore-sea": {
+        "role": "secondary",
+        "displayName": "Open Sea",
+        "canonical": "#4cadbf",
+        "tonalRamp": [
+          "oklch(15% 0.014 211.7)",
+          "oklch(26% 0.037 211.7)",
+          "oklch(37% 0.063 211.7)",
+          "oklch(48% 0.089 211.7)",
+          "oklch(60% 0.094 211.7)",
+          "oklch(72% 0.066 211.7)",
+          "oklch(84% 0.037 211.7)",
+          "oklch(95% 0.014 211.7)"
+        ]
+      },
+      "shore-deep": {
+        "role": "secondary",
+        "displayName": "Deep Water",
+        "canonical": "#227d9a",
+        "tonalRamp": [
+          "oklch(15% 0.014 224.2)",
+          "oklch(26% 0.037 224.2)",
+          "oklch(37% 0.063 224.2)",
+          "oklch(48% 0.088 224.2)",
+          "oklch(60% 0.093 224.2)",
+          "oklch(72% 0.065 224.2)",
+          "oklch(84% 0.037 224.2)",
+          "oklch(95% 0.014 224.2)"
+        ]
+      },
+      "shore-bay": {
+        "role": "secondary",
+        "displayName": "Bay",
+        "canonical": "#7fd0cf",
+        "tonalRamp": [
+          "oklch(15% 0.012 194.7)",
+          "oklch(26% 0.032 194.7)",
+          "oklch(37% 0.054 194.7)",
+          "oklch(48% 0.076 194.7)",
+          "oklch(60% 0.08 194.7)",
+          "oklch(72% 0.056 194.7)",
+          "oklch(84% 0.032 194.7)",
+          "oklch(95% 0.012 194.7)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Harbor Ink (dark)",
+        "canonical": "#eaf2f3",
+        "tonalRamp": [
+          "oklch(15% 0.001 205.9)",
+          "oklch(26% 0.003 205.9)",
+          "oklch(37% 0.006 205.9)",
+          "oklch(48% 0.008 205.9)",
+          "oklch(60% 0.009 205.9)",
+          "oklch(72% 0.006 205.9)",
+          "oklch(84% 0.003 205.9)",
+          "oklch(95% 0.001 205.9)"
+        ],
+        "theme": "dark"
+      },
+      "ink-2-dark": {
+        "role": "neutral",
+        "displayName": "Slate Ink (dark, tide in)",
+        "canonical": "#c8d7db",
+        "tonalRamp": [
+          "oklch(15% 0.003 215.5)",
+          "oklch(26% 0.007 215.5)",
+          "oklch(37% 0.012 215.5)",
+          "oklch(48% 0.016 215.5)",
+          "oklch(60% 0.017 215.5)",
+          "oklch(72% 0.012 215.5)",
+          "oklch(84% 0.007 215.5)",
+          "oklch(95% 0.003 215.5)"
+        ],
+        "theme": "dark"
+      },
+      "ink-3-dark": {
+        "role": "neutral",
+        "displayName": "Mist Ink (dark, tide in)",
+        "canonical": "#bfd0d4",
+        "tonalRamp": [
+          "oklch(15% 0.003 213.4)",
+          "oklch(26% 0.008 213.4)",
+          "oklch(37% 0.013 213.4)",
+          "oklch(48% 0.018 213.4)",
+          "oklch(60% 0.019 213.4)",
+          "oklch(72% 0.013 213.4)",
+          "oklch(84% 0.008 213.4)",
+          "oklch(95% 0.003 213.4)"
+        ],
+        "theme": "dark"
+      },
+      "ink-2-dark-out": {
+        "role": "neutral",
+        "displayName": "Sand Ink (dark, tide out)",
+        "canonical": "#eadbc8",
+        "tonalRamp": [
+          "oklch(15% 0.005 73.9)",
+          "oklch(26% 0.012 73.9)",
+          "oklch(37% 0.02 73.9)",
+          "oklch(48% 0.029 73.9)",
+          "oklch(60% 0.03 73.9)",
+          "oklch(72% 0.021 73.9)",
+          "oklch(84% 0.012 73.9)",
+          "oklch(95% 0.005 73.9)"
+        ],
+        "theme": "dark"
+      },
+      "ink-3-dark-out": {
+        "role": "neutral",
+        "displayName": "Mist Sand Ink (dark, tide out)",
+        "canonical": "#ddcbb5",
+        "tonalRamp": [
+          "oklch(15% 0.005 72.8)",
+          "oklch(26% 0.014 72.8)",
+          "oklch(37% 0.024 72.8)",
+          "oklch(48% 0.034 72.8)",
+          "oklch(60% 0.036 72.8)",
+          "oklch(72% 0.025 72.8)",
+          "oklch(84% 0.014 72.8)",
+          "oklch(95% 0.005 72.8)"
+        ],
+        "theme": "dark"
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Sea-Teal (dark)",
+        "canonical": "#17808a",
+        "tonalRamp": [
+          "oklch(15% 0.013 205)",
+          "oklch(26% 0.035 205)",
+          "oklch(37% 0.06 205)",
+          "oklch(48% 0.084 205)",
+          "oklch(60% 0.089 205)",
+          "oklch(72% 0.062 205)",
+          "oklch(84% 0.035 205)",
+          "oklch(95% 0.013 205)"
+        ],
+        "theme": "dark"
+      },
+      "accent-hover-dark": {
+        "role": "primary",
+        "displayName": "Deep Sea-Teal (dark)",
+        "canonical": "#1c919c",
+        "tonalRamp": [
+          "oklch(15% 0.015 204.9)",
+          "oklch(26% 0.039 204.9)",
+          "oklch(37% 0.065 204.9)",
+          "oklch(48% 0.092 204.9)",
+          "oklch(60% 0.097 204.9)",
+          "oklch(72% 0.068 204.9)",
+          "oklch(84% 0.039 204.9)",
+          "oklch(95% 0.015 204.9)"
+        ],
+        "theme": "dark"
+      },
+      "accent-text-dark": {
+        "role": "primary",
+        "displayName": "Pale Lagoon (dark)",
+        "canonical": "#88d9db",
+        "tonalRamp": [
+          "oklch(15% 0.012 197.8)",
+          "oklch(26% 0.032 197.8)",
+          "oklch(37% 0.054 197.8)",
+          "oklch(48% 0.075 197.8)",
+          "oklch(60% 0.079 197.8)",
+          "oklch(72% 0.056 197.8)",
+          "oklch(84% 0.032 197.8)",
+          "oklch(95% 0.012 197.8)"
+        ],
+        "theme": "dark"
+      },
+      "ok-dark": {
+        "role": "tertiary",
+        "displayName": "Kelp Green (dark)",
+        "canonical": "#52cb9c",
+        "tonalRamp": [
+          "oklch(15% 0.019 164.4)",
+          "oklch(26% 0.052 164.4)",
+          "oklch(37% 0.087 164.4)",
+          "oklch(48% 0.123 164.4)",
+          "oklch(60% 0.129 164.4)",
+          "oklch(72% 0.09 164.4)",
+          "oklch(84% 0.052 164.4)",
+          "oklch(95% 0.019 164.4)"
+        ],
+        "theme": "dark"
+      },
+      "ok-text-dark": {
+        "role": "tertiary",
+        "displayName": "Kelp Green Text (dark)",
+        "canonical": "#85dbb8",
+        "tonalRamp": [
+          "oklch(15% 0.015 166.2)",
+          "oklch(26% 0.039 166.2)",
+          "oklch(37% 0.066 166.2)",
+          "oklch(48% 0.093 166.2)",
+          "oklch(60% 0.098 166.2)",
+          "oklch(72% 0.069 166.2)",
+          "oklch(84% 0.039 166.2)",
+          "oklch(95% 0.015 166.2)"
+        ],
+        "theme": "dark"
+      },
+      "warn-dark": {
+        "role": "tertiary",
+        "displayName": "Driftwood Amber (dark)",
+        "canonical": "#e6ad73",
+        "tonalRamp": [
+          "oklch(15% 0.015 66)",
+          "oklch(26% 0.04 66)",
+          "oklch(37% 0.068 66)",
+          "oklch(48% 0.095 66)",
+          "oklch(60% 0.1 66)",
+          "oklch(72% 0.07 66)",
+          "oklch(84% 0.04 66)",
+          "oklch(95% 0.015 66)"
+        ],
+        "theme": "dark"
+      },
+      "warn-text-dark": {
+        "role": "tertiary",
+        "displayName": "Driftwood Amber Text (dark)",
+        "canonical": "#f0c08f",
+        "tonalRamp": [
+          "oklch(15% 0.013 66.8)",
+          "oklch(26% 0.034 66.8)",
+          "oklch(37% 0.057 66.8)",
+          "oklch(48% 0.08 66.8)",
+          "oklch(60% 0.084 66.8)",
+          "oklch(72% 0.059 66.8)",
+          "oklch(84% 0.034 66.8)",
+          "oklch(95% 0.013 66.8)"
+        ],
+        "theme": "dark"
+      },
+      "danger-dark": {
+        "role": "tertiary",
+        "displayName": "Coral",
+        "canonical": "#f2a682",
+        "tonalRamp": [
+          "oklch(15% 0.015 46.1)",
+          "oklch(26% 0.041 46.1)",
+          "oklch(37% 0.069 46.1)",
+          "oklch(48% 0.098 46.1)",
+          "oklch(60% 0.103 46.1)",
+          "oklch(72% 0.072 46.1)",
+          "oklch(84% 0.041 46.1)",
+          "oklch(95% 0.015 46.1)"
+        ],
+        "theme": "dark"
+      },
+      "danger-text-dark": {
+        "role": "tertiary",
+        "displayName": "Coral Text",
+        "canonical": "#f6b89b",
+        "tonalRamp": [
+          "oklch(15% 0.012 46.2)",
+          "oklch(26% 0.033 46.2)",
+          "oklch(37% 0.056 46.2)",
+          "oklch(48% 0.078 46.2)",
+          "oklch(60% 0.082 46.2)",
+          "oklch(72% 0.058 46.2)",
+          "oklch(84% 0.033 46.2)",
+          "oklch(95% 0.012 46.2)"
+        ],
+        "theme": "dark"
+      },
+      "calm-dark": {
+        "role": "tertiary",
+        "displayName": "Calm Sand (dark)",
+        "canonical": "#d9bd84",
+        "tonalRamp": [
+          "oklch(15% 0.012 84.5)",
+          "oklch(26% 0.032 84.5)",
+          "oklch(37% 0.054 84.5)",
+          "oklch(48% 0.077 84.5)",
+          "oklch(60% 0.081 84.5)",
+          "oklch(72% 0.056 84.5)",
+          "oklch(84% 0.032 84.5)",
+          "oklch(95% 0.012 84.5)"
+        ],
+        "theme": "dark"
+      },
+      "canvas-dark": {
+        "role": "neutral",
+        "displayName": "Dusk Canvas",
+        "canonical": "#0b1c27",
+        "tonalRamp": [
+          "oklch(15% 0.007 240.8)",
+          "oklch(26% 0.018 240.8)",
+          "oklch(37% 0.03 240.8)",
+          "oklch(48% 0.042 240.8)",
+          "oklch(60% 0.044 240.8)",
+          "oklch(72% 0.031 240.8)",
+          "oklch(84% 0.018 240.8)",
+          "oklch(95% 0.007 240.8)"
+        ],
+        "theme": "dark"
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Dusk Ground",
+        "canonical": "#0b1c27",
+        "tonalRamp": [
+          "oklch(15% 0.008 231.7)",
+          "oklch(26% 0.02 231.7)",
+          "oklch(37% 0.034 231.7)",
+          "oklch(48% 0.048 231.7)",
+          "oklch(60% 0.051 231.7)",
+          "oklch(72% 0.036 231.7)",
+          "oklch(84% 0.02 231.7)",
+          "oklch(95% 0.008 231.7)"
+        ],
+        "theme": "dark"
+      },
+      "side-dark": {
+        "role": "neutral",
+        "displayName": "Deck Glass (dark, tide in)",
+        "canonical": "rgba(26, 60, 76, 0.42)",
+        "tonalRamp": [
+          "oklch(15% 0.007 230.9)",
+          "oklch(26% 0.019 230.9)",
+          "oklch(37% 0.033 230.9)",
+          "oklch(48% 0.046 230.9)",
+          "oklch(60% 0.048 230.9)",
+          "oklch(72% 0.034 230.9)",
+          "oklch(84% 0.019 230.9)",
+          "oklch(95% 0.007 230.9)"
+        ],
+        "theme": "dark"
+      },
+      "side-dark-out": {
+        "role": "neutral",
+        "displayName": "Deck Glass (dark, tide out)",
+        "canonical": "rgba(44, 48, 68, 0.45)",
+        "tonalRamp": [
+          "oklch(15% 0.005 275.4)",
+          "oklch(26% 0.015 275.4)",
+          "oklch(37% 0.025 275.4)",
+          "oklch(48% 0.034 275.4)",
+          "oklch(60% 0.036 275.4)",
+          "oklch(72% 0.025 275.4)",
+          "oklch(84% 0.015 275.4)",
+          "oklch(95% 0.005 275.4)"
+        ],
+        "theme": "dark"
+      },
+      "sheet-dark": {
+        "role": "neutral",
+        "displayName": "Teal Sheet (dark, tide in)",
+        "canonical": "rgba(20, 52, 66, 0.7)",
+        "tonalRamp": [
+          "oklch(15% 0.007 229.4)",
+          "oklch(26% 0.018 229.4)",
+          "oklch(37% 0.03 229.4)",
+          "oklch(48% 0.043 229.4)",
+          "oklch(60% 0.045 229.4)",
+          "oklch(72% 0.032 229.4)",
+          "oklch(84% 0.018 229.4)",
+          "oklch(95% 0.007 229.4)"
+        ],
+        "theme": "dark"
+      },
+      "sheet-dark-out": {
+        "role": "neutral",
+        "displayName": "Dusk Sheet (dark, tide out)",
+        "canonical": "rgba(32, 36, 54, 0.74)",
+        "tonalRamp": [
+          "oklch(15% 0.005 274.2)",
+          "oklch(26% 0.014 274.2)",
+          "oklch(37% 0.023 274.2)",
+          "oklch(48% 0.033 274.2)",
+          "oklch(60% 0.034 274.2)",
+          "oklch(72% 0.024 274.2)",
+          "oklch(84% 0.014 274.2)",
+          "oklch(95% 0.005 274.2)"
+        ],
+        "theme": "dark"
+      },
+      "solid-dark": {
+        "role": "neutral",
+        "displayName": "Solid (dark)",
+        "canonical": "#112631",
+        "tonalRamp": [
+          "oklch(15% 0.007 233.2)",
+          "oklch(26% 0.018 233.2)",
+          "oklch(37% 0.03 233.2)",
+          "oklch(48% 0.042 233.2)",
+          "oklch(60% 0.044 233.2)",
+          "oklch(72% 0.031 233.2)",
+          "oklch(84% 0.018 233.2)",
+          "oklch(95% 0.007 233.2)"
+        ],
+        "theme": "dark"
+      },
+      "solid-raised-dark": {
+        "role": "neutral",
+        "displayName": "Raised Solid (dark)",
+        "canonical": "#16303d",
+        "tonalRamp": [
+          "oklch(15% 0.007 232.2)",
+          "oklch(26% 0.019 232.2)",
+          "oklch(37% 0.032 232.2)",
+          "oklch(48% 0.045 232.2)",
+          "oklch(60% 0.047 232.2)",
+          "oklch(72% 0.033 232.2)",
+          "oklch(84% 0.019 232.2)",
+          "oklch(95% 0.007 232.2)"
+        ],
+        "theme": "dark"
+      },
+      "scrim-dark": {
+        "role": "neutral",
+        "displayName": "Scrim (dark)",
+        "canonical": "rgba(16, 41, 58, 0.45)",
+        "tonalRamp": [
+          "oklch(15% 0.007 240.8)",
+          "oklch(26% 0.018 240.8)",
+          "oklch(37% 0.03 240.8)",
+          "oklch(48% 0.042 240.8)",
+          "oklch(60% 0.044 240.8)",
+          "oklch(72% 0.031 240.8)",
+          "oklch(84% 0.018 240.8)",
+          "oklch(95% 0.007 240.8)"
+        ],
+        "theme": "dark"
+      },
+      "shore-sand-dark": {
+        "role": "secondary",
+        "displayName": "Amber Sand (dark)",
+        "canonical": "#6b5236",
+        "tonalRamp": [
+          "oklch(15% 0.013 67.4)",
+          "oklch(26% 0.035 67.4)",
+          "oklch(37% 0.059 67.4)",
+          "oklch(48% 0.083 67.4)",
+          "oklch(60% 0.087 67.4)",
+          "oklch(72% 0.061 67.4)",
+          "oklch(84% 0.035 67.4)",
+          "oklch(95% 0.013 67.4)"
+        ],
+        "theme": "dark"
+      },
+      "shore-foam-dark": {
+        "role": "secondary",
+        "displayName": "Dusk Light (dark)",
+        "canonical": "#132d40",
+        "tonalRamp": [
+          "oklch(15% 0.01 237.2)",
+          "oklch(26% 0.026 237.2)",
+          "oklch(37% 0.044 237.2)",
+          "oklch(48% 0.062 237.2)",
+          "oklch(60% 0.065 237.2)",
+          "oklch(72% 0.046 237.2)",
+          "oklch(84% 0.026 237.2)",
+          "oklch(95% 0.01 237.2)"
+        ],
+        "theme": "dark"
+      },
+      "shore-shallows-dark": {
+        "role": "secondary",
+        "displayName": "Shallows (dark)",
+        "canonical": "#13505a",
+        "tonalRamp": [
+          "oklch(15% 0.012 200.7)",
+          "oklch(26% 0.032 200.7)",
+          "oklch(37% 0.054 200.7)",
+          "oklch(48% 0.076 200.7)",
+          "oklch(60% 0.08 200.7)",
+          "oklch(72% 0.056 200.7)",
+          "oklch(84% 0.032 200.7)",
+          "oklch(95% 0.012 200.7)"
+        ],
+        "theme": "dark"
+      },
+      "shore-sea-dark": {
+        "role": "secondary",
+        "displayName": "Open Sea (dark)",
+        "canonical": "#145b6c",
+        "tonalRamp": [
+          "oklch(15% 0.013 214.2)",
+          "oklch(26% 0.036 214.2)",
+          "oklch(37% 0.06 214.2)",
+          "oklch(48% 0.085 214.2)",
+          "oklch(60% 0.089 214.2)",
+          "oklch(72% 0.062 214.2)",
+          "oklch(84% 0.036 214.2)",
+          "oklch(95% 0.013 214.2)"
+        ],
+        "theme": "dark"
+      },
+      "shore-deep-dark": {
+        "role": "secondary",
+        "displayName": "Deep Water (dark)",
+        "canonical": "#15335c",
+        "tonalRamp": [
+          "oklch(15% 0.015 252.3)",
+          "oklch(26% 0.041 252.3)",
+          "oklch(37% 0.069 252.3)",
+          "oklch(48% 0.097 252.3)",
+          "oklch(60% 0.103 252.3)",
+          "oklch(72% 0.072 252.3)",
+          "oklch(84% 0.041 252.3)",
+          "oklch(95% 0.015 252.3)"
+        ],
+        "theme": "dark"
+      },
+      "shore-bay-dark": {
+        "role": "secondary",
+        "displayName": "Bay (dark)",
+        "canonical": "#114552",
+        "tonalRamp": [
+          "oklch(15% 0.012 211.9)",
+          "oklch(26% 0.031 211.9)",
+          "oklch(37% 0.052 211.9)",
+          "oklch(48% 0.073 211.9)",
+          "oklch(60% 0.077 211.9)",
+          "oklch(72% 0.054 211.9)",
+          "oklch(84% 0.031 211.9)",
+          "oklch(95% 0.012 211.9)"
+        ],
+        "theme": "dark"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles in the sheet head, with a tabular count beside them; the About name."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Dialog titles; the brand word in the top bar."
+      },
+      "title-section": {
+        "displayName": "Section title",
+        "purpose": "Guide and prose section headings, including the tester."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Opening sentence of each guided-setup step; the guide intro."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All interface text; prose at line-height 1.55 and 68ch."
+      },
+      "body-strong": {
+        "displayName": "Body strong",
+        "purpose": "Buttons, nav pills, field labels, row titles, rule names."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Hints, errors, toast and setup sub-lines; 600 for group titles and day rows."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase table column headers; badges and stepper labels at the same size without uppercase."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Folder paths, patterns, extensions, kbd; sample file chips at 11.5px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-deck",
+        "value": "0 0 0 0.5px rgba(18,36,44,0.08), 0 18px 50px rgba(20,60,70,0.1)",
+        "purpose": "Control Deck top bar (token --shadow-side)."
+      },
+      {
+        "name": "shadow-sheet",
+        "value": "0 0 0 0.5px rgba(18,36,44,0.1), 0 24px 60px rgba(20,60,70,0.14)",
+        "purpose": "Content sheet glass pane."
+      },
+      {
+        "name": "shadow-group",
+        "value": "0 0 0 0.5px rgba(18,36,44,0.12), 0 1px 2px rgba(18,36,44,0.04)",
+        "purpose": "Solid grouped settings lists and the tester."
+      },
+      {
+        "name": "shadow-pop",
+        "value": "0 0 0 0.5px rgba(18,36,44,0.14), 0 18px 48px rgba(20,60,70,0.22)",
+        "purpose": "Dialogs, toasts, skip link."
+      },
+      {
+        "name": "shadow-pill",
+        "value": "0 0 0 0.5px var(--hair-strong), 0 2px 6px rgba(20,60,70,0.08)",
+        "purpose": "Active nav pill, light theme only."
+      },
+      {
+        "name": "shadow-deck-dark",
+        "value": "0 0 0 0.5px rgba(0,0,0,0.35), 0 18px 50px rgba(2,14,22,0.35)",
+        "purpose": "Top bar, dark theme."
+      },
+      {
+        "name": "shadow-sheet-dark",
+        "value": "0 0 0 0.5px rgba(0,0,0,0.4), 0 24px 60px rgba(2,14,22,0.42)",
+        "purpose": "Sheet, dark theme."
+      },
+      {
+        "name": "shadow-group-dark",
+        "value": "0 0 0 0.5px rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.25)",
+        "purpose": "Groups, dark theme."
+      },
+      {
+        "name": "shadow-pop-dark",
+        "value": "0 0 0 0.5px rgba(255,255,255,0.12), 0 24px 60px rgba(2,14,22,0.5)",
+        "purpose": "Dialogs and toasts, dark theme."
+      },
+      {
+        "name": "glass-deck",
+        "value": "backdrop-filter: blur(40px) saturate(180%)",
+        "purpose": "Top bar material (more transparent pane)."
+      },
+      {
+        "name": "glass-sheet",
+        "value": "backdrop-filter: blur(40px) saturate(160%)",
+        "purpose": "Content sheet material (denser pane)."
+      },
+      {
+        "name": "shore-blur",
+        "value": "filter: blur(72px) saturate(1.05)",
+        "purpose": "Shoreline field blur; fields extend 140px past the window."
+      },
+      {
+        "name": "caption-band",
+        "value": "linear-gradient(var(--canvas) 6px, color-mix(in srgb, var(--canvas) 55%, transparent) 40px, transparent), 120px tall",
+        "purpose": "Canvas band under the native title bar."
+      },
+      {
+        "name": "scrim-blur",
+        "value": "backdrop-filter: blur(6px) saturate(1.15)",
+        "purpose": "Canvas-tinted dialog scrim."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid var(--focus); outline-offset: 2px",
+        "purpose": "Global keyboard focus."
+      },
+      {
+        "name": "input-focus-halo",
+        "value": "0 0 0 3px var(--accent-soft)",
+        "purpose": "Text input focus, with accent border."
+      },
+      {
+        "name": "list-fade",
+        "value": "mask-image: linear-gradient(#000 calc(100% - 28px), transparent); padding-bottom: 24px",
+        "purpose": "Scroll cue on guided-setup rule and preview lists."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Tide, dialog and toast entry, switch thumb."
+      },
+      {
+        "name": "tide",
+        "value": "2.4s ease-out (fields, dark sheet colour); 2.2s (filter)",
+        "purpose": "Shoreline transition between tide in and tide out; skipped on first render."
+      },
+      {
+        "name": "state-fast",
+        "value": "0.15s ease",
+        "purpose": "Hover background, border, and colour changes on controls and nav pills."
+      },
+      {
+        "name": "row-hover",
+        "value": "0.12s ease",
+        "purpose": "Table row hover and mover reveal."
+      },
+      {
+        "name": "switch",
+        "value": "0.18s",
+        "purpose": "Switch track colour and thumb travel."
+      },
+      {
+        "name": "invite",
+        "value": "2.8s ease-in-out infinite, 0 to 5px teal halo at 20%",
+        "purpose": "First-run Start monitoring button only; stops on hover and focus."
+      },
+      {
+        "name": "stepper",
+        "value": "0.3s ease",
+        "purpose": "Guided-setup stepper bar colour."
+      },
+      {
+        "name": "tester-result",
+        "value": "0.25s ease",
+        "purpose": "Tester result background change."
+      },
+      {
+        "name": "fade-in",
+        "value": "0.18s ease-out",
+        "purpose": "Dialog scrim."
+      },
+      {
+        "name": "rise-in",
+        "value": "translateY(6px) scale(0.99) to rest, 0.24s dialog / 0.26s toast",
+        "purpose": "Dialog and toast entry."
+      },
+      {
+        "name": "monitor-tint",
+        "value": "0.4s ease (chip), 0.6s ease (top bar)",
+        "purpose": "Monitoring state colour changes."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "all transitions and animations 0.01ms, one iteration",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "window-min",
+        "value": "1000px x 700px"
+      },
+      {
+        "name": "narrow",
+        "value": "899px"
+      },
+      {
+        "name": "compact",
+        "value": "1199px"
+      },
+      {
+        "name": "window-max",
+        "value": "1600px x 1000px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action of a page head or a dialog confirm; autofocused in dialogs.",
+      "html": "<button class=\"ds-btn-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>New rule</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-control, 8px); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; background: var(--accent, #0a6f7b); color: var(--ink-on-accent, #fff); border: 1px solid transparent; } .ds-btn-primary:hover { background: var(--accent-hover, #075b65); } .ds-btn-primary:focus-visible { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default secondary action on a translucent control fill.",
+      "html": "<button class=\"ds-btn\">Preview</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-control, 8px); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; background: var(--control, rgba(255,255,255,0.8)); color: var(--ink, #12242c); border: 1px solid var(--hair-strong, rgba(18,36,44,0.14)); } .ds-btn:hover { background: var(--fill-hover, rgba(18,36,44,0.065)); } .ds-btn:focus-visible { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive action outside a confirm dialog.",
+      "html": "<button class=\"ds-btn-danger\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg>Delete rule</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-control, 8px); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; background: var(--control, rgba(255,255,255,0.8)); color: var(--danger-text, #9c2626); border: 1px solid var(--danger-line, rgba(178,58,58,0.36)); } .ds-btn-danger:hover { background: var(--danger-soft, rgba(178,58,58,0.09)); } .ds-btn-danger:focus-visible { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Page-head search well; turns to a control fill with a teal edge on focus.",
+      "html": "<label class=\"ds-search\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" placeholder=\"Search rules\" /></label>",
+      "css": ".ds-search { display: flex; align-items: center; gap: 7px; height: 30px; width: 240px; padding: 0 10px; border-radius: var(--r-control, 8px); background: var(--fill, rgba(18,36,44,0.045)); border: 1px solid var(--hair, rgba(18,36,44,0.08)); color: var(--ink-2, #44575f); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; } .ds-search:focus-within { border-color: var(--accent-line, rgba(10,111,123,0.36)); background: var(--control, rgba(255,255,255,0.8)); outline: 2px solid var(--focus, #0a6f7b); outline-offset: 1px; } .ds-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--ink, #12242c); font: inherit; } .ds-search input::placeholder { color: var(--ink-3, #55676f); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Solid field with a teal border and soft halo on focus; mono for paths.",
+      "html": "<input class=\"ds-input\" value=\"C:\\Users\\you\\Downloads\\Images\" />",
+      "css": ".ds-input { width: 280px; height: 32px; padding: 0 10px; border-radius: var(--r-control, 8px); border: 1px solid var(--hair-strong, rgba(18,36,44,0.14)); background: var(--solid, #fff); color: var(--ink, #12242c); font-family: var(--font-mono, \"JetBrains Mono\", Consolas, monospace); font-size: 12px; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-input:hover { border-color: rgba(18,36,44,0.26); } .ds-input:focus { outline: none; border-color: var(--accent, #0a6f7b); box-shadow: 0 0 0 3px var(--accent-soft, rgba(10,111,123,0.12)); }"
+    },
+    {
+      "name": "Switch",
+      "kind": "custom",
+      "refersTo": "switch",
+      "description": "Native checkbox drawn as a pill; teal when on.",
+      "html": "<label class=\"ds-switch\"><input type=\"checkbox\" role=\"switch\" checked aria-label=\"Active monitoring\" /><span class=\"ds-switch-track\"></span></label>",
+      "css": ".ds-switch { position: relative; display: inline-flex; cursor: pointer; } .ds-switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: inherit; } .ds-switch-track { width: 30px; height: 18px; padding: 2px; box-sizing: border-box; border-radius: 999px; background: var(--track-off, rgba(18,36,44,0.24)); display: flex; pointer-events: none; transition: background-color 0.18s ease; } .ds-switch-track::after { content: \"\"; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.18s cubic-bezier(0.22,1,0.36,1); } .ds-switch input:checked + .ds-switch-track { background: var(--accent, #0a6f7b); } .ds-switch input:checked + .ds-switch-track::after { transform: translateX(12px); } .ds-switch input:focus-visible + .ds-switch-track { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Control Deck",
+      "kind": "nav",
+      "refersTo": "topbar",
+      "description": "Frosted top bar: brand, destination pills, monitoring chip; the active pill is solid with teal text.",
+      "html": "<header class=\"ds-deck\"><span class=\"ds-brand\"><span class=\"ds-mark\">H</span>Harbor</span><nav class=\"ds-nav\"><a class=\"ds-pill is-active\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18\"/><path d=\"M7 12h10\"/><path d=\"M10 18h4\"/></svg><span>Rules</span></a><a class=\"ds-pill\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l4 2\"/></svg><span>Activity</span></a></nav></header>",
+      "css": ".ds-deck { display: flex; align-items: center; gap: 20px; min-height: 56px; box-sizing: border-box; padding: 8px 10px 8px 14px; border-radius: 16px; background: var(--side, rgba(255,255,255,0.4)); border: 1px solid var(--side-edge, rgba(255,255,255,0.65)); box-shadow: 0 0 0 0.5px rgba(18,36,44,0.08), 0 18px 50px rgba(20,60,70,0.1); backdrop-filter: blur(40px) saturate(180%); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; color: var(--ink, #12242c); } .ds-brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -0.3px; } .ds-mark { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--accent, #0a6f7b); color: #fff; font-size: 14px; } .ds-nav { display: flex; gap: 2px; } .ds-pill { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 13px; border-radius: 10px; font-weight: 500; color: var(--ink-2, #44575f); text-decoration: none; transition: background-color 0.15s ease, color 0.15s ease; } .ds-pill:hover { background: var(--fill-hover, rgba(18,36,44,0.065)); color: var(--ink, #12242c); } .ds-pill.is-active { background: var(--solid, #fff); color: var(--accent-text, #08656f); box-shadow: 0 0 0 0.5px var(--hair-strong, rgba(18,36,44,0.14)), 0 2px 6px rgba(20,60,70,0.08); } .ds-pill:focus-visible { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Monitoring Chip",
+      "kind": "custom",
+      "refersTo": "monitor-chip",
+      "description": "Top bar state chip; shown in its first-run \"Ready to start\" invitation.",
+      "html": "<section class=\"ds-monitor\"><span class=\"ds-dot\"></span><span class=\"ds-monitor-label\"><span class=\"ds-monitor-title\">Ready to start</span><span class=\"ds-monitor-text\">Harbor will tidy Downloads</span></span><button class=\"ds-start\">Start monitoring</button></section>",
+      "css": ".ds-monitor { display: inline-flex; align-items: center; gap: 10px; height: 40px; box-sizing: border-box; padding: 0 8px 0 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent, #0a6f7b) 10%, var(--side-card, rgba(255,255,255,0.55))); border: 1px solid var(--accent-line, rgba(10,111,123,0.36)); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; color: var(--ink, #12242c); } .ds-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent, #0a6f7b); } .ds-monitor-label { display: flex; flex-direction: column; line-height: 1.2; } .ds-monitor-title { font-weight: 600; color: var(--accent-text, #08656f); } .ds-monitor-text { font-size: 11px; color: var(--ink-2, #44575f); } .ds-start { height: 28px; padding: 0 12px; border-radius: 8px; border: 0; background: var(--accent, #0a6f7b); color: var(--ink-on-accent, #fff); font: inherit; font-weight: 600; cursor: pointer; animation: ds-invite 2.8s ease-in-out infinite; } .ds-start:hover { background: var(--accent-hover, #075b65); animation: none; } .ds-start:focus-visible { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; animation: none; } @keyframes ds-invite { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 5px rgba(10,111,123,0.2); } } @media (prefers-reduced-motion: reduce) { .ds-start { animation: none; } }"
+    },
+    {
+      "name": "Sample Chip",
+      "kind": "chip",
+      "refersTo": "sample-chip",
+      "description": "Example file names in the try-a-file-name tester; pressed takes the teal wash.",
+      "html": "<span style=\"display:flex;gap:6px\"><button class=\"ds-chip\" aria-pressed=\"true\">invoice-march.pdf</button><button class=\"ds-chip\" aria-pressed=\"false\">talk.mp4</button></span>",
+      "css": ".ds-chip { height: 26px; padding: 0 10px; border-radius: 13px; border: 1px solid var(--hair-strong, rgba(18,36,44,0.14)); background: var(--control, rgba(255,255,255,0.8)); color: var(--ink-2, #44575f); font-family: var(--font-mono, \"JetBrains Mono\", Consolas, monospace); font-size: 11.5px; cursor: pointer; } .ds-chip:hover { color: var(--ink, #12242c); border-color: var(--accent-line, rgba(10,111,123,0.36)); } .ds-chip[aria-pressed=\"true\"] { background: var(--accent-soft, rgba(10,111,123,0.12)); border-color: var(--accent-line, rgba(10,111,123,0.36)); color: var(--accent-text, #08656f); } .ds-chip:focus-visible { outline: 2px solid var(--focus, #0a6f7b); outline-offset: 2px; }"
+    },
+    {
+      "name": "Grouped List",
+      "kind": "card",
+      "refersTo": "group",
+      "description": "Solid settings group with hairline-divided rows.",
+      "html": "<div class=\"ds-group\"><div class=\"ds-group-row\"><div><div class=\"ds-title\">Launch at startup</div><div class=\"ds-desc\">Open Harbor when you sign in.</div></div></div><div class=\"ds-group-row\"><div><div class=\"ds-title\">Reduce transparency</div><div class=\"ds-desc\">Solid panels; monitoring shows as a top bar tint.</div></div></div></div>",
+      "css": ".ds-group { width: 420px; background: var(--solid, #fff); border-radius: var(--r-card, 10px); box-shadow: 0 0 0 0.5px rgba(18,36,44,0.12), 0 1px 2px rgba(18,36,44,0.04); font-family: var(--font-sans, \"Sora Variable\", \"Segoe UI\", system-ui, sans-serif); font-size: 13px; } .ds-group-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 52px; box-sizing: border-box; border-bottom: 1px solid var(--hair, rgba(18,36,44,0.08)); } .ds-group-row:last-child { border-bottom: 0; } .ds-title { font-weight: 500; color: var(--ink, #12242c); } .ds-desc { color: var(--ink-2, #44575f); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Shoreline Glass",
+    "overview": "Harbor is a calm native utility seen through frosted glass, with a bright aerial shoreline blurred behind it: sunlit sand bottom-left, turquoise shallows and a bay, sea-blue and deep water top-right. The backdrop is six large, heavily blurred colour fields, static at rest. Over it sits the Control Deck: a frosted top bar, the most transparent pane, holding the brand, four destination pills, the monitoring chip and quiet utility links; below it an opaque-leaning content sheet. Tables, forms, grouped settings, the guide's tester and dialogs sit on near-solid surfaces so glass never hurts reading. The native title bar, the window border and the window background all take the canvas colour, and a canvas band at the top of the shell runs under the caption, so the window chrome flows into the app.\n\nThe shoreline is not decoration; it carries state. While monitoring runs the tide is in and water reaches across the frame. When monitoring is paused the tide goes out: water draws back toward the top right and sunlit sand widens, still in full colour, a calm change of scene and never a grey-out. In dark theme, a teal-blue dusk rather than near-black, the paused tide also warms the sheet toward a dusk violet-grey and moves secondary ink to warm sand so it still reads at 4.5:1. Errors tint only the monitoring chip. On first run, \"off\" is an invitation: the chip reads \"Ready to start\" with a Start monitoring button until monitoring starts. With Reduce transparency on, the backdrop and blurs go away and the same state appears as a top bar tint.\n\nDensity is that of a desktop utility: 13px body, 30px controls, 46px table rows, a supported window from 1000×700 to 1600×1000. One sea-teal accent, muted state colours, monochrome line icons, hairlines. Light is airy and sunny; dark is dusk on the water. It refuses the grey-sidebar-plus-card dashboard, the near-black \"pro\" look, and the earlier cartoon-harbour look: no scenery illustrations, no rainbow of icon colours, no nautical puns in copy.",
+    "keyCharacteristics": [
+      "Six-field blurred shoreline that reports monitoring state through the tide; paused stays colourful.",
+      "Control Deck shell: frosted top bar (blur 40px, saturate 180%) above a denser content sheet (blur 40px, saturate 160%); no sidebar.",
+      "Caption, window border and window background share the canvas colour; a canvas band runs under the native title bar.",
+      "Reading surfaces (groups, inputs, tester, dialogs, toasts) are solid, never glass.",
+      "One sea-teal accent; state colours stay muted and appear as small dots, tinted notices, and text.",
+      "Inter at 13px with weights 400 to 600; JetBrains Mono for paths, patterns and sample file names.",
+      "Light and dark share every rule; dark swaps tokens, and in dark the tide also swaps the sheet and secondary inks."
+    ],
+    "rules": [
+      {
+        "name": "The One Teal Rule",
+        "body": "Sea-teal is the only accent. Every interactive highlight, selection, and focus ring is teal; nothing else competes. File-type and nav icons stay monochrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Water Stays Behind the Glass Rule",
+        "body": "Shoreline colours appear only in the blurred backdrop, the guided-setup hero, the Reduce-transparency top bar tint, and the theme preview swatches. They never colour text, controls, or icons.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paused Stays Colourful Rule",
+        "body": "Paused is a change of scene, not an absence: the tide draws back and sand widens, the dot turns Calm Sand, and nothing goes grey. Only errors take Brick, and only on the monitoring chip.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tide Owns the Dusk Rule",
+        "body": "In dark theme the tide sets `--sheet`, `--side`, `--ink-2` and `--ink-3` on `.shell[data-tide]`. Any new secondary text sits on those tokens so it inherits a 4.5:1 pairing in both tides; never hard-code a secondary ink in dark.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight Not Size Rule",
+        "body": "The ramp spans 11 to 20px. Emphasis comes from 500 or 600 and from moving between Harbor Ink and Slate Ink, not from larger type.",
+        "section": "typography"
+      },
+      {
+        "name": "The Numbers Line Up Rule",
+        "body": "Counts, order indexes, sizes, preview counts and times use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glass Frames, Solid Reads Rule",
+        "body": "Only the top bar, the monitoring chip and the sheet are glass. Tables sit on the sheet's dense glass; inputs, grouped lists, the tester, dialogs, and toasts are solid.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Portal Rule",
+        "body": "Anything `position: fixed` (dialog scrims, toasts) is portaled to `document.body`, because the sheet's backdrop-filter becomes the containing block for fixed descendants and would clip them.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Reduce Transparency Rule",
+        "body": "With Reduce transparency on (app setting or OS preference), the backdrop is hidden, all blurs are removed, the sheet goes solid with a stronger edge, the monitoring chip goes solid, and monitoring state moves to the top bar tint (sea mixed 22% into canvas when watching, sand 55% when paused). Browsers without backdrop-filter get solid panes as well.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** drive the backdrop only from monitoring state through `data-tide`, and mirror it as a top bar tint under Reduce transparency.",
+      "**Do** keep `--canvas` and the native caption colour in `crates/tauri-app/src/commands/appearance.rs` identical (light #e9f1f0, dark #0b1c27).",
+      "**Do** keep reading and typing on solid surfaces; glass is for the top bar, the monitoring chip and the sheet.",
+      "**Do** put dark secondary text on `--ink-2`/`--ink-3` so the tide can swap it with the sheet.",
+      "**Do** portal dialogs, scrims, and toasts to `document.body`, and mark a dialog's primary action with `data-autofocus`.",
+      "**Do** use Sea-Teal for every interactive highlight and the 2px focus outline at 2px offset.",
+      "**Do** draw icons with lucide-react line icons in the current ink tone, 16px in navigation and dialog chrome, 14px inside compact controls.",
+      "**Do** set paths, patterns, and extensions in JetBrains Mono at 12px and ellipsise them, keeping the file name visible.",
+      "**Do** bundle fonts and icons locally; load nothing from a CDN.",
+      "**Do** keep the existing Harbor \"H\" mark as the only logo."
+    ],
+    "donts": [
+      "**Don't** reintroduce a sidebar; navigation lives in the Control Deck top bar.",
+      "**Don't** grey out or desaturate the paused state; the tide draws back, the colour stays.",
+      "**Don't** take dark theme toward near-black; the canvas stays a teal-blue dusk.",
+      "**Don't** use shoreline or sand colours for text, icons, or controls.",
+      "**Don't** put errors on the backdrop; tint the monitoring chip or a notice.",
+      "**Don't** colour file-type or navigation icons; the icon family stays monochrome.",
+      "**Don't** add scenery illustrations, toy colours, or nautical puns in copy.",
+      "**Don't** animate the backdrop in loops; it moves once per state change.",
+      "**Don't** place text directly on the blurred backdrop outside the panes.",
+      "**Don't** introduce a second accent hue or a display typeface."
+    ]
+  }
+}

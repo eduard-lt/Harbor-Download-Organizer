@@ -19,3 +19,45 @@ export function formatPath(path: string): { parent: string; leaf: string } {
 
     return { parent, leaf };
 }
+
+/**
+ * Keeps the last `keep` segments of a path, prefixed with an ellipsis when
+ * anything was dropped. The full path stays available to callers for titles.
+ */
+export function shortPath(path: string, keep = 2): string {
+    if (!path) return '';
+    const separator = path.includes('\\') ? '\\' : '/';
+    const parts = path.split(/[\\/]/).filter(Boolean);
+    if (parts.length <= keep) return path;
+    return `…${separator}${parts.slice(-keep).join(separator)}`;
+}
+
+/** Splits a "YYYY-MM-DD HH:MM:SS" activity timestamp into a day key and a time. */
+export function parseLogTimestamp(timestamp?: string): { day: string; time: string } | null {
+    const match = timestamp?.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+    if (!match) return null;
+    return { day: `${match[1]}-${match[2]}-${match[3]}`, time: `${match[4]}:${match[5]}` };
+}
+
+/** "3 files, today at 14:32" for the undoable batch; time omitted when unknown. */
+export function batchLabel(count: number, recordedAt?: string | null, now = new Date()): string {
+    const files = `${count.toLocaleString()} ${count === 1 ? 'file' : 'files'}`;
+    const when = parseLogTimestamp(recordedAt ?? undefined);
+    if (!when) return files;
+    const day = dayLabel(when.day, now);
+    return `${files}, ${day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day} at ${when.time}`;
+}
+
+/** Labels a day key as Today, Yesterday, or a short local date. */
+export function dayLabel(day: string, now = new Date()): string {
+    const [y, m, d] = day.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.round((today.getTime() - date.getTime()) / 86_400_000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+        year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+    });
+}

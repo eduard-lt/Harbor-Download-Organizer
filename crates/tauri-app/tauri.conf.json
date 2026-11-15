@@ -2,12 +2,12 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Harbor",
   "mainBinaryName": "Harbor",
-  "version": "2.2.0",
+  "version": "2.4.0",
   "identifier": "com.eduard-lt.harbor",
   "build": {
     "beforeBuildCommand": "npm run build --prefix ../packages/ui",
     "beforeDevCommand": "npm run dev --prefix ../packages/ui",
-    "devUrl": null,
+    "devUrl": "http://localhost:5173",
     "frontendDist": "../../packages/ui/dist"
   },
   "app": {
@@ -23,7 +23,7 @@
         "fullscreen": false,
         "decorations": true,
         "transparent": false,
-        "titleBarStyle": "Visible"
+        "titleBarStyle": "Transparent"
       }
     ],
     "security": {

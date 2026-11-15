@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { formatPath } from './format';
+import { batchLabel } from './format';
 
 describe('formatPath', () => {
     it('returns empty parent and original path for a path with no separator', () => {
@@ -46,5 +47,17 @@ describe('formatPath', () => {
         // Windows path takes priority since includes('\\') is checked first
         const result = formatPath('C:\\a/b\\c.txt');
         expect(result).toEqual({ parent: 'C:\\a/b', leaf: 'c.txt' });
+    });
+});
+
+describe('batchLabel', () => {
+    const now = new Date(2024, 0, 2, 18, 0);
+    it('names today and yesterday in words', () => {
+        expect(batchLabel(3, '2024-01-02 14:32:00', now)).toBe('3 files, today at 14:32');
+        expect(batchLabel(1, '2024-01-01 09:05:00', now)).toBe('1 file, yesterday at 09:05');
+    });
+    it('falls back to a date, or to the count alone without a time', () => {
+        expect(batchLabel(2, '2023-12-28 08:00:00', now)).toBe('2 files, Thu, Dec 28, 2023 at 08:00');
+        expect(batchLabel(4, null, now)).toBe('4 files');
     });
 });
