@@ -5,6 +5,17 @@ All notable changes to Harbor are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-11-15
+
+### Removed
+- The macOS app no longer bundles `Install Harbor.command`, a helper script that removed the download quarantine flag. Shipping a quarantine-stripping script is a pattern macOS security tools treat as suspicious.
+
+### Changed
+- Release builds now verify the signature of the app inside the macOS disk image before publishing.
+
+### Known issues
+- On some Macs, the downloaded app may still be reported as "damaged". Until Harbor is signed and notarized, run `xattr -cr /Applications/Harbor.app` once after copying it to Applications.
+
 ## [2.4.0] - 2026-11-15
 
 ### Added
