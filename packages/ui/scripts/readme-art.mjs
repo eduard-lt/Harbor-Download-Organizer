@@ -83,6 +83,6 @@ async function render(html, file, viewport, { selector, scale = 1 } = {}) {
 await render(banner, 'social-preview.png', { width: 1280, height: 640 });
 await render(button('Download for Windows', '64-bit installer · .exe'), 'download-windows.png',
   { width: 400, height: 120 }, { selector: '.btn', scale: 2 });
-await render(button('Download for macOS', 'Universal .dmg · macOS 15 or later'), 'download-macos.png',
+await render(button('Download for macOS', 'Universal .dmg · macOS 15+'), 'download-macos.png',
   { width: 400, height: 120 }, { selector: '.btn', scale: 2 });
 await browser.close();
