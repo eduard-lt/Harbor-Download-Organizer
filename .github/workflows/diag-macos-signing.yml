@@ -2,29 +2,24 @@ name: diag macOS signing (temporary)
 on:
   push:
     branches: [fix/macos-gatekeeper]
-    paths: ['.github/workflows/diag-macos-signing.yml']
 jobs:
-  diag:
+  build-and-check:
     runs-on: macos-latest
     steps:
-      - name: Download published 2.4.0 dmg
-        env: { GH_TOKEN: '${{ github.token }}' }
-        run: gh release download v2.4.0 -R ${{ github.repository }} -p 'Harbor_2.4.0_universal.dmg'
-      - name: Inspect
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - run: npm ci
+        working-directory: packages/ui
+      - name: Universal macOS installer
+        env:
+          TAURI_BUNDLER_DMG_IGNORE_CI: 'true'
         run: |
-          set -x
-          xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" Harbor_2.4.0_universal.dmg || true
-          hdiutil attach -nobrowse -readonly Harbor_2.4.0_universal.dmg -mountpoint /tmp/h
-          ls -la /tmp/h
-          APP=/tmp/h/Harbor.app
-          find "$APP" -maxdepth 3 | head -50
-          codesign -dvvv "$APP" 2>&1 || true
-          codesign --verify --deep --strict --verbose=4 "$APP" 2>&1 || true
-          codesign -d --entitlements - "$APP" 2>&1 || true
-          lipo -info "$APP/Contents/MacOS/Harbor" || true
-          codesign -dvvv "$APP/Contents/MacOS/Harbor" 2>&1 || true
-          cp -R "$APP" /tmp/Harbor.app
-          xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/Harbor.app
-          spctl -a -vvv -t exec /tmp/Harbor.app 2>&1 || true
-          syspolicy_check distribution /tmp/Harbor.app 2>&1 || true
-          cat "$APP/Contents/_CodeSignature/CodeResources" | head -80 || true
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          npm run tauri:build -- --target universal-apple-darwin --bundles dmg -- --locked
+        working-directory: packages/ui
+      - name: macOS Gatekeeper check
+        run: bash tools/check_macos_gatekeeper.sh target/universal-apple-darwin/release/bundle/dmg/*.dmg

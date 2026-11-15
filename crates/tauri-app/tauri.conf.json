@@ -48,9 +48,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "assets/Install Harbor.command"
-    ],
     "macOS": {
       "minimumSystemVersion": "15.0",
       "signingIdentity": "-",
