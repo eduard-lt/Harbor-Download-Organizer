@@ -40,6 +40,9 @@ jobs:
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           npm run tauri:build -- --target universal-apple-darwin --bundles dmg -- --locked
         working-directory: packages/ui
+      - name: macOS signature check
+        if: runner.os == 'macOS'
+        run: bash tools/check_macos_signature.sh target/universal-apple-darwin/release/bundle/dmg/*.dmg
       - uses: actions/upload-artifact@v7
         with:
           name: installers-${{ matrix.os }}
