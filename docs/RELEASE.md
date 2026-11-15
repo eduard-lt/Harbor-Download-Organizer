@@ -1,5 +1,45 @@
 # Release checklist and current status
 
+## Distribution and signing status
+
+These notes used to live in the README.
+
+- Windows ships one per-user NSIS `.exe` installer. MSI is discontinued.
+- macOS ships a universal (Intel and Apple Silicon) `.dmg`, with macOS 15 as the
+  configured minimum. No claim of verified macOS 15 compatibility is made until it
+  is tested on that OS.
+- Windows signing and Apple Developer signing/notarization are not configured.
+  Windows builds are unsigned; macOS builds are ad-hoc signed.
+- Installed-app and upgrade testing on Windows and macOS is separate from the
+  automated tests. See "Native acceptance before publication" below.
+
+## Download links
+
+Release assets are versioned (`Harbor_<version>_x64-setup.exe`,
+`Harbor_<version>_universal.dmg`). So the README buttons can point at
+`releases/latest/download/...`, the release workflow also attaches fixed-name copies
+and a checksum file to every draft:
+
+- `Harbor-Windows-x64-Setup.exe`
+- `Harbor-macOS-Universal.dmg`
+- `SHA256SUMS.txt` (covers both the fixed-name and the versioned installers)
+
+`releases/latest` only resolves to a published, non-prerelease release. A draft
+prerelease does not move the README buttons until it is published and marked latest.
+For a release made before the workflow change, attach the copies by hand:
+
+```sh
+gh release download vX.Y.Z --pattern '*.exe' --pattern '*.dmg' --dir dist
+cp dist/Harbor_X.Y.Z_x64-setup.exe dist/Harbor-Windows-x64-Setup.exe
+cp dist/Harbor_X.Y.Z_universal.dmg dist/Harbor-macOS-Universal.dmg
+(cd dist && sha256sum -- * > SHA256SUMS.txt)
+gh release upload vX.Y.Z dist/Harbor-Windows-x64-Setup.exe dist/Harbor-macOS-Universal.dmg dist/SHA256SUMS.txt
+```
+
+README screenshots, the banner (also the GitHub social preview) and the download
+buttons are regenerated with `packages/ui/scripts/readme-screenshots.mjs` and
+`packages/ui/scripts/readme-art.mjs`; see the comments at the top of each.
+
 ## 2.2.0 - release validation
 
 This version adds reliability fixes, Windows branding/startup repair, folder selection,
