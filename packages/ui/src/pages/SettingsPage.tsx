@@ -3,6 +3,7 @@ import { open } from '@tauri-apps/plugin-shell';
 import { ChevronRight, CircleAlert, TriangleAlert } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/Header';
+import { GlassLens } from '../components/GlassLens';
 import { useSettings } from '../hooks/useSettings';
 import { useUpdateContext } from '../context/UpdateContext';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -209,6 +210,7 @@ export function SettingsPage() {
                     <div className="title" id="size-label">Window size</div>
                   </div>
                   <div className="seg" role="group" aria-labelledby="size-label">
+                    <GlassLens />
                     {presets.map((size) => {
                       const active = currentSize?.width === size.width && currentSize?.height === size.height;
                       return (

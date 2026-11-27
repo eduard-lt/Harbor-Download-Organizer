@@ -103,6 +103,7 @@ fn main() {
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             commands::appearance::set_window_appearance,
+            commands::appearance::resize_window_animated,
             commands::preview_organization,
             commands::undo_last_batch,
             commands::get_last_batch,

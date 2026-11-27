@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getCurrentWindow, LogicalSize, LogicalPosition, currentMonitor } from '@tauri-apps/api/window';
 import type { UnlistenFn } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 
 const STORAGE_SIZE_KEY = 'harbor-window-size';
 const STORAGE_POSITION_KEY = 'harbor-window-position';
@@ -188,7 +189,13 @@ export function useWindowSize() {
     const setSize = async (size: WindowSize) => {
         setCurrentSize(size);
         localStorage.setItem(STORAGE_SIZE_KEY, JSON.stringify(size));
-        // When user explicitly changes size, center the window on the current monitor
+        // When user explicitly changes size, center the window on the current monitor.
+        // macOS animates the frame natively; elsewhere (or if that fails) resize instantly.
+        try {
+            if (await invoke<boolean>('resize_window_animated', { width: size.width, height: size.height })) return;
+        } catch {
+            // fall through to the instant resize
+        }
         await applySizeAndPosition(size, false);
     };
 

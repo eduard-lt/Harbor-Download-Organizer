@@ -11,9 +11,12 @@ const mockFns = vi.hoisted(() => {
         mockScaleFactor: vi.fn(),
         mockOnMoved: vi.fn(),
         mockCurrentMonitor: vi.fn(),
+        mockInvoke: vi.fn(),
     };
     return mocks;
 });
+
+vi.mock('@tauri-apps/api/core', () => ({ invoke: mockFns.mockInvoke }));
 
 vi.mock('@tauri-apps/api/window', () => ({
     getCurrentWindow: () => ({
@@ -45,6 +48,7 @@ const {
     mockScaleFactor,
     mockOnMoved,
     mockCurrentMonitor,
+    mockInvoke,
 } = mockFns;
 
 describe('useWindowSize', () => {
@@ -56,6 +60,7 @@ describe('useWindowSize', () => {
             size: { width: 1920, height: 1080 }
         });
         mockSetSize.mockResolvedValue(undefined);
+        mockInvoke.mockResolvedValue(false);
         mockSetPosition.mockResolvedValue(undefined);
         mockCenter.mockResolvedValue(undefined);
         mockOuterPosition.mockResolvedValue({ x: 100, y: 200 });
@@ -153,6 +158,23 @@ describe('useWindowSize', () => {
         expect(mockSetSize).toHaveBeenCalled();
         // Explicit preset changes should center
         expect(mockCenter).toHaveBeenCalled();
+    });
+
+    it('setSize uses the native animated resize when available', async () => {
+        const { result } = renderHook(() => useWindowSize());
+        await waitFor(() => expect(result.current.currentSize).not.toBeNull());
+        mockSetSize.mockClear();
+        mockCenter.mockClear();
+        mockInvoke.mockResolvedValue(true);
+
+        await act(async () => {
+            await result.current.setSize(PRESET_SIZES[2]);
+        });
+
+        expect(mockInvoke).toHaveBeenCalledWith('resize_window_animated', { width: 1600, height: 1000 });
+        expect(mockSetSize).not.toHaveBeenCalled();
+        expect(mockCenter).not.toHaveBeenCalled();
+        expect(result.current.currentSize).toEqual(PRESET_SIZES[2]);
     });
 
     it('registers onMoved listener on mount and cleans up on unmount', async () => {
