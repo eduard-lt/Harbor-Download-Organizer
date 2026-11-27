@@ -5,6 +5,16 @@ All notable changes to Harbor are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-11-27
+
+### Added
+- Liquid-glass selection lens on the top bar and on the Activity filters, Window size and Info tabs. It slides and stretches to the selected item, and you can drag it across the bar to pick one.
+- On Windows the lens bends the background at its edges, with a slight colour fringe.
+
+### Changed
+- Glass surfaces have a lit rim and inner highlight; dialogs and toasts use thicker glass. Reduce transparency still shows solid surfaces.
+- On macOS, the window size presets resize the window smoothly instead of snapping.
+
 ## [2.4.1] - 2026-11-15
 
 ### Removed
