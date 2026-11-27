@@ -6,6 +6,7 @@ import { matchFile } from '../lib/matchRule';
 import { fileIcon } from '../lib/icons';
 import { shortPath } from '../lib/format';
 import { Header } from '../components/Header';
+import { GlassLens } from '../components/GlassLens';
 import { useUpdateContext } from '../context/UpdateContext';
 import packageJson from '../../package.json';
 
@@ -171,6 +172,7 @@ export function InfoPage() {
     <div className="page">
       <Header title="Info & Guide">
         <div className="seg" role="tablist" aria-label="Info sections" onKeyDown={onKeyDown}>
+          <GlassLens />
           {tabs.map(tab => (
             <button key={tab.id} ref={el => { refs.current[tab.id] = el; }} type="button" role="tab" id={`tab-${tab.id}`}
               aria-selected={activeTab === tab.id} aria-controls={`panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1}

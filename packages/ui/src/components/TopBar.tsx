@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { setMonitoringCue, useMonitoringCue } from '../lib/monitoringCue';
 import { formatPath } from '../lib/format';
 import { Switch } from './Switch';
+import { GlassLens } from './GlassLens';
 
 const REPO_URL = 'https://github.com/eduard-lt/Harbor-Download-Organizer';
 
@@ -49,6 +50,7 @@ export function TopBar() {
         <span>Harbor</span>
       </div>
       <nav aria-label="Main navigation" className="nav">
+        <GlassLens />
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to} end={to === '/'}
             className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>

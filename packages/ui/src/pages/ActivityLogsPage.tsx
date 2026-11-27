@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CircleAlert, RefreshCw, Search } from 'lucide-react';
 import { Header } from '../components/Header';
+import { GlassLens } from '../components/GlassLens';
 import { ActivityTable } from '../components/ActivityTable';
 import { useActivity } from '../hooks/useActivity';
 import type { OrganizeFailureGroup } from '../lib/tauri';
@@ -60,6 +61,7 @@ export function ActivityLogsPage() {
 
       <div style={{ padding: '0 24px 10px' }} className="activity-toolbar">
         <div className="seg" role="group" aria-label="Filter by status">
+          <GlassLens />
           {filters.map(f => (
             <button key={f.value || 'all'} type="button" aria-pressed={status === f.value} onClick={() => setStatus(f.value)}>
               {f.label}

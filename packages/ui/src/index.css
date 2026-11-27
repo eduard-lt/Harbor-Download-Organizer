@@ -520,6 +520,100 @@
 }
 .dark .seg button[aria-pressed="true"], .dark .seg button[aria-selected="true"] { background: rgba(255, 255, 255, 0.12); box-shadow: none; }
 
+/* --------------------------------------------------------------------------
+   Liquid glass (technique after rust-glass: edge refraction, colour dispersion,
+   rim light from the outline). The lens rests behind the labels as a rim-lit
+   pill that stretches as it travels and swells while pressed.
+   -------------------------------------------------------------------------- */
+:root {
+  --lens-tint: rgba(255, 255, 255, 0.62);
+  --lens-rim: rgba(255, 255, 255, 0.95);
+  --lens-rim-soft: rgba(255, 255, 255, 0.2);
+  --lens-shadow: 0 1px 2px rgba(18, 36, 44, 0.1), 0 4px 14px rgba(20, 60, 70, 0.1);
+  --glass-hi: rgba(255, 255, 255, 0.7);
+  --lens-spring: cubic-bezier(0.3, 1.18, 0.4, 1);
+}
+.dark {
+  --lens-tint: rgba(255, 255, 255, 0.11);
+  --lens-rim: rgba(255, 255, 255, 0.5);
+  --lens-rim-soft: rgba(255, 255, 255, 0.06);
+  --lens-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(2, 14, 22, 0.3);
+  --glass-hi: rgba(255, 255, 255, 0.07);
+}
+.nav, .seg { position: relative; }
+.seg button { position: relative; z-index: 1; }
+.nav-link { z-index: 1; }
+.lens {
+  position: absolute; left: 0; top: 0; z-index: 0;
+  pointer-events: none;
+  border-radius: 6px;
+  background: var(--lens-tint);
+  box-shadow: var(--lens-shadow),
+    inset 0 1px 0.5px -0.5px var(--lens-rim),
+    inset 0 -1px 1px -0.5px var(--lens-rim-soft);
+  -webkit-backdrop-filter: blur(6px) saturate(170%);
+  backdrop-filter: var(--lens-filter, none) blur(6px) saturate(170%);
+  scale: 1;
+}
+.lens[data-ready] {
+  /* Position gets a slight overshoot; size never does, so the edges don't wobble. */
+  transition: transform 0.52s var(--lens-spring), width 0.52s var(--ease-out), height 0.3s var(--ease-out),
+    scale 0.3s var(--ease-out), opacity 0.2s ease, translate 0.52s var(--lens-spring);
+}
+/* While dragged the lens tracks the pointer directly; only its width eases between items. */
+.lens[data-dragging] { transition: width 0.22s var(--ease-out), scale 0.3s var(--ease-out); }
+:is(.nav, .seg):has(> .lens) { touch-action: pan-y; }
+/* WebKit would otherwise start a native link drag instead of moving the lens. */
+.nav-link { -webkit-user-drag: none; }
+.nav > .lens { border-radius: 10px; }
+/* Rim light: a 1px gradient ring, bright where the light enters and leaves. */
+.lens::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  background: linear-gradient(135deg, var(--lens-rim), var(--lens-rim-soft) 32%, transparent 50%, var(--lens-rim-soft) 68%, var(--lens-rim));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.lens[data-pressed] { scale: 1.08; }
+/* The lens is the selection now; the selected item keeps only its text colour. */
+.seg:has(> .lens) button:is([aria-pressed="true"], [aria-selected="true"]),
+.nav:has(> .lens) .nav-link.is-active { background: transparent; box-shadow: none; }
+.nav:has(> .lens) .nav-link:not(.is-active):hover { background: var(--fill); }
+.reduce-transparency .lens { background: var(--solid); -webkit-backdrop-filter: none; backdrop-filter: none; scale: 1; z-index: 0; }
+@media (prefers-reduced-transparency: reduce) {
+  .lens { background: var(--solid); -webkit-backdrop-filter: none; backdrop-filter: none; scale: 1; z-index: 0; }
+}
+
+/* Switch thumb turns to a glass lens while held. */
+.switch-track::after { transition: transform 0.28s var(--lens-spring), background-color 0.2s ease, box-shadow 0.2s ease; }
+.switch:active input:not(:disabled) + .switch-track::after {
+  transform: scale(1.4, 1.25);
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.9), inset 1px 1px 1px rgba(255, 255, 255, 0.8), 0 3px 8px rgba(0, 0, 0, 0.22);
+  -webkit-backdrop-filter: blur(1px) saturate(180%);
+  backdrop-filter: blur(1px) saturate(180%);
+}
+.switch:active input:checked:not(:disabled) + .switch-track::after { transform: translateX(15px) scale(1.4, 1.25); }
+
+/* Liquid glass surfaces: one rim-light recipe for every glass panel, card and popup. */
+:is(.sheet, .monitor, .dialog, .toast) { position: relative; }
+:is(.topbar, .sheet, .monitor, .dialog, .toast)::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+  pointer-events: none; z-index: 5;
+  background: linear-gradient(160deg, var(--lens-rim), transparent 28%, transparent 72%, var(--lens-rim-soft));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0.85;
+}
+.topbar { box-shadow: var(--shadow-side), inset 0 1px 1px rgba(255, 255, 255, 0.35), inset 0 -8px 24px -18px rgba(255, 255, 255, 0.25); }
+.dark .topbar { box-shadow: var(--shadow-side), inset 0 1px 1px rgba(255, 255, 255, 0.08); }
+.reduce-transparency :is(.topbar, .sheet, .monitor, .dialog, .toast)::after { display: none; }
+.monitor { box-shadow: inset 0 1px 1px var(--glass-hi); }
+/* Controls: regular glass, a lit top edge. */
+:is(.btn, .search, .seg, .chip, .side-link[data-emphasis]) { box-shadow: inset 0 1px 0 var(--glass-hi); }
+.btn-primary, .monitor-start { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 2px rgba(10, 60, 70, 0.2); }
+
 .badge {
   display: inline-flex; align-items: center;
   height: 18px; padding: 0 6px; border-radius: 4px;
@@ -717,7 +811,7 @@
 .about h2 { margin: 6px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
 
 /* --------------------------------------------------------------------------
-   Dialogs and toasts: solid, raised
+   Dialogs and toasts: thick glass, mostly opaque so text stays easy to read
    -------------------------------------------------------------------------- */
 .scrim {
   position: fixed; inset: 0; z-index: 50;
@@ -732,8 +826,10 @@
   width: 100%; max-width: 500px; max-height: calc(100dvh - 48px);
   display: flex; flex-direction: column;
   border-radius: var(--r-panel);
-  background: var(--solid-raised);
-  box-shadow: var(--shadow-pop);
+  background: color-mix(in srgb, var(--solid-raised) 84%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--shadow-pop), inset 0 1px 1px var(--glass-hi);
   color: var(--ink);
   animation: rise-in 0.24s var(--ease-out);
   overflow: hidden;
@@ -777,8 +873,10 @@
   display: flex; align-items: flex-start; gap: 10px;
   max-width: 420px; padding: 10px 10px 10px 12px;
   border-radius: var(--r-card);
-  background: var(--solid-raised);
-  box-shadow: var(--shadow-pop);
+  background: color-mix(in srgb, var(--solid-raised) 84%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--shadow-pop), inset 0 1px 1px var(--glass-hi);
   color: var(--ink);
   animation: rise-in 0.26s var(--ease-out);
 }
@@ -856,8 +954,11 @@ kbd { padding: 1px 5px; border-radius: 4px; background: var(--fill-hover); borde
 .reduce-transparency .shell[data-tide="in"] .topbar { background: color-mix(in srgb, var(--shore-sea) 22%, var(--canvas)); }
 .reduce-transparency .shell[data-tide="out"] .topbar { background: color-mix(in srgb, var(--shore-sand) 55%, var(--canvas)); }
 .reduce-transparency .monitor { background: var(--solid); border-color: var(--hair-strong); }
+.reduce-transparency :is(.dialog, .toast) { background: var(--solid-raised); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .reduce-transparency .monitor[data-health="error"] { background: color-mix(in srgb, var(--danger) 10%, var(--solid)); border-color: var(--danger-line); }
 @media (prefers-reduced-transparency: reduce) {
+  :is(.dialog, .toast) { background: var(--solid-raised); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  :is(.topbar, .sheet, .monitor, .dialog, .toast)::after { display: none; }
   .shore { display: none; }
   .topbar, .sheet, .scrim { -webkit-backdrop-filter: none; backdrop-filter: none; }
   .sheet { background: var(--solid); }
